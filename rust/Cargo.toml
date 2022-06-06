@@ -1,0 +1,96 @@
+[package]
+name = "epic-cash-wallet"
+version = "0.1.0"
+edition = "2021"
+
+
+#[workspace]
+#members = ["api", "chain", "config", "core", "keychain", "p2p", "servers", "store", "util", "pool", "bugreport", "wallet_api", "impls", "libwallet", "controller", "wallet_config", "wallet_util"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+#anyhow = { version = "1.0.56", features = ["backtrace"], default-features = true }
+clap = { version = "2.31", features = ["yaml"] }
+rpassword = "2.0.0"
+ctrlc = { version = "3.1", features = ["termination"] }
+jni = { version = "0.10.2", default-features = false, optional = true }
+failure = "0.1.8"
+failure_derive = "0.1.8"
+prettytable-rs = "0.7"
+log = "0.4"
+uuid = { version = "0.7", features = ["serde", "v4"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+serde_derive = "1"
+simplelog = "^0.7.4"
+openssl = { version = "0.10", features = ["vendored"] }
+zeroize = { version = "1.1.0", features = ["derive"] }
+rand = "0.6"
+reqwest = { version = "0.11", features = ["blocking", "json"] }
+rustc-serialize = "0.3.24"
+#lazy_static = "1.0"
+
+stack_test_epic_keychain = "3.0.2"
+stack_test_epic_util = "3.0.2"
+stack_test_epic_core = "3.0.2"
+
+stack_test_epic_wallet_api = "3.0.1"
+stack_test_epic_wallet_impls = "3.0.4"
+stack_test_epic_wallet_libwallet = "3.0.1"
+stack_test_epic_wallet_config = "3.0.1"
+stack_test_epic_wallet_util = "3.0.1"
+stack_test_epic_wallet_controller = "3.0.1"
+
+android_logger = "0.11.0"
+
+
+#epic_wallet_api = { git = "https://github.com/EpicCash/epic-wallet", branch = "3.0.0" }
+#epic_wallet_impls = { git = "https://github.com/EpicCash/epic-wallet", branch = "3.0.0" }
+#epic_wallet_libwallet = { git = "https://github.com/EpicCash/epic-wallet", branch = "3.0.0" }
+#epic_wallet_config = { git = "https://github.com/EpicCash/epic-wallet", branch = "3.0.0" }
+#epic_wallet_util = { git = "https://github.com/EpicCash/epic-wallet", branch = "3.0.0" }
+#epic_wallet_controller = { git = "https://github.com/EpicCash/epic-wallet", branch = "3.0.0" }
+
+# Epic box for posting slates and getting epic addresses
+#Local Testing
+#epicboxlib = { path = "../../epicbox/epicboxlib" }
+
+#tungstenite = "0.17.2"
+
+url = "2.2.2"
+#websocket = { git = "https://github.com/websockets-rs/rust-websocket.git", branch = "master"}
+websocket = "0.21.1"
+ws = "0.9.2"
+
+#Prod
+#epicboxlib = { git = "https://github.com/EpicCash/epicbox", branch = "epicbox-1.0.0"}
+
+#epic_api = { path = "./api", version = "3.0.0" }
+#epic_config = { path = "./config", version = "3.0.0" }
+#epic_core = { path = "./core", version = "3.0.0" }
+#epic_keychain = { path = "./keychain", version = "3.0.0" }
+#epic_p2p = { path = "./p2p", version = "3.0.0" }
+#epic_servers = { path = "./servers", version = "3.0.0" }
+#epic_util = { path = "./util", version = "3.0.0" }
+#epic_chain = { path = "./chain", version = "3.0.0" }
+#
+#epic_wallet_api = { path = "./wallet_api", version = "3.0.0" }
+#epic_wallet_impls = { path = "./impls", version = "3.0.0" }
+#epic_wallet_libwallet = { path = "./libwallet", version = "3.0.0" }
+#stack_test_epic_wallet_libwallet = { path = "../../../dev/epic-wallet/libwallet", version = "3.0.1" }
+#epic_wallet_controller = { path = "./controller", version = "3.0.0" }
+#epic_wallet_config = { path = "./wallet_config", version = "3.0.0" }
+#epic_wallet_util = { path = "./wallet_util", version = "3.0.0" }
+#
+[lib]
+name = "epic_cash_wallet"
+crate-type = ["cdylib"]
+
+#[build-dependencies]
+#cbindgen = "0.23.0"
+
+[patch.crates-io]
+liblmdb-sys = { git = "https://github.com/i1skn/lmdb-rs" }
+croaring-mw = { git = "https://github.com/i1skn/croaring-rs" }
+
