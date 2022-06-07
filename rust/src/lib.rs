@@ -16,6 +16,7 @@ use stack_test_epic_wallet_impls::{
     DefaultLCProvider, DefaultWalletImpl, HTTPNodeClient, HttpSlateSender, SlateSender,
 };
 
+
 use stack_test_epic_keychain::mnemonic;
 use stack_test_epic_core::global::ChainTypes;
 use stack_test_epic_core::global;
@@ -106,6 +107,64 @@ extern crate android_logger;
 use log::Level;
 use android_logger::Config as AndroidConfig;
 
+/*
+    Get mnemonic for new wallet
+*/
+// #[no_mangle]
+// pub extern fn get_mnemonic() -> *const *const u8 {
+//
+//     let mnemonic = mnemonic().unwrap();
+//     let mut split = mnemonic.split(" ");
+//
+//     let mut vec = Vec::new();
+//     for s in split {
+//         vec.push(s.as_ptr());
+//         // println!("{}", s)
+//     }
+//
+//     let p = vec.as_ptr();
+//     std::mem::forget(vec);
+//     p
+// }
+
+#[no_mangle]
+pub extern fn get_mnemonic() -> *const c_char {
+    let wallet_phrase = mnemonic().unwrap();
+    let s = CString::new(wallet_phrase).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+}
+
+/*
+    Create a new wallet
+*/
+#[no_mangle]
+pub fn wallet_init(ptr: *const c_char) -> Result<String, Error> {
+
+    let config = get_default_config();
+    let phrase = mnemonic().unwrap();
+    let password = "58498542".to_string();
+
+    // let config = Config::from_str(config_json).unwrap();
+    let wallet = get_wallet(&config)?;
+    let mut wallet_lock = wallet.lock();
+    let lc = wallet_lock.lc_provider()?;
+
+    if let wallet_exists = lc.wallet_exists(Some(&name)).unwrap() == true {
+        //Wallet exists do not create
+    }
+    lc.create_wallet(
+        None,
+        Some(ZeroingString::from(phrase)),
+        32,
+        ZeroingString::from(password),
+        false,
+    )?;
+
+    Ok("".to_owned())
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn string_from_rust(ptr: *const c_char) -> *const c_char {
 
@@ -194,40 +253,15 @@ pub unsafe extern "C" fn string_from_rust(ptr: *const c_char) -> *const c_char {
     p
 }
 
-// #[no_mangle]
-// pub unsafe extern "C" fn string_from_rusts(ptr: *const c_char) -> *const c_char {
-//     let phrase = "Likho".to_string();
-//
-//     let s = CString::new(phrase).unwrap();
-//     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-//     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-//     ptr
-// }
 
-// #[no_mangle]
-// pub extern fn get_mnemonic() -> *const *const u8 {
-//
-//     let mnemonic = mnemonic().unwrap();
-//     let mut split = mnemonic.split(" ");
-//
-//     let mut vec = Vec::new();
-//     for s in split {
-//         vec.push(s.as_ptr());
-//         // println!("{}", s)
-//     }
-//
-//     let p = vec.as_ptr();
-//     std::mem::forget(vec);
-//     p
-// }
 
-// #[no_mangle]
-// pub extern fn get_fiat_price() -> *const c_char {
-//     let seed = CString::new(mnemonic().unwrap()).unwrap();
-//     let p = seed.as_ptr(); // Get a pointer to the underlaying memory for s
-//     std::mem::forget(seed); // Give up the responsibility of cleaning up/freeing s
-//     p
-// }
+#[no_mangle]
+pub extern fn get_fiat_price() -> *const c_char {
+    let seed = CString::new(mnemonic().unwrap()).unwrap();
+    let p = seed.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(seed); // Give up the responsibility of cleaning up/freeing s
+    p
+}
 
 /*
     Create a new wallet seed
@@ -249,29 +283,7 @@ fn create_seed(seed_length: u64) -> Vec<u8> {
 
 
 
-/*
-    Create a new wallet
-*/
-pub fn wallet_init() -> Result<String, Error> {
 
-    let config = get_default_config();
-    let phrase = mnemonic().unwrap();
-    let password = "58498542".to_string();
-
-    // let config = Config::from_str(config_json).unwrap();
-    let wallet = get_wallet(&config)?;
-    let mut wallet_lock = wallet.lock();
-    let lc = wallet_lock.lc_provider()?;
-    lc.create_wallet(
-        None,
-        Some(ZeroingString::from(phrase)),
-        32,
-        ZeroingString::from(password),
-        false,
-    )?;
-
-    Ok("Wallet created".to_owned())
-}
 //
 /*
     Get wallet that will be used for calls to epic wallet
@@ -386,50 +398,50 @@ pub fn get_wallet_info(wallet: &Wallet, refresh_from_node: bool, min_confirmatio
     Ok(wallet_summary)
 }
 
-// #[derive(Serialize, Deserialize)]
-// struct Strategy {
-//     selection_strategy_is_use_all: bool,
-//     total: u64,
-//     fee: u64,
-// }
-//
-// /*
-//     Get transaction fees
-//     all possible Coin/Output selection strategies.
-// */
-// pub fn tx_strategies(
-//     wallet: &Wallet,
-//     amount: u64,
-//     minimum_confirmations: u64,
-// ) -> Result<String, Error> {
-//
-//     let mut result = vec![];
-//     wallet_lock!(wallet, w);
-//
-//     for selection_strategy_is_use_all in vec![true, false].into_iter() {
-//         let args = InitTxArgs {
-//             src_acct_name: None,
-//             amount,
-//             minimum_confirmations,
-//             max_outputs: 500,
-//             num_change_outputs: 1,
-//             estimate_only: Some(true),
-//             message: None,
-//             ..Default::default()
-//         };
-//
-//         if let Ok(slate) = owner::init_send_tx(&mut **w, None, args, true) {
-//             result.push(Strategy {
-//                 selection_strategy_is_use_all,
-//                 total: slate.amount,
-//                 fee: slate.fee,
-//
-//             })
-//         }
-//     }
-//     Ok(serde_json::to_string(&result).unwrap())
-// }
-//
+#[derive(Serialize, Deserialize)]
+struct Strategy {
+    selection_strategy_is_use_all: bool,
+    total: u64,
+    fee: u64,
+}
+
+/*
+    Get transaction fees
+    all possible Coin/Output selection strategies.
+*/
+pub fn tx_strategies(
+    wallet: &Wallet,
+    amount: u64,
+    minimum_confirmations: u64,
+) -> Result<String, Error> {
+
+    let mut result = vec![];
+    wallet_lock!(wallet, w);
+
+    for selection_strategy_is_use_all in vec![true, false].into_iter() {
+        let args = InitTxArgs {
+            src_acct_name: None,
+            amount,
+            minimum_confirmations,
+            max_outputs: 500,
+            num_change_outputs: 1,
+            estimate_only: Some(true),
+            message: None,
+            ..Default::default()
+        };
+
+        if let Ok(slate) = owner::init_send_tx(&mut **w, None, args, true) {
+            result.push(Strategy {
+                selection_strategy_is_use_all,
+                total: slate.amount,
+                fee: slate.fee,
+
+            })
+        }
+    }
+    Ok(serde_json::to_string(&result).unwrap())
+}
+
 // pub fn private_pub_key_pair() -> Result<(SecretKey, PublicKey), Error> {
 //     let s = Secp256k1::new();
 //     let secret_key = SecretKey::new(&s, &mut thread_rng());
@@ -474,19 +486,19 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<Wallet, Error> {
         Err(Error::from(ErrorKind::WalletSeedDoesntExist))
     }
 }
-//
-//
-// pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
-//     let mut wallet_lock = wallet.lock();
-//     let lc = wallet_lock.lc_provider()?;
-//     if let Ok(open_wallet) = lc.wallet_exists(None) {
-//         if open_wallet {
-//             lc.close_wallet(None)?;
-//         }
-//     }
-//     Ok("Wallet has been closed".to_owned())
-// }
-//
+
+
+pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
+    let mut wallet_lock = wallet.lock();
+    let lc = wallet_lock.lc_provider()?;
+    if let Ok(open_wallet) = lc.wallet_exists(None) {
+        if open_wallet {
+            lc.close_wallet(None)?;
+        }
+    }
+    Ok("Wallet has been closed".to_owned())
+}
+
 
 //Coingecko and binance integration
 #[derive(Debug, Serialize, Deserialize)]
@@ -512,7 +524,7 @@ struct Price {
     bitcoin: HashMap<String, i32>
 }
 
-pub fn fiat_price(symbol: String, base_currency: String) -> f64 {
+pub fn fiat_price(symbol: &str, base_currency: &str) -> f64 {
 
     let symbol = symbol.to_lowercase();
     let base_currency = base_currency.to_lowercase();

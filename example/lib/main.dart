@@ -95,6 +95,12 @@ class _MyHomePageState extends State<MyHomePage> {
     final String greetingStr = resultPtr.toDartString();
     print("- Response string:  $greetingStr");
 
+    final Pointer mnemonicPtr = mnemonic();
+    print("- Result pointer:  $mnemonicPtr");
+
+    final String mnemonicString = mnemonicPtr.toString();
+    print("- Mnemonic string:  $mnemonicString");
+
     // createFolder("test").then((value) {
     //   print(value);
     // });

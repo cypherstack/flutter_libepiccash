@@ -15,17 +15,13 @@ final DynamicLibrary greeterNative = io.Platform.isAndroid
 typedef GreetingFunction = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef GreetingFunctionFFI = Pointer<Utf8> Function(Pointer<Utf8>);
 
+typedef WalletMnemonic = Pointer Function();
+typedef WalletMnemonicFFI = Pointer Function();
+
 final GreetingFunction rustGreeting = greeterNative
     .lookup<NativeFunction<GreetingFunctionFFI>>("string_from_rust")
     .asFunction();
 
-// typedef GreetingFunction2 = Pointer<Utf8> Function(Pointer<Utf8>);
-// typedef GreetingFunctionFFI2 = Pointer<Utf8> Function(Pointer<Utf8>);
-//
-// final GreetingFunction2 rustGreeting2 = greeterNative
-//     .lookup<NativeFunction<GreetingFunctionFFI2>>("string_from_rusts")
-//     .asFunction();
-
-// final GreetingFunction rustMnemonic = greeterNative
-//     .lookup<NativeFunction<GreetingFunctionFFI>>("get_mnemonic")
-//     .asFunction();
+final WalletMnemonic mnemonic = greeterNative
+    .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
+    .asFunction();
