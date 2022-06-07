@@ -4418,8 +4418,3 @@ dependencies = [
  "crc32fast",
  "thiserror",
 ]
-
-[[patch.unused]]
-name = "croaring-mw"
-version = "0.4.5"
-source = "git+https://github.com/i1skn/croaring-rs#75416ca5543d062232e1049ba17c357446f12ffb"

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use rustc_serialize::json;
 use serde_json::to_string;
 
-use stack_test_epic_wallet_api::Owner;
+use stack_test_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
 use stack_test_epic_wallet_config::{WalletConfig};
 use stack_test_epic_wallet_libwallet::api_impl::types::InitTxArgs;
 use stack_test_epic_wallet_libwallet::api_impl::owner;
@@ -24,7 +24,9 @@ use stack_test_epic_util::file::get_first_line;
 use stack_test_epic_util::ZeroingString;
 use stack_test_epic_util::Mutex;
 use stack_test_epic_wallet_libwallet::{
-    Error, ErrorKind, WalletInst, WalletLCProvider, NodeClient, WalletInfo, wallet_lock, scan
+    address, scan, slate_versions, wallet_lock, NodeClient,
+    NodeVersionInfo, Slate, WalletInst, WalletLCProvider,
+    WalletInfo, Error, ErrorKind
 };
 use stack_test_epic_util::secp::{SecretKey, PublicKey, Secp256k1};
 use stack_test_epic_keychain::{Keychain, ExtKeychain};
@@ -140,7 +142,7 @@ pub extern fn get_mnemonic() -> *const c_char {
     Create a new wallet
 */
 #[no_mangle]
-pub fn wallet_init(ptr: *const c_char) -> Result<String, Error> {
+pub fn wallet_init() -> Result<String, Error> {
 
     let config = get_default_config();
     let phrase = mnemonic().unwrap();
@@ -151,9 +153,6 @@ pub fn wallet_init(ptr: *const c_char) -> Result<String, Error> {
     let mut wallet_lock = wallet.lock();
     let lc = wallet_lock.lc_provider()?;
 
-    if let wallet_exists = lc.wallet_exists(Some(&name)).unwrap() == true {
-        //Wallet exists do not create
-    }
     lc.create_wallet(
         None,
         Some(ZeroingString::from(phrase)),
@@ -253,16 +252,6 @@ pub unsafe extern "C" fn string_from_rust(ptr: *const c_char) -> *const c_char {
     p
 }
 
-
-
-#[no_mangle]
-pub extern fn get_fiat_price() -> *const c_char {
-    let seed = CString::new(mnemonic().unwrap()).unwrap();
-    let p = seed.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(seed); // Give up the responsibility of cleaning up/freeing s
-    p
-}
-
 /*
     Create a new wallet seed
 */
@@ -359,32 +348,15 @@ pub fn wallet_scan_outputs(
     wallet: &Wallet,
     last_retrieved_index: u64,
     highest_index: u64,
-) -> Result<String, Error> {
-    let info = scan(
-        wallet.clone(),
-        None,
-        false,
-        last_retrieved_index,
-        highest_index,
-        &None,
-    )?;
+) -> Result<(), Error> {
 
-    debug!("Debugging scan {:?}", info);
-    Ok("Likho".to_owned())
-    // let result = info.last_pmmr_index;
-    //
-    // let parent_key_id = {
-    //     wallet_lock!(wallet, w);
-    //     w.parent_key_id().clone()
-    // };
-    // {
-    //     wallet_lock!(wallet, w);
-    //     let mut batch = w.batch(None)?;
-    //     batch.save_last_confirmed_height(&parent_key_id, info.height)?;
-    //     batch.commit()?;
-    // };
-    //
-    // Ok(serde_json::to_string(&result).unwrap())
+    let owner = Owner::new(wallet.clone());
+    let info = owner.scan(
+        None,
+        Some(last_retrieved_index),
+        false,
+    ).unwrap();
+    Ok(())
 }
 
 /*
@@ -440,6 +412,178 @@ pub fn tx_strategies(
         }
     }
     Ok(serde_json::to_string(&result).unwrap())
+}
+
+fn update_state<'a, L, C, K>(
+    wallet_inst: Arc<Mutex<Box<dyn WalletInst<'a, L, C, K>>>>,
+) -> Result<bool, Error>
+    where
+        L: WalletLCProvider<'a, C, K>,
+        C: NodeClient + 'a,
+        K: Keychain + 'a,
+{
+    let parent_key_id = {
+        wallet_lock!(wallet_inst, w);
+        w.parent_key_id().clone()
+    };
+    let mut client = {
+        wallet_lock!(wallet_inst, w);
+        w.w2n_client().clone()
+    };
+    let tip = client.get_chain_tip()?;
+
+    // Step 1: Update outputs and transactions purely based on UTXO state
+
+    {
+        if !match owner::update_wallet_state(wallet_inst.clone(), None, &None, true) {
+            Ok(_) => true,
+            Err(_) => false,
+        } {
+            // We are unable to contact the node
+            return Ok(false);
+        }
+    }
+
+    let mut txs = {
+        owner::retrieve_txs(wallet_inst.clone(), None, &None, true, None, None).unwrap()
+    };
+
+    for tx in txs.1.iter_mut() {
+        // Step 2: Cancel any transactions with an expired TTL
+        if let Some(e) = tx.ttl_cutoff_height {
+            if tip.0 >= e {
+                owner::cancel_tx(wallet_inst.clone(), None, &None, Some(tx.id), None).unwrap();
+                continue;
+            }
+        }
+        // Step 3: Update outstanding transactions with no change outputs by kernel
+        if tx.confirmed {
+            continue;
+        }
+        if tx.amount_debited != 0 && tx.amount_credited != 0 {
+            continue;
+        }
+        if let Some(e) = tx.kernel_excess {
+            let res = client.get_kernel(&e, tx.kernel_lookup_min_height, Some(tip.0));
+            let kernel = match res {
+                Ok(k) => k,
+                Err(_) => return Ok(false),
+            };
+            if let Some(k) = kernel {
+                debug!("Kernel Retrieved: {:?}", k);
+                wallet_lock!(wallet_inst, w);
+                let mut batch = w.batch(None)?;
+                tx.confirmed = true;
+                tx.update_confirmation_ts();
+                batch.save_tx_log_entry(tx.clone(), &parent_key_id)?;
+                batch.commit()?;
+            }
+        }
+    }
+
+    return Ok(true);
+}
+
+pub fn txs_get(
+    wallet: &Wallet,
+    minimum_confirmations: u64,
+    refresh_from_node: bool,
+) -> Result<String, Error> {
+
+    let api = Owner::new(wallet.clone());
+    let txs = api.retrieve_txs(None, true, None, None)?;
+    let result = (txs.0, txs.1);
+    Ok(serde_json::to_string(&result).unwrap())
+}
+
+/*
+    Init tx as sender
+*/
+pub fn tx_create(
+    wallet: &Wallet,
+    amount: u64,
+    minimum_confirmations: u64,
+    selection_strategy_is_use_all: bool,
+) -> Result<String, Error> {
+    let owner_api = Owner::new(wallet.clone());
+    let accounts = owner_api.accounts(None).unwrap();
+    let account = &accounts[0].label;
+
+    let args = InitTxArgs {
+        src_acct_name: Some(account.clone()),
+        amount,
+        minimum_confirmations,
+        max_outputs: 500,
+        num_change_outputs: 1,
+        selection_strategy_is_use_all,
+        message: None,
+        ..Default::default()
+    };
+
+    let result = owner_api.init_send_tx(None, args);
+    if let Ok(slate) = result.as_ref() {
+        //TODO - Send Slate
+        //Lock slate uptputs
+        owner_api.tx_lock_outputs(None, &slate, 0);
+    }
+    let init_slate = &result.unwrap();
+    Ok(serde_json::to_string(init_slate).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+}
+
+/*
+    Cancel tx by id
+*/
+pub fn tx_cancel(wallet: &Wallet, id: u32) -> Result<String, Error> {
+    let api = Owner::new(wallet.clone());
+    api.cancel_tx(None, Some(id), None);
+    Ok("".to_owned())
+}
+
+/*
+    Check slate version
+*/
+fn check_middleware(
+    name: ForeignCheckMiddlewareFn,
+    node_version_info: Option<NodeVersionInfo>,
+    slate: Option<&Slate>,
+) -> Result<(), Error> {
+    match name {
+        // allow coinbases to be built regardless
+        ForeignCheckMiddlewareFn::BuildCoinbase => Ok(()),
+        _ => {
+            let mut bhv = 3;
+            if let Some(n) = node_version_info {
+                bhv = n.block_header_version;
+            }
+            if let Some(s) = slate {
+                if bhv > 4
+                    && s.version_info.block_header_version
+                    < slate_versions::EPIC_BLOCK_HEADER_VERSION
+                {
+                    Err(ErrorKind::Compatibility(
+                        "Incoming Slate is not compatible with this wallet. Please upgrade the node or use a different one."
+                            .into(),
+                    ))?;
+                }
+            }
+            Ok(())
+        }
+    }
+}
+
+fn tx_receive(wallet: &Wallet, account: &str, slate: &Slate) -> Result<String, Error> {
+    let foreign_api = Foreign::new(wallet.clone(), None, Some(check_middleware));
+    let response = foreign_api.receive_tx(&slate, Some(&account), None).unwrap();
+    Ok(serde_json::to_string(&response).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+}
+
+/*
+
+*/
+fn tx_finalize(wallet: &Wallet, reponse_slate: &Slate) -> Result<Slate, Error> {
+    let owner_api = Owner::new(wallet.clone());
+    let final_slate = owner_api.finalize_tx(None, &reponse_slate).unwrap();
+    Ok(final_slate)
 }
 
 // pub fn private_pub_key_pair() -> Result<(SecretKey, PublicKey), Error> {
@@ -498,6 +642,7 @@ pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
     }
     Ok("Wallet has been closed".to_owned())
 }
+
 
 
 //Coingecko and binance integration

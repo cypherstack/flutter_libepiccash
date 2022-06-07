@@ -28,5 +28,5 @@ migrate_working_dir/
 .dart_tool/
 .packages
 build/
-
+rust/src/bin
 android/src/main/jniLibs/
