@@ -8,9 +8,10 @@ import 'dart:io' as io;
 // import 'package:permission_handler/permission_handler.dart';
 
 const base = 'greeter';
-final DynamicLibrary greeterNative = io.Platform.isAndroid
-    ? DynamicLibrary.open("libepic_cash_wallet.so")
-    : DynamicLibrary.process();
+final DynamicLibrary greeterNative =
+    io.Platform.isAndroid || io.Platform.isLinux
+        ? DynamicLibrary.open("libepic_cash_wallet.so")
+        : DynamicLibrary.process();
 
 typedef GreetingFunction = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef GreetingFunctionFFI = Pointer<Utf8> Function(Pointer<Utf8>);
