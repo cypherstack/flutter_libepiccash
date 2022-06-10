@@ -7,6 +7,7 @@ import 'dart:ffi';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:flutter_libepiccash/flutter_libepiccash.dart';
+import 'dart:convert';
 import 'package:ffi/ffi.dart';
 import 'package:flutter_libepiccash/epic_cash.dart';
 
@@ -85,21 +86,80 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _incrementCounter() {
-    final String nameStr = "John Smith";
-    final Pointer<Utf8> charPointer = nameStr.toNativeUtf8();
-    print("- Calling rust_greeting with argument:  $charPointer");
+    // final String nameStr = "John Smith";
+    // final Pointer<Utf8> charPointer = nameStr.toNativeUtf8();
+    // print("- Calling rust_greeting with argument:  $charPointer");
+    //
+    // final Pointer<Utf8> resultPtr = rustGreeting(charPointer);
+    // print("- Result pointer:  $resultPtr");
+    //
+    // final String greetingStr = resultPtr.toDartString();
+    // print("- Response string:  $greetingStr");
 
-    final Pointer<Utf8> resultPtr = rustGreeting(charPointer);
-    print("- Result pointer:  $resultPtr");
-
-    final String greetingStr = resultPtr.toDartString();
-    print("- Response string:  $greetingStr");
-
-    final Pointer mnemonicPtr = mnemonic();
+    final Pointer<Utf8> mnemonicPtr = walletMnemonic();
     print("- Result pointer:  $mnemonicPtr");
 
-    final String mnemonicString = mnemonicPtr.toString();
+    final String mnemonicString = mnemonicPtr.toDartString();
     print("- Mnemonic string:  $mnemonicString");
+
+    // final Pointer<Utf8> walletInitPtr = initWallet();
+    //
+    // final String walletInitString = walletInitPtr.toDartString();
+    // print("- Mnemonic string:  $walletInitString");
+
+    var config = {};
+    config["wallet_dir"] =
+        "/data/user/0/com.example.flutter_libepiccash_example/app_flutter/test/";
+    config["check_node_api_http_addr"] = "http://95.216.215.107:3413";
+    config["chain"] = "mainnet";
+    config["account"] = "default";
+    config["api_listen_port"] = 3413;
+    config["api_listen_interface"] = "95.216.215.107";
+
+    String strConf = json.encode(config);
+    final Pointer<Utf8> configPointer = strConf.toNativeUtf8();
+
+    final String strMnemonic = mnemonicString;
+    final Pointer<Utf8> mnemonicPointer = strMnemonic.toNativeUtf8();
+    const String strPassword = "58498542";
+    final Pointer<Utf8> passwordPointer = strPassword.toNativeUtf8();
+
+    const String strName = "EpicStack";
+    final Pointer<Utf8> namePointer = strName.toNativeUtf8();
+
+    print("- Calling wallet_init with arguments:");
+
+    final Pointer<Utf8> initWalletPtr = initWallet(
+        configPointer, mnemonicPointer, passwordPointer, namePointer);
+    print("- Result pointer:  $initWalletPtr");
+
+    final String initWalletStr = initWalletPtr.toDartString();
+    print("- Response string:  $initWalletStr");
+
+    final Pointer<Utf8> walletInfoPtr =
+        walletInfo(configPointer, passwordPointer);
+    final String walletInfoStr = walletInfoPtr.toDartString();
+    print("Wallet balances info is : $walletInfoStr");
+
+    // const String recoveryPhrase =
+    //     "leave rally pen marble wheat sell lumber asset wall blast later empty tape meat lady east expect badge cancel trust mosquito base trim marine";
+    // final Pointer<Utf8> recoveryPhrasePointer = recoveryPhrase.toNativeUtf8();
+    // final Pointer<Utf8> recoverWalletPtr =
+    //     recoverWallet(configPointer, passwordPointer, recoveryPhrasePointer);
+    // final String recoverWalletStr = recoverWalletPtr.toDartString();
+    // print("Wallet recover is : $recoverWalletStr");
+    // print("Wallet info now is : $walletInfoStr");
+
+    final Pointer<Utf8> walletPhrasePtr =
+        walletPhrase(configPointer, passwordPointer);
+    final String walletPhraseStr = walletPhrasePtr.toDartString();
+    print("Recovery phrase is  : $walletPhraseStr");
+
+    final Pointer<Utf8> scanOutputsPtr =
+        scanOutPuts(configPointer, passwordPointer);
+    final String scanOutputsStr = scanOutputsPtr.toDartString();
+
+    print("Calling wallet scanner  : $scanOutputsStr");
 
     // createFolder("test").then((value) {
     //   print(value);

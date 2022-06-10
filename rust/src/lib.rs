@@ -1,4 +1,4 @@
-use std::os::raw::{c_char};
+use std::os::raw::{c_char, c_int};
 use std::ffi::{CString, CStr};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -32,8 +32,7 @@ use stack_test_epic_util::secp::{SecretKey, PublicKey, Secp256k1};
 use stack_test_epic_keychain::{Keychain, ExtKeychain};
 use stack_test_epic_util::secp::rand::Rng;
 
-//
-// use epicboxlib::types::{EpicboxAddress, EpicboxError, version_bytes};
+use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxError, version_bytes, EpicboxMessage};
 
 #[derive(Serialize, Deserialize, Clone, RustcEncodable)]
 pub struct Config {
@@ -129,8 +128,83 @@ use android_logger::Config as AndroidConfig;
 //     p
 // }
 
+/*
+    Create a new wallet
+*/
+
+pub fn init_logger() {
+    android_logger::init_once(
+        AndroidConfig::default().with_min_level(Level::Trace),
+    );
+}
+
 #[no_mangle]
-pub extern fn get_mnemonic() -> *const c_char {
+pub unsafe extern "C" fn wallet_init(
+    config: *const c_char,
+    mnemonic: *const c_char,
+    password: *const c_char,
+    name: *const c_char
+
+) -> *const c_char {
+
+    init_logger();
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let c_mnemonic = unsafe { CStr::from_ptr(mnemonic) };
+    let c_password = unsafe { CStr::from_ptr(password) };
+    let c_name = unsafe { CStr::from_ptr(name) };
+
+    let input_pass = c_password.to_str().unwrap();
+    let input_conf = c_conf.to_str().unwrap();
+    let input_mnemonic = c_mnemonic.to_str().unwrap();
+    let input_name = c_name.to_str().unwrap();
+
+    debug!("{}", input_conf.to_string());
+
+    let wallet_pass = stack_test_epic_util::ZeroingString::from(input_pass.to_string());
+    let wallet_config = Config::from_str(&input_conf.to_string()).unwrap();
+    let phrase = input_mnemonic.to_string();
+    let wallet_name = input_name.to_string();
+
+    let wallet = get_wallet(&wallet_config).unwrap();
+    let mut wallet_lock = wallet.lock();
+    let lc = wallet_lock.lc_provider().unwrap();
+    let rec_phrase = stack_test_epic_util::ZeroingString::from(phrase.clone());
+    let mut createMsg = String::from("");
+
+    match lc.create_wallet(
+        Some(&wallet_name),
+        Some(rec_phrase),
+        32,
+        wallet_pass.clone(),
+        false,
+    ) {
+        Ok(sk) => {
+            debug!("{}", "Wallet created");
+            createMsg.push_str("created");
+        },
+        Err(e) => {
+            // let msg = format!("Wallet Exists inside epic-wallet at {}/wallet_data", config.wallet_dir);
+            let msg = format!("Wallet Exists inside epic-wallet at {}wallet_data", wallet_config.wallet_dir);
+            debug!("Message is : {}", msg);
+            if (e.kind() == ErrorKind::WalletSeedExists(msg)) {
+                debug!("{}", "Wallet Seed exixts");
+                createMsg.push_str("wallet_exists");
+            } else {
+                debug!("{}", "GEneral error");
+                createMsg.push_str("wallet_exists");
+
+            }
+        },
+    }
+
+    let s = CString::new(createMsg).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
     let wallet_phrase = mnemonic().unwrap();
     let s = CString::new(wallet_phrase).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
@@ -139,10 +213,135 @@ pub extern fn get_mnemonic() -> *const c_char {
 }
 
 /*
-    Create a new wallet
+    Get wallet info
+    This contains wallet balances
 */
 #[no_mangle]
-pub fn wallet_init() -> Result<String, Error> {
+pub unsafe extern "C"  fn rust_wallet_balances(
+    config: *const c_char,
+    password: *const c_char
+) -> *const c_char {
+
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let c_password = unsafe { CStr::from_ptr(password) };
+
+    let input_pass = c_password.to_str().unwrap();
+    let input_conf = c_conf.to_str().unwrap();
+
+    let wallet = open_wallet(&input_conf, &input_pass).unwrap();
+    let info = get_wallet_info(&wallet, true, 10).unwrap();
+
+    let string_info = serde_json::to_string(&info).unwrap();
+
+    let s = CString::new(string_info).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+}
+
+#[no_mangle]
+pub unsafe extern "C"  fn rust_recover_from_mnemonic(
+    config: *const c_char,
+    password: *const c_char,
+    mnemonic: *const c_char
+) -> *const c_char {
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let c_password = unsafe { CStr::from_ptr(password) };
+    let c_mnemonic = unsafe { CStr::from_ptr(mnemonic) };
+
+    let input_pass = c_password.to_str().unwrap();
+    let input_conf = c_conf.to_str().unwrap();
+    let input_mnemonic = c_mnemonic.to_str().unwrap();
+
+    let wallet_pass = input_pass.to_string();
+    let wallet_config = Config::from_str(&input_conf.to_string()).unwrap();
+    let phrase = input_mnemonic.to_string();
+    let mut resp_string = String::from("");
+    match recover_from_mnemonic(&phrase, &wallet_pass, &wallet_config) {
+        Ok(sk) => {
+            resp_string.push_str(&sk);
+        },
+        Err(e) => {
+            resp_string.push_str(&e.to_string());
+        },
+    }
+
+    let s = CString::new(resp_string).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+
+}
+
+#[no_mangle]
+pub unsafe extern "C"  fn rust_wallet_phrase(
+    config: *const c_char,
+    password: *const c_char,
+) -> *const c_char {
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let c_password = unsafe { CStr::from_ptr(password) };
+
+    let input_pass = c_password.to_str().unwrap().to_string();
+    let input_conf = c_conf.to_str().unwrap().to_string();
+    let wallet_config = Config::from_str(&input_conf).unwrap();
+
+    let phrase = wallet_phrase(&input_pass, wallet_config).unwrap();
+    let s = CString::new(phrase).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_wallet_scan_outputs(
+    config: *const c_char,
+    password: *const c_char
+) -> *const c_char {
+    init_logger();
+    debug!("{}", "Calling wallet scanner");
+
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let c_password = unsafe { CStr::from_ptr(password) };
+    let input_pass = c_password.to_str().unwrap();
+    let input_conf = c_conf.to_str().unwrap();
+    let wallet = open_wallet(&input_conf, &input_pass).unwrap();
+    let pmmr_range = wallet_pmmr_range(&wallet).unwrap();
+
+    //Scan wallet
+    let scan = wallet_scan_outputs(&wallet, pmmr_range.0, pmmr_range.1).unwrap();
+
+    let s = CString::new("").unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+}
+
+
+
+/*
+    Get wallet info
+    This contains wallet balances
+*/
+pub fn get_wallet_info(wallet: &Wallet, refresh_from_node: bool, min_confirmations: u64) -> Result<WalletInfo, Error> {
+    let api = Owner::new(wallet.clone());
+    let (_, wallet_summary) =
+        api.retrieve_summary_info(None, refresh_from_node, min_confirmations).unwrap();
+    Ok(wallet_summary)
+}
+
+/*
+    Recover wallet from mnemonic
+*/
+pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config) -> Result<String, Error> {
+    let wallet = get_wallet(&config)?;
+    let mut w_lock = wallet.lock();
+    let lc = w_lock.lc_provider()?;
+
+    lc.recover_from_mnemonic(ZeroingString::from(mnemonic), ZeroingString::from(password)).unwrap();
+    Ok("Wallet has been recovered".to_owned())
+}
+
+pub fn test_wallet_init() -> Result<String, Error> {
 
     let config = get_default_config();
     let phrase = mnemonic().unwrap();
@@ -164,6 +363,7 @@ pub fn wallet_init() -> Result<String, Error> {
     Ok("".to_owned())
 }
 
+
 #[no_mangle]
 pub unsafe extern "C" fn string_from_rust(ptr: *const c_char) -> *const c_char {
 
@@ -182,27 +382,47 @@ pub unsafe extern "C" fn string_from_rust(ptr: *const c_char) -> *const c_char {
     let mut wallet_lock = wallet.lock();
     let lc = wallet_lock.lc_provider().unwrap();
     let rec_phrase = stack_test_epic_util::ZeroingString::from(phrase.clone());
-    let name = "TestWallet".to_string();
+    let name = "TestWallet Likho".to_string();
+    let mut createMsg = String::from("");
 
-    // Get wallet directory
-    let wallet_directory = lc.get_top_level_directory().unwrap();
-    let relative_path = PathBuf::from(wallet_directory.clone());
-    let mut absolute_path = std::env::current_dir().unwrap();
-    absolute_path.push(relative_path);
+    // // Get wallet directory
+    // let wallet_directory = lc.get_top_level_directory().unwrap();
+    // let relative_path = PathBuf::from(wallet_directory.clone());
+    // let mut absolute_path = std::env::current_dir().unwrap();
+    // absolute_path.push(relative_path);
+    //
+    // debug!("Absolute path is {:?}", absolute_path);
+    // debug!("Wallet directory is {}", wallet_directory);
 
-    debug!("Absolute path is {:?}", absolute_path);
-    debug!("Wallet directory is {}", wallet_directory);
 
+    // let config_json = json::encode(&config).unwrap();
+    // debug!("Calling wallet init");
 
-    let config_json = json::encode(&config).unwrap();
-
-    // lc.create_wallet(
+    // match lc.create_wallet(
     //     Some(&name),
     //     Some(rec_phrase),
     //     32,
     //     password.clone(),
     //     false,
-    // ).unwrap();
+    // ) {
+    //     Ok(sk) => {
+    //         debug!("{}", "Wallet created");
+    //         createMsg.push_str("created");
+    //     },
+    //     Err(e) => {
+    //         // let msg = format!("Wallet Exists inside epic-wallet at {}/wallet_data", config.wallet_dir);
+    //         let msg = format!("Wallet Exists inside epic-wallet at {}wallet_data", config.wallet_dir);
+    //         debug!("MEssage is : {}", msg);
+    //         if (e.kind() == ErrorKind::WalletSeedExists(msg)) {
+    //             debug!("{}", "Wallet Seed exixts");
+    //             createMsg.push_str("wallet_exists");
+    //         } else {
+    //             debug!("{}", "GEneral error");
+    //             createMsg.push_str("create_error");
+    //
+    //         }
+    //     },
+    // }
 
     //Recover wallet
 
@@ -246,7 +466,7 @@ pub unsafe extern "C" fn string_from_rust(ptr: *const c_char) -> *const c_char {
 
 
     // let to_return = format!("{}", &*mnemonic);
-    let s = CString::new(name).unwrap();
+    let s = CString::new(createMsg).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -318,17 +538,7 @@ pub fn wallet_phrase(password: &str, config: Config) -> Result<String, Error> {
     Ok(format!("{}", &*mnemonic))
 }
 
-/*
-    Recover wallet from mnemonic
-*/
-pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config) -> Result<String, Error> {
-    let wallet = get_wallet(&config)?;
-    let mut w_lock = wallet.lock();
-    let lc = w_lock.lc_provider()?;
 
-    lc.recover_from_mnemonic(ZeroingString::from(mnemonic), ZeroingString::from(password)).unwrap();
-    Ok("Wallet has been recovered".to_owned())
-}
 
 /*
     Get wallet pmmr range,
@@ -357,17 +567,6 @@ pub fn wallet_scan_outputs(
         false,
     ).unwrap();
     Ok(())
-}
-
-/*
-    Get wallet info
-    This contains wallet balances
-*/
-pub fn get_wallet_info(wallet: &Wallet, refresh_from_node: bool, min_confirmations: u64) -> Result<WalletInfo, Error> {
-    let api = Owner::new(wallet.clone());
-    let (_, wallet_summary) =
-        api.retrieve_summary_info(None, refresh_from_node, min_confirmations).unwrap();
-    Ok(wallet_summary)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -586,21 +785,20 @@ fn tx_finalize(wallet: &Wallet, reponse_slate: &Slate) -> Result<Slate, Error> {
     Ok(final_slate)
 }
 
-// pub fn private_pub_key_pair() -> Result<(SecretKey, PublicKey), Error> {
-//     let s = Secp256k1::new();
-//     let secret_key = SecretKey::new(&s, &mut thread_rng());
-//     let public_key = PublicKey::from_secret_key(&s, &secret_key).unwrap();
-//     Ok((secret_key, public_key))
-//
-// }
-//
-// pub fn get_epicbox_address(
-//     public_key: PublicKey,
-//     domain: Option<String>,
-//     port: Option<u16>) -> String {
-//     EpicboxAddress::new(public_key, domain, port).to_string()
-// }
-//
+pub fn private_pub_key_pair() -> Result<(SecretKey, PublicKey), Error> {
+    let s = Secp256k1::new();
+    let secret_key = SecretKey::new(&s, &mut thread_rng());
+    let public_key = PublicKey::from_secret_key(&s, &secret_key).unwrap();
+    Ok((secret_key, public_key))
+}
+
+pub fn get_epicbox_address(
+    public_key: PublicKey,
+    domain: Option<String>,
+    port: Option<u16>) -> EpicboxAddress {
+    EpicboxAddress::new(public_key, domain, port)
+}
+
 /*
 
 */
@@ -623,12 +821,24 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<Wallet, Error> {
             }
         }
     }
-    println!("Opened is {}", opened);
+    debug!("Opened is {}", opened);
     if opened {
         Ok(wallet)
     } else {
         Err(Error::from(ErrorKind::WalletSeedDoesntExist))
     }
+}
+
+use tokio_tungstenite::connect_async;
+use websocket::futures::future::Err;
+
+pub async fn connect_to_epicbox() {
+
+    let connect_addr = "ws://5.9.155.102:3420";
+    let url = url::Url::parse(&connect_addr).unwrap();
+    let (mut ws_stream, _) = connect_async(url).await.expect("Failed to connect");
+
+    println!("{}", "Connected");
 }
 
 
@@ -711,14 +921,14 @@ pub fn fiat_price(symbol: &str, base_currency: &str) -> f64 {
 }
 
 pub fn get_default_config() -> Config {
-    ///data/user/0/com.example.epic_cash_wallet/app_flutter/test/
+    ///data/user/0/com.example.flutter_libepiccash_example/app_flutter/test/
     Config {
         wallet_dir: String::from("default"),
-        check_node_api_http_addr: String::from("http://127.0.0.1:3413"),
+        check_node_api_http_addr: String::from("http://95.216.215.107:3413"),
         chain: String::from("mainnet"),
         account: Some(String::from("default")),
-        api_listen_port: 3415,
-        api_listen_interface: "127.0.0.1".to_string()
+        api_listen_port: 3413,
+        api_listen_interface: "95.216.215.107".to_string()
     }
 }
 

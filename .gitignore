@@ -30,3 +30,4 @@ migrate_working_dir/
 build/
 rust/src/bin
 android/src/main/jniLibs/
+rust/default/

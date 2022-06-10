@@ -3,14 +3,9 @@ name = "epic-cash-wallet"
 version = "0.1.0"
 edition = "2021"
 
-
-#[workspace]
-#members = ["api", "chain", "config", "core", "keychain", "p2p", "servers", "store", "util", "pool", "bugreport", "wallet_api", "impls", "libwallet", "controller", "wallet_config", "wallet_util"]
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-#anyhow = { version = "1.0.56", features = ["backtrace"], default-features = true }
 clap = { version = "2.31", features = ["yaml"] }
 rpassword = "2.0.0"
 ctrlc = { version = "3.1", features = ["termination"] }
@@ -46,23 +41,23 @@ stack_test_epic_wallet_controller = "3.0.1"
 
 
 # Epic box for posting slates and getting epic addresses
-#Local Testing
-#epicboxlib = { path = "../../epicbox/epicboxlib" }
+stack_test_epicboxlib = "1.0.1"
 
 #tungstenite = "0.17.2"
 
-url = "2.2.2"
+url = "2.1.0"
+futures = "0.3.15"
+tokio-tungstenite = "0.10.0"
+tungstenite = { version = "0.10", default-features = false }
+tokio = { version = "0.2.0", features = ["full"]}
 #websocket = { git = "https://github.com/websockets-rs/rust-websocket.git", branch = "master"}
 websocket = "0.21.1"
 ws = "0.9.2"
 
-#Prod
-#epicboxlib = { git = "https://github.com/EpicCash/epicbox", branch = "epicbox-1.0.0"}
 
-
-#[lib]
-#name = "epic_cash_wallet"
-#crate-type = ["cdylib"]
+[lib]
+name = "epic_cash_wallet"
+crate-type = ["cdylib"]
 
 [patch.crates-io]
 liblmdb-sys = { git = "https://github.com/i1skn/lmdb-rs" }
