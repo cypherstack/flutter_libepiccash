@@ -1,4 +1,4 @@
-use std::os::raw::{c_char, c_int};
+use std::os::raw::{c_char, c_int, c_uint};
 use std::ffi::{CString, CStr};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -107,26 +107,6 @@ extern crate android_logger;
 
 use log::Level;
 use android_logger::Config as AndroidConfig;
-
-/*
-    Get mnemonic for new wallet
-*/
-// #[no_mangle]
-// pub extern fn get_mnemonic() -> *const *const u8 {
-//
-//     let mnemonic = mnemonic().unwrap();
-//     let mut split = mnemonic.split(" ");
-//
-//     let mut vec = Vec::new();
-//     for s in split {
-//         vec.push(s.as_ptr());
-//         // println!("{}", s)
-//     }
-//
-//     let p = vec.as_ptr();
-//     std::mem::forget(vec);
-//     p
-// }
 
 /*
     Create a new wallet
@@ -316,6 +296,138 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
     p
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_create_tx(
+    config: *const c_char,
+    password: *const c_char,
+    amount: *const c_char,
+    minimum_confirmations: *const c_char,
+) -> *const c_char {
+
+    init_logger();
+    debug!("Calling logger");
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let c_password = unsafe { CStr::from_ptr(password) };
+    let amount = unsafe { CStr::from_ptr(amount) };
+    let minimum_confirmations = unsafe { CStr::from_ptr(minimum_confirmations) };
+
+    let input_pass = c_password.to_str().unwrap();
+    let input_conf = c_conf.to_str().unwrap();
+    let amount = amount.to_str().unwrap().to_string();
+    let minimum_confirmations = minimum_confirmations.to_str().unwrap().to_string();
+
+    let amount: u64 = amount.parse().unwrap();
+    let minimum_confirmations: u64 = minimum_confirmations.parse().unwrap();
+
+    let wallet = open_wallet(input_conf, input_pass).unwrap();
+    let json_slate = tx_create(&wallet, amount, minimum_confirmations, true).unwrap();
+    debug!("{}", "Tx debug below:::::");
+    debug!("{}", json_slate);
+
+    let s = CString::new(json_slate).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_txs_get(
+    config: *const c_char,
+    password: *const c_char,
+    minimum_confirmations: *const c_char,
+    refresh_from_node: *const c_char
+) -> *const c_char {
+
+    init_logger();
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let c_password = unsafe { CStr::from_ptr(password) };
+    let minimum_confirmations = unsafe { CStr::from_ptr(minimum_confirmations) };
+    let refresh_from_node = unsafe { CStr::from_ptr(refresh_from_node) };
+
+    let input_pass = c_password.to_str().unwrap();
+    let input_conf = c_conf.to_str().unwrap();
+    let minimum_confirmations: u64 = minimum_confirmations.to_str().unwrap().to_string().parse().unwrap();
+    let refresh_from_node: bool = refresh_from_node.to_str().unwrap().to_string().parse().unwrap();
+
+    let wallet = open_wallet(input_conf, input_pass).unwrap();
+
+    let txs = txs_get(
+        &wallet,
+        minimum_confirmations,
+        refresh_from_node
+    ).unwrap();
+
+    let s = CString::new(txs).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_tx_cancel(
+    config: *const c_char,
+    password: *const c_char,
+    tx_id: *const c_char,
+) -> *const c_char {
+
+    init_logger();
+    let config = unsafe { CStr::from_ptr(config) };
+    let password = unsafe { CStr::from_ptr(password) };
+    let tx_id = unsafe { CStr::from_ptr(tx_id) };
+
+    let config = config.to_str().unwrap();
+    let password = password.to_str().unwrap();
+    let tx_id: u32 = tx_id.to_str().unwrap().to_string().parse().unwrap();
+    let wallet = open_wallet(config, password).unwrap();
+
+    match  tx_cancel(&wallet, tx_id) {
+        Ok(cancel) => {
+            debug!("{}", "Cancel success");
+            let s = CString::new(cancel).unwrap();
+            let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+            std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+            p
+        },Err(e) => {
+            debug!("Cancel error {}", e.to_string());
+            panic!("{}", e.to_string())
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_tx_receive(
+    config: *const c_char,
+    password: *const c_char,
+    slate: *const c_char,
+) -> *const c_char {
+    init_logger();
+    let config = unsafe { CStr::from_ptr(config) };
+    let password = unsafe { CStr::from_ptr(password) };
+    let slate = unsafe { CStr::from_ptr(slate) };
+
+    let config = config.to_str().unwrap();
+    let password = password.to_str().unwrap();
+    let slate = slate.to_str().unwrap();
+
+    let wallet = open_wallet(config, password).unwrap();
+    let slate = Slate::deserialize_upgrade(slate).unwrap();
+
+    //Send funds to default account for now
+    let owner_api = Owner::new(wallet.clone());
+    let accounts = owner_api.accounts(None).unwrap();
+    let account = &accounts[0].label;
+
+    let receive_slate = tx_receive(&wallet, &account, &slate).unwrap();
+
+    debug!("{}", receive_slate.clone());
+
+    let s = CString::new(receive_slate).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+}
+
 
 
 /*
@@ -363,114 +475,6 @@ pub fn test_wallet_init() -> Result<String, Error> {
     Ok("".to_owned())
 }
 
-
-#[no_mangle]
-pub unsafe extern "C" fn string_from_rust(ptr: *const c_char) -> *const c_char {
-
-    android_logger::init_once(
-        AndroidConfig::default().with_min_level(Level::Trace),
-    );
-
-    debug!("THis is a debug {}", "message");
-
-    let password = stack_test_epic_util::ZeroingString::from("58498542".to_string());
-    let config = get_default_config();
-    let phrase = mnemonic().unwrap();
-    // let password = "58498542".to_string();
-    //
-    let wallet = get_wallet(&config).unwrap();
-    let mut wallet_lock = wallet.lock();
-    let lc = wallet_lock.lc_provider().unwrap();
-    let rec_phrase = stack_test_epic_util::ZeroingString::from(phrase.clone());
-    let name = "TestWallet Likho".to_string();
-    let mut createMsg = String::from("");
-
-    // // Get wallet directory
-    // let wallet_directory = lc.get_top_level_directory().unwrap();
-    // let relative_path = PathBuf::from(wallet_directory.clone());
-    // let mut absolute_path = std::env::current_dir().unwrap();
-    // absolute_path.push(relative_path);
-    //
-    // debug!("Absolute path is {:?}", absolute_path);
-    // debug!("Wallet directory is {}", wallet_directory);
-
-
-    // let config_json = json::encode(&config).unwrap();
-    // debug!("Calling wallet init");
-
-    // match lc.create_wallet(
-    //     Some(&name),
-    //     Some(rec_phrase),
-    //     32,
-    //     password.clone(),
-    //     false,
-    // ) {
-    //     Ok(sk) => {
-    //         debug!("{}", "Wallet created");
-    //         createMsg.push_str("created");
-    //     },
-    //     Err(e) => {
-    //         // let msg = format!("Wallet Exists inside epic-wallet at {}/wallet_data", config.wallet_dir);
-    //         let msg = format!("Wallet Exists inside epic-wallet at {}wallet_data", config.wallet_dir);
-    //         debug!("MEssage is : {}", msg);
-    //         if (e.kind() == ErrorKind::WalletSeedExists(msg)) {
-    //             debug!("{}", "Wallet Seed exixts");
-    //             createMsg.push_str("wallet_exists");
-    //         } else {
-    //             debug!("{}", "GEneral error");
-    //             createMsg.push_str("create_error");
-    //
-    //         }
-    //     },
-    // }
-
-    //Recover wallet
-
-    // let wallet_exists = lc.wallet_exists(Some(&name)).unwrap();
-    // debug!("Wallet exists is {}", wallet_exists);
-    //
-    // let mnem = "purpose traffic uniform step moon bench amazing brand evil lobster notice rookie crush fault obvious luggage decade when inch imitate crumble lady material raw".to_string();
-    // let pass_me = "58498542".to_string();
-    // let rec = recover_from_mnemonic(&mnem, &pass_me, &config).unwrap();
-    // debug!("Wallet rec response {}", rec);
-
-
-
-    // let wallet = open_wallet(&config_json, &password).unwrap();
-    // let test_me = lc.get_mnemonic(Some(&name), password).unwrap();
-    // let this_mnemonic = format!("{}", &*test_me);
-    // debug!("Mnemonic for existing wallet is {}", this_mnemonic);
-    //
-    //
-    // //Open wallet and get balance
-    // let str_pass = "58498542".to_string();
-    // let wallet = open_wallet(&config_json, &str_pass).unwrap();
-    // let info = get_wallet_info(&wallet, true, 10);
-    // debug!("Wallet info is {:?}", info);
-    // let my_pass = "58498542".to_string();
-    // let conf = get_default_config();
-    // let recovery = wallet_phrase(&password, config).unwrap();
-
-    // open_wallet(config_json: &str, password: &str)
-
-
-    // let config = Config::from_str(config_json).unwrap();
-
-    // let node_url = "127.0.0.1".to_string();
-    // let node_client = HTTPNodeClient::new(&node_url, None);
-    // let wallet_config = create_wallet_config(config);
-
-    // let ss = Secp256k1::new();
-    // let secret_key = SecretKey::new(&ss, &mut thread_rng());
-    // let public_key = PublicKey::from_secret_key(&ss, &secret_key).unwrap();
-
-
-    // let to_return = format!("{}", &*mnemonic);
-    let s = CString::new(createMsg).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    p
-}
 
 /*
     Create a new wallet seed
@@ -691,7 +695,10 @@ pub fn txs_get(
 
     let api = Owner::new(wallet.clone());
     let txs = api.retrieve_txs(None, true, None, None)?;
-    let result = (txs.0, txs.1);
+    let result = (txs.1);
+
+    debug!("{}", serde_json::to_string(&result.clone()).unwrap());
+
     Ok(serde_json::to_string(&result).unwrap())
 }
 

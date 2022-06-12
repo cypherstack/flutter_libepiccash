@@ -32,6 +32,26 @@ typedef WalletPhraseFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 typedef ScanOutPuts = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 typedef ScanOutPutsFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 
+typedef CreateTransaction = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+typedef CreateTransactionFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+
+typedef GetTransactions = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Bool>);
+typedef GetTransactionsFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Bool>);
+
+typedef CancelTransaction = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+typedef CancelTransactionFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+
+typedef ReceiveTransaction = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+typedef ReceiveTransactionFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+
 final Pointer<Utf8> Function() walletMnemonic = epicCashNative
     .lookup<NativeFunction<Pointer<Utf8> Function()>>("get_mnemonic")
     .asFunction();
@@ -54,4 +74,20 @@ final WalletPhrase walletPhrase = epicCashNative
 
 final ScanOutPuts scanOutPuts = epicCashNative
     .lookup<NativeFunction<ScanOutPutsFFI>>("rust_wallet_scan_outputs")
+    .asFunction();
+
+final CreateTransaction createTransaction = epicCashNative
+    .lookup<NativeFunction<CreateTransactionFFI>>("rust_create_tx")
+    .asFunction();
+
+final GetTransactions getTransactions = epicCashNative
+    .lookup<NativeFunction<GetTransactionsFFI>>("rust_txs_get")
+    .asFunction();
+
+final CancelTransaction cancelTransaction = epicCashNative
+    .lookup<NativeFunction<CancelTransactionFFI>>("rust_tx_cancel")
+    .asFunction();
+
+final ReceiveTransaction receiveTransaction = epicCashNative
+    .lookup<NativeFunction<ReceiveTransactionFFI>>("rust_tx_receive")
     .asFunction();
