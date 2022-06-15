@@ -7,6 +7,7 @@ use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use rustc_serialize::json;
 use serde_json::to_string;
+use uuid::Uuid;
 
 use stack_test_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
 use stack_test_epic_wallet_config::{WalletConfig};
@@ -28,7 +29,8 @@ use stack_test_epic_wallet_libwallet::{
     NodeVersionInfo, Slate, WalletInst, WalletLCProvider,
     WalletInfo, Error, ErrorKind
 };
-use stack_test_epic_util::secp::{SecretKey, PublicKey, Secp256k1};
+
+use stack_test_epicboxlib::utils::secp::{SecretKey, PublicKey, Secp256k1};
 use stack_test_epic_keychain::{Keychain, ExtKeychain};
 use stack_test_epic_util::secp::rand::Rng;
 
@@ -117,6 +119,8 @@ pub fn init_logger() {
         AndroidConfig::default().with_min_level(Level::Trace),
     );
 }
+
+#[no_mangle]
 
 #[no_mangle]
 pub unsafe extern "C" fn wallet_init(
@@ -746,6 +750,16 @@ pub fn tx_cancel(wallet: &Wallet, id: u32) -> Result<String, Error> {
 }
 
 /*
+    Get transaction by slate id
+*/
+pub fn tx_get(wallet: &Wallet, refresh_from_node: bool, tx_slate_id: &str) -> Result<String, Error> {
+    let api = Owner::new(wallet.clone());
+    let uuid = Uuid::parse_str(tx_slate_id).map_err(|e| ErrorKind::GenericError(e.to_string())).unwrap();
+    let txs = api.retrieve_txs(None, refresh_from_node, None, Some(uuid)).unwrap();
+    Ok(serde_json::to_string(&txs.1).unwrap())
+}
+
+/*
     Check slate version
 */
 fn check_middleware(
@@ -792,18 +806,34 @@ fn tx_finalize(wallet: &Wallet, reponse_slate: &Slate) -> Result<Slate, Error> {
     Ok(final_slate)
 }
 
-pub fn private_pub_key_pair() -> Result<(SecretKey, PublicKey), Error> {
+/*
+    Return secret key and public key as strings
+*/
+pub fn private_pub_key_pair() -> Result<(PublicKey, SecretKey), Error> {
     let s = Secp256k1::new();
     let secret_key = SecretKey::new(&s, &mut thread_rng());
     let public_key = PublicKey::from_secret_key(&s, &secret_key).unwrap();
-    Ok((secret_key, public_key))
+
+    //These will be store as strings in flutter's private storage
+    // let secret_key = serde_json::to_string(&secret_key).unwrap();
+    // let public_key = serde_json::to_string(&public_key).unwrap();
+    Ok((public_key, secret_key))
 }
 
+/*
+    Get epic box address for receiving slates
+ */
 pub fn get_epicbox_address(
     public_key: PublicKey,
     domain: Option<String>,
     port: Option<u16>) -> EpicboxAddress {
     EpicboxAddress::new(public_key, domain, port)
+}
+
+pub fn derive_public_key_from_address(address: &str) -> PublicKey {
+    let address = EpicboxAddress::from_str(address).unwrap();
+    let public_key = address.public_key().unwrap();
+    public_key
 }
 
 /*

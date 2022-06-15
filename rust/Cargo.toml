@@ -41,7 +41,11 @@ stack_test_epic_wallet_controller = "3.0.1"
 
 
 # Epic box for posting slates and getting epic addresses
-stack_test_epicboxlib = "1.0.1"
+#stack_test_epicboxlib = "1.0.1"
+stack_test_epicboxlib = { path = "../../../dev/epicbox/epicboxlib"}
+
+#wallet713 = { path = "../../../cypherstack/epic-wallet-address", version = "3.0.0"}
+wallet713 = { git = "https://github.com/EpicCash/epic-wallet-address.git", branch = "3.0.0" }
 
 #tungstenite = "0.17.2"
 
@@ -52,7 +56,7 @@ tungstenite = { version = "0.10", default-features = false }
 tokio = { version = "0.2.0", features = ["full"]}
 #websocket = { git = "https://github.com/websockets-rs/rust-websocket.git", branch = "master"}
 websocket = "0.21.1"
-ws = "0.9.2"
+ws = { version="0.7", features=["ssl"] }
 
 
 [lib]
