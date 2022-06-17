@@ -3,6 +3,7 @@ use std::ffi::{CString, CStr};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::Sender;
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use rustc_serialize::json;
@@ -19,10 +20,10 @@ use stack_test_epic_wallet_impls::{
 
 
 use stack_test_epic_keychain::mnemonic;
-use stack_test_epic_core::global::ChainTypes;
+use stack_test_epic_wallet_util::stack_test_epic_core::global::ChainTypes;
 use stack_test_epic_core::global;
 use stack_test_epic_util::file::get_first_line;
-use stack_test_epic_util::ZeroingString;
+use stack_test_epic_wallet_util::stack_test_epic_util::ZeroingString;
 use stack_test_epic_util::Mutex;
 use stack_test_epic_wallet_libwallet::{
     address, scan, slate_versions, wallet_lock, NodeClient,
@@ -31,7 +32,10 @@ use stack_test_epic_wallet_libwallet::{
 };
 
 use stack_test_epicboxlib::utils::secp::{SecretKey, PublicKey, Secp256k1};
-use stack_test_epic_keychain::{Keychain, ExtKeychain};
+use stack_test_epic_wallet_util::stack_test_epic_keychain::{Keychain, ExtKeychain};
+use stack_test_epic_wallet_libwallet::api_impl::owner_updater::StatusMessage;
+// use epic_keychain::{Keychain, ExtKeychain};
+
 use stack_test_epic_util::secp::rand::Rng;
 
 use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxError, version_bytes, EpicboxMessage};
@@ -120,7 +124,6 @@ pub fn init_logger() {
     );
 }
 
-#[no_mangle]
 
 #[no_mangle]
 pub unsafe extern "C" fn wallet_init(
@@ -139,20 +142,18 @@ pub unsafe extern "C" fn wallet_init(
 
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
-    let input_mnemonic = c_mnemonic.to_str().unwrap();
-    let input_name = c_name.to_str().unwrap();
 
     debug!("{}", input_conf.to_string());
 
-    let wallet_pass = stack_test_epic_util::ZeroingString::from(input_pass.to_string());
+    let wallet_pass = ZeroingString::from(input_pass.to_string());
     let wallet_config = Config::from_str(&input_conf.to_string()).unwrap();
-    let phrase = input_mnemonic.to_string();
-    let wallet_name = input_name.to_string();
+    let phrase = c_mnemonic.to_str().unwrap().to_string();
+    let wallet_name = c_name.to_str().unwrap().to_string();
 
     let wallet = get_wallet(&wallet_config).unwrap();
     let mut wallet_lock = wallet.lock();
     let lc = wallet_lock.lc_provider().unwrap();
-    let rec_phrase = stack_test_epic_util::ZeroingString::from(phrase.clone());
+    let rec_phrase = ZeroingString::from(phrase.clone());
     let mut createMsg = String::from("");
 
     match lc.create_wallet(
@@ -167,17 +168,8 @@ pub unsafe extern "C" fn wallet_init(
             createMsg.push_str("created");
         },
         Err(e) => {
+            createMsg.push_str(&e.to_string());
             // let msg = format!("Wallet Exists inside epic-wallet at {}/wallet_data", config.wallet_dir);
-            let msg = format!("Wallet Exists inside epic-wallet at {}wallet_data", wallet_config.wallet_dir);
-            debug!("Message is : {}", msg);
-            if (e.kind() == ErrorKind::WalletSeedExists(msg)) {
-                debug!("{}", "Wallet Seed exixts");
-                createMsg.push_str("wallet_exists");
-            } else {
-                debug!("{}", "GEneral error");
-                createMsg.push_str("wallet_exists");
-
-            }
         },
     }
 
@@ -281,7 +273,7 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
     config: *const c_char,
     password: *const c_char
 ) -> *const c_char {
-    init_logger();
+
     debug!("{}", "Calling wallet scanner");
 
     let c_conf = unsafe { CStr::from_ptr(config) };
@@ -292,7 +284,7 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
     let pmmr_range = wallet_pmmr_range(&wallet).unwrap();
 
     //Scan wallet
-    let scan = wallet_scan_outputs(&wallet, pmmr_range.0, pmmr_range.1).unwrap();
+    let scan = wallet_scan_outputs(&wallet, Some(pmmr_range.0)).unwrap();
 
     let s = CString::new("").unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
@@ -564,17 +556,44 @@ pub fn wallet_pmmr_range(wallet: &Wallet) -> Result<(u64, u64), Error> {
 */
 pub fn wallet_scan_outputs(
     wallet: &Wallet,
-    last_retrieved_index: u64,
-    highest_index: u64,
-) -> Result<(), Error> {
+    start_height: Option<u64>,
+) -> Result<String, Error> {
 
-    let owner = Owner::new(wallet.clone());
-    let info = owner.scan(
+    let tip = {
+        wallet_lock!(wallet, w);
+        w.w2n_client().get_chain_tip().unwrap()
+    };
+    println!("{}", tip.0);
+
+    let start_height: u64 = match start_height {
+        Some(h) => h,
+        None => 1,
+    };
+
+    let info = scan(
+        wallet.clone(),
         None,
-        Some(last_retrieved_index),
         false,
+        start_height,
+        tip.0,
+        &None
     ).unwrap();
-    Ok(())
+
+    let result = info.last_pmmr_index;
+    println!("{:?}", info);
+
+    let parent_key_id = {
+        wallet_lock!(wallet, w);
+        w.parent_key_id().clone()
+    };
+
+    wallet_lock!(wallet, w);
+    let mut batch = w.batch(None)?;
+    batch.save_last_confirmed_height(&parent_key_id, info.height)?;
+    batch.commit()?;
+
+
+    Ok(serde_json::to_string(&result).unwrap())
 }
 
 #[derive(Serialize, Deserialize)]
