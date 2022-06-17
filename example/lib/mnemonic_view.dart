@@ -7,6 +7,7 @@ import 'package:flutter_libepiccash/flutter_libepiccash.dart';
 import 'dart:convert';
 import 'package:ffi/ffi.dart';
 import 'package:flutter_libepiccash/epic_cash.dart';
+import 'package:flutter_libepiccash_example/transaction_view.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -132,20 +133,14 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
     return true;
   }
 
-  Future<void> _storeConfigAndPassword(config, password) async {
-    await storage.write(key: config, value: config);
-    await storage.write(key: password, value: password);
+  Future<void> _storeConfig(config) async {
+    await storage.write(key: "config", value: config);
   }
 
-  String _createWallet(config, mnemonic, password, name) {
-    final Pointer<Utf8> configPointer = config.toNativeUtf8();
-    final Pointer<Utf8> mnemonicPointer = mnemonic.toNativeUtf8();
-    final Pointer<Utf8> passwordPointer = password.toNativeUtf8();
-    final Pointer<Utf8> namePointer = name.toNativeUtf8();
-
-    final Pointer<Utf8> initWalletPtr = initWallet(
-        configPointer, mnemonicPointer, passwordPointer, namePointer);
-
+  String _createWallet(Pointer<Utf8> config, Pointer<Utf8> mnemonic,
+      Pointer<Utf8> password, Pointer<Utf8> name) {
+    final Pointer<Utf8> initWalletPtr =
+        initWallet(config, mnemonic, password, name);
     final String initWalletStr = initWalletPtr.toDartString();
     return initWalletStr;
   }
@@ -173,26 +168,30 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
 
                   if (walletFolder == true) {
                     //Create wallet
-                    String walletConfig = _getWalletConfig(widget.name);
+
+                    String walletName = widget.name;
+                    String walletPassword = widget.password;
+                    String walletConfig = _getWalletConfig(walletName);
+
+                    // String strConf = json.encode(walletConfig);
+                    final Pointer<Utf8> configPointer =
+                        walletConfig.toNativeUtf8();
+                    final Pointer<Utf8> mnemonicPtr = mnemonic.toNativeUtf8();
+                    final Pointer<Utf8> namePtr = walletName.toNativeUtf8();
+                    final Pointer<Utf8> passwordPtr =
+                        walletPassword.toNativeUtf8();
                     //Store config and password in secure storage since we will need them again
-                    _storeConfigAndPassword(walletConfig, widget.password);
+                    _storeConfig(walletConfig);
                     _createWallet(
-                        walletConfig, mnemonic, widget.password, widget.name);
-
-                    // print(walletConfig);
+                        configPointer, mnemonicPtr, passwordPtr, namePtr);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TransactionView(
+                                password: widget.password,
+                              )),
+                    );
                   }
-
-                  // _createWalletFolder(widget.name);
-                  // print(foldername);
-                  // _createWallet(widget.name, widget.password, mnemonic);
-                  // Validate returns true if the form is valid, or false otherwise.
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //       builder: (context) => PasswordView(
-                  //         name: name,
-                  //       )),
-                  // );
                 },
                 child: const Text('Create Wallet'),
               ),

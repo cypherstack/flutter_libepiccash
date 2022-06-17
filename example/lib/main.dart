@@ -90,23 +90,6 @@ class _MyHomePageState extends State<MyHomePage> {
     // final String nameStr = "John Smith";
     // final Pointer<Utf8> charPointer = nameStr.toNativeUtf8();
     // print("- Calling rust_greeting with argument:  $charPointer");
-    //
-    // final Pointer<Utf8> resultPtr = rustGreeting(charPointer);
-    // print("- Result pointer:  $resultPtr");
-    //
-    // final String greetingStr = resultPtr.toDartString();
-    // print("- Response string:  $greetingStr");
-
-    // final Pointer<Utf8> mnemonicPtr = walletMnemonic();
-    // print("- Result pointer:  $mnemonicPtr");
-    //
-    // final String mnemonicString = mnemonicPtr.toDartString();
-    // print("- Mnemonic string:  $mnemonicString");
-
-    // final Pointer<Utf8> walletInitPtr = initWallet();
-    //
-    // final String walletInitString = walletInitPtr.toDartString();
-    // print("- Mnemonic string:  $walletInitString");
 
     var config = {};
     config["wallet_dir"] =
@@ -119,23 +102,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
     String strConf = json.encode(config);
     final Pointer<Utf8> configPointer = strConf.toNativeUtf8();
-
-    // final String strMnemonic = mnemonicString;
-    // final Pointer<Utf8> mnemonicPointer = strMnemonic.toNativeUtf8();
-    const String strPassword = "58498542";
-    final Pointer<Utf8> passwordPointer = strPassword.toNativeUtf8();
-
-    // const String strName = "EpicStack";
-    // final Pointer<Utf8> namePointer = strName.toNativeUtf8();
-    //
-    // print("- Calling wallet_init with arguments:");
-    //
-    // final Pointer<Utf8> initWalletPtr = initWallet(
-    //     configPointer, mnemonicPointer, passwordPointer, namePointer);
-    // print("- Result pointer:  $initWalletPtr");
-    //
-    // final String initWalletStr = initWalletPtr.toDartString();
-    // print("- Response string:  $initWalletStr");
 
     // final Pointer<Utf8> walletInfoPtr =
     //     walletInfo(configPointer, passwordPointer);
