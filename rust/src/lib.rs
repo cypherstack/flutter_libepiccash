@@ -40,7 +40,7 @@ use stack_test_epic_util::secp::rand::Rng;
 
 use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxError, version_bytes, EpicboxMessage};
 
-#[derive(Serialize, Deserialize, Clone, RustcEncodable)]
+#[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
 pub struct Config {
     pub wallet_dir: String,
     pub check_node_api_http_addr: String,
@@ -204,6 +204,9 @@ pub unsafe extern "C"  fn rust_wallet_balances(
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
 
+    debug!("{}", input_pass);
+    debug!("{}", input_conf);
+
     let wallet = open_wallet(&input_conf, &input_pass).unwrap();
     let info = get_wallet_info(&wallet, true, 10).unwrap();
 
@@ -225,24 +228,19 @@ pub unsafe extern "C"  fn rust_recover_from_mnemonic(
     let c_password = unsafe { CStr::from_ptr(password) };
     let c_mnemonic = unsafe { CStr::from_ptr(mnemonic) };
 
-    let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
-    let input_mnemonic = c_mnemonic.to_str().unwrap();
 
-    let wallet_pass = input_pass.to_string();
+    let wallet_pass = c_password.to_str().unwrap().to_string();
     let wallet_config = Config::from_str(&input_conf.to_string()).unwrap();
-    let phrase = input_mnemonic.to_string();
-    let mut resp_string = String::from("");
-    match recover_from_mnemonic(&phrase, &wallet_pass, &wallet_config) {
-        Ok(sk) => {
-            resp_string.push_str(&sk);
-        },
-        Err(e) => {
-            resp_string.push_str(&e.to_string());
-        },
-    }
+    let phrase = c_mnemonic.to_str().unwrap().to_string();
 
-    let s = CString::new(resp_string).unwrap();
+    debug!("Config is {:#?}", wallet_config);
+    debug!("Password is {}", wallet_pass);
+    debug!("Mnemonic is {}", phrase);
+
+    recover_from_mnemonic(&phrase, &wallet_pass, &wallet_config).unwrap();
+
+    let s = CString::new("").unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -440,13 +438,13 @@ pub fn get_wallet_info(wallet: &Wallet, refresh_from_node: bool, min_confirmatio
 /*
     Recover wallet from mnemonic
 */
-pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config) -> Result<String, Error> {
+pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config) -> Result<(), Error> {
     let wallet = get_wallet(&config)?;
     let mut w_lock = wallet.lock();
     let lc = w_lock.lc_provider()?;
 
     lc.recover_from_mnemonic(ZeroingString::from(mnemonic), ZeroingString::from(password)).unwrap();
-    Ok("Wallet has been recovered".to_owned())
+    Ok(())
 }
 
 pub fn test_wallet_init() -> Result<String, Error> {

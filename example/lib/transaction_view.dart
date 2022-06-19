@@ -79,15 +79,35 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     return scanOutputsStr;
   }
 
+  String _getWalletInfo(Pointer<Utf8> config, Pointer<Utf8> password) {
+    final Pointer<Utf8> walletInfoPtr = walletInfo(config, password);
+    final String walletInfoStr = walletInfoPtr.toDartString();
+    return walletInfoStr;
+  }
+
   final _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
     _getWalletConfig();
     String password = widget.password;
-    final Pointer<Utf8> configPointer = walletConfig.toNativeUtf8();
+
+    print("Wallet Config");
+    print(json.decode(walletConfig));
+    String decodeConfig = json.decode(walletConfig);
+
+    final Pointer<Utf8> configPointer = decodeConfig.toNativeUtf8();
     final Pointer<Utf8> passwordPtr = password.toNativeUtf8();
 
-    _scanWallet(configPointer, passwordPtr);
+    String walletInfo = _getWalletInfo(configPointer, passwordPtr);
+    var data = json.decode(walletInfo);
+
+    var total = data['total'].toString();
+    var awaitingFinalisation = data['amount_awaiting_finalization'].toString();
+    var awaitingConfirmation = data['amount_awaiting_confirmation'].toString();
+    var spendable = data['amount_currently_spendable'].toString();
+    var locked = data['amount_locked'].toString();
+    // List  = walletInfo;
+
     return Scaffold(
         appBar: AppBar(
           // Here we take the value from the MyHomePage object that was created by
@@ -97,7 +117,11 @@ class _EpicTransactionView extends State<EpicTransactionView> {
         body: Center(
           child: Column(
             children: <Widget>[
-              Text("Transactions page"),
+              Text("Total Amount : $total"),
+              Text("Amount Awaiting Finalization : $awaitingFinalisation"),
+              Text("Amount Awaiting Confirmation : $awaitingConfirmation"),
+              Text("Amount Currently Spendable : $spendable"),
+              Text("Amount Locked : $locked"),
               // ElevatedButton(
               //   onPressed: () {
               //     // _createWalletFolder(widget.name);

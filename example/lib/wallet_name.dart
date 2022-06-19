@@ -2,14 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_libepiccash_example/password_view.dart';
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(const WalletNameView());
-}
+import 'package:flutter_libepiccash_example/recover_view.dart';
 
 class WalletNameView extends StatelessWidget {
-  const WalletNameView({Key? key}) : super(key: key);
-
+  const WalletNameView({Key? key, required this.recover}) : super(key: key);
+  final bool recover;
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -27,13 +24,17 @@ class WalletNameView extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const EpicWalletNameView(title: 'Please enter wallet name'),
+      home: EpicWalletNameView(
+          title: 'Please enter wallet name', recover: recover),
     );
   }
 }
 
 class EpicWalletNameView extends StatefulWidget {
-  const EpicWalletNameView({Key? key, required this.title}) : super(key: key);
+  const EpicWalletNameView(
+      {Key? key, required this.title, required this.recover})
+      : super(key: key);
+  final bool recover;
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -92,22 +93,28 @@ class _EpicWalletNameView extends State<EpicWalletNameView> {
               ElevatedButton(
                 onPressed: () {
                   print("Name is $name");
+                  bool isRecover = widget.recover;
                   // Validate returns true if the form is valid, or false otherwise.
                   if (_formKey.currentState!.validate()) {
                     print("Name is still $name");
-                    // If the form is valid, display a snackbar. In the real world,
-                    // you'd often call a server or save the information in a database.
-                    //Go to the password page
-                    // ScaffoldMessenger.of(context).showSnackBar(
-                    //   const SnackBar(content: Text('Processing Data')),
-                    // );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => PasswordView(
-                                name: name,
-                              )),
-                    );
+                    print("Wallet recover is  $isRecover");
+                    if (isRecover == true) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => RecoverWalletView(
+                                  name: name,
+                                )),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => PasswordView(
+                                  name: name,
+                                )),
+                      );
+                    }
                   }
                 },
                 child: const Text('Next'),

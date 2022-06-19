@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_libepiccash_example/recover_view.dart';
 import 'dart:async';
 
 import 'package:path_provider/path_provider.dart';
@@ -225,7 +226,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const WalletNameView()),
+                        builder: (context) => const WalletNameView(
+                              recover: false,
+                            )),
                   );
                 },
               ),
@@ -239,7 +242,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 color: Colors.pinkAccent,
                 textColor: Colors.black,
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const WalletNameView(
+                              recover: true,
+                            )),
+                  );
+                },
               ),
             ),
           ],
