@@ -59,6 +59,7 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
   String mnemonic = "";
   String password = "";
   String walletConfig = "";
+  String recoverError = "";
   final storage = new FlutterSecureStorage();
 
   String walletDirectory = "";
@@ -111,31 +112,27 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
   }
 
   String _recoverWallet(Pointer<Utf8> configPtr, Pointer<Utf8> passwordPtr,
-      Pointer<Utf8> mnemonicPtr) {
+      Pointer<Utf8> mnemonicPtr, Pointer<Utf8> namePtr) {
     final Pointer<Utf8> recoverWalletPtr =
-        recoverWallet(configPtr, passwordPtr, mnemonicPtr);
+        recoverWallet(configPtr, passwordPtr, mnemonicPtr, namePtr);
     final String recoverWalletStr = recoverWalletPtr.toDartString();
-    print("Wallet recover is : $recoverWalletStr");
     return recoverWalletStr;
-    // print("Wallet info now is : $walletInfoStr");
-    // final Pointer<Utf8> recoverWalletPtr =
-    //     recoverWallet(config, password, mnemonic);
-    // final String recoverWalletStr = recoverWalletPtr.toDartString();
-    // return recoverWalletStr;
   }
 
   void _setMnemonic(value) {
-    print("Set Mnemonic");
-    print(value);
-    // setState(() {
     mnemonic = mnemonic + value;
-    // });
   }
 
   void _setPassword(value) {
     print("Set password");
     setState(() {
       password = password + value;
+    });
+  }
+
+  void _setRecoverError(value) {
+    setState(() {
+      recoverError = value;
     });
   }
 
@@ -147,7 +144,7 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
   @override
   Widget build(BuildContext context) {
     String name = widget.name;
-    bool walletFolder = _createWalletFolder(name);
+    _createWalletFolder(name);
 
     return Scaffold(
         appBar: AppBar(
@@ -159,6 +156,7 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
           key: _formKey,
           child: Column(
             children: <Widget>[
+              Text(recoverError),
               TextFormField(
                 decoration: InputDecoration(hintText: name),
                 enabled: false,
@@ -201,21 +199,25 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
                         walletMnemonic.toNativeUtf8();
                     final Pointer<Utf8> passwordPtr =
                         walletPassword.toNativeUtf8();
+                    final Pointer<Utf8> namePtr = name.toNativeUtf8();
 
-                    print(walletConfig);
-                    print(password);
-                    print(mnemonic);
-                    _recoverWallet(configPointer, passwordPtr, mnemonicPtr);
+                    String recover = _recoverWallet(
+                        configPointer, passwordPtr, mnemonicPtr, namePtr);
+
+                    if (recover == "recovered") {
+                      _storeConfig(walletConfig);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => TransactionView(
+                                  password: password,
+                                )),
+                      );
+                    } else {
+                      _setRecoverError(recover);
+                    }
                     //Store config and password in secure storage since we will need them again
-                    // _storeConfig(walletConfig);
 
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => TransactionView(
-                                password: password,
-                              )),
-                    );
                   }
                 },
                 child: const Text('Next'),

@@ -113,6 +113,7 @@ extern crate android_logger;
 
 use log::Level;
 use android_logger::Config as AndroidConfig;
+use stack_test_epic_wallet_util::stack_test_epic_api::response;
 
 /*
     Create a new wallet
@@ -222,25 +223,34 @@ pub unsafe extern "C"  fn rust_wallet_balances(
 pub unsafe extern "C"  fn rust_recover_from_mnemonic(
     config: *const c_char,
     password: *const c_char,
-    mnemonic: *const c_char
+    mnemonic: *const c_char,
+    name: *const c_char
 ) -> *const c_char {
+    init_logger();
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let c_mnemonic = unsafe { CStr::from_ptr(mnemonic) };
+    let c_name = unsafe { CStr::from_ptr(name) };
 
     let input_conf = c_conf.to_str().unwrap();
 
     let wallet_pass = c_password.to_str().unwrap().to_string();
     let wallet_config = Config::from_str(&input_conf.to_string()).unwrap();
     let phrase = c_mnemonic.to_str().unwrap().to_string();
+    let name = c_name.to_str().unwrap();
 
-    debug!("Config is {:#?}", wallet_config);
-    debug!("Password is {}", wallet_pass);
-    debug!("Mnemonic is {}", phrase);
+    let mut recover_response = "".to_string();
+    let recover = recover_from_mnemonic(&phrase, &wallet_pass, &wallet_config, &name);
+    match recover {
+        Ok(recover)=> {
+            recover_response.push_str("recovered");
+        },
+        Err(e)=> {
+            recover_response.push_str(&e.to_string());
+        }
+    }
 
-    recover_from_mnemonic(&phrase, &wallet_pass, &wallet_config).unwrap();
-
-    let s = CString::new("").unwrap();
+    let s = CString::new(recover_response).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -329,27 +339,24 @@ pub unsafe extern "C" fn rust_create_tx(
 pub unsafe extern "C" fn rust_txs_get(
     config: *const c_char,
     password: *const c_char,
-    minimum_confirmations: *const c_char,
-    refresh_from_node: *const c_char
+    minimum_confirmations: *const c_char
 ) -> *const c_char {
 
     init_logger();
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let minimum_confirmations = unsafe { CStr::from_ptr(minimum_confirmations) };
-    let refresh_from_node = unsafe { CStr::from_ptr(refresh_from_node) };
 
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
     let minimum_confirmations: u64 = minimum_confirmations.to_str().unwrap().to_string().parse().unwrap();
-    let refresh_from_node: bool = refresh_from_node.to_str().unwrap().to_string().parse().unwrap();
 
     let wallet = open_wallet(input_conf, input_pass).unwrap();
 
     let txs = txs_get(
         &wallet,
         minimum_confirmations,
-        refresh_from_node
+        true
     ).unwrap();
 
     let s = CString::new(txs).unwrap();
@@ -438,35 +445,26 @@ pub fn get_wallet_info(wallet: &Wallet, refresh_from_node: bool, min_confirmatio
 /*
     Recover wallet from mnemonic
 */
-pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config) -> Result<(), Error> {
+pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, name: &str) -> Result<(), Error> {
     let wallet = get_wallet(&config)?;
     let mut w_lock = wallet.lock();
     let lc = w_lock.lc_provider()?;
 
-    lc.recover_from_mnemonic(ZeroingString::from(mnemonic), ZeroingString::from(password)).unwrap();
+    //First check if wallet seed directory exists, if not create
+    if let Ok(exists_wallet_seed) = lc.wallet_exists(None) {
+        if (exists_wallet_seed) {
+            lc.recover_from_mnemonic(ZeroingString::from(mnemonic), ZeroingString::from(password))?;
+        } else {
+            lc.create_wallet(
+                Some(&name),
+                Some(ZeroingString::from(mnemonic)),
+                32,
+                ZeroingString::from(password),
+                false,
+            )?
+        }
+    }
     Ok(())
-}
-
-pub fn test_wallet_init() -> Result<String, Error> {
-
-    let config = get_default_config();
-    let phrase = mnemonic().unwrap();
-    let password = "58498542".to_string();
-
-    // let config = Config::from_str(config_json).unwrap();
-    let wallet = get_wallet(&config)?;
-    let mut wallet_lock = wallet.lock();
-    let lc = wallet_lock.lc_provider()?;
-
-    lc.create_wallet(
-        None,
-        Some(ZeroingString::from(phrase)),
-        32,
-        ZeroingString::from(password),
-        false,
-    )?;
-
-    Ok("".to_owned())
 }
 
 
