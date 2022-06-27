@@ -861,7 +861,7 @@ dependencies = [
  "url 2.2.2",
  "uuid 0.7.4",
  "websocket",
- "ws",
+ "ws 0.8.1",
  "zeroize",
 ]
 
@@ -3490,9 +3490,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epicboxlib"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc4cbc95f37ce2d12af41e62d505b540828cd62ac633554c48527498dc148b73"
+checksum = "3da418ba542b935d4d8022a45bb6305f603ceab6c7e8150aceb49ed7807adc9a"
 dependencies = [
  "colored",
  "failure",
@@ -3508,7 +3508,7 @@ dependencies = [
  "sha2 0.7.1",
  "stack_test_epic_core",
  "stack_test_epic_wallet_libwallet",
- "ws",
+ "ws 0.7.9",
 ]
 
 [[package]]
@@ -4635,6 +4635,25 @@ dependencies = [
  "openssl",
  "rand 0.4.6",
  "sha1",
+ "slab",
+ "url 1.7.2",
+]
+
+[[package]]
+name = "ws"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec91ea61b83ce033c43c06c52ddc7532f465c0153281610d44c58b74083aee1a"
+dependencies = [
+ "byteorder",
+ "bytes 0.4.12",
+ "httparse",
+ "log 0.4.17",
+ "mio 0.6.23",
+ "mio-extras",
+ "native-tls",
+ "rand 0.6.5",
+ "sha-1",
  "slab",
  "url 1.7.2",
 ]

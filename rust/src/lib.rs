@@ -3,10 +3,10 @@ use std::ffi::{CString, CStr};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::Sender;
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use rustc_serialize::json;
+use serde_json::json as serde_json;
 use serde_json::to_string;
 use uuid::Uuid;
 
@@ -17,6 +17,15 @@ use stack_test_epic_wallet_libwallet::api_impl::owner;
 use stack_test_epic_wallet_impls::{
     DefaultLCProvider, DefaultWalletImpl, HTTPNodeClient, HttpSlateSender, SlateSender,
 };
+
+use futures::executor::block_on;
+use url::Url;
+use tungstenite::{connect, Message, WebSocket};
+use ws::{
+    CloseCode, Error as WsError, ErrorKind as WsErrorKind, Handler, Handshake,
+    Result as WsResult, Sender,
+};
+
 
 
 use stack_test_epic_keychain::mnemonic;
@@ -37,6 +46,7 @@ use stack_test_epic_wallet_libwallet::api_impl::owner_updater::StatusMessage;
 // use epic_keychain::{Keychain, ExtKeychain};
 
 use stack_test_epic_util::secp::rand::Rng;
+use stack_test_epic_util::to_hex;
 
 use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxError, version_bytes, EpicboxMessage};
 
@@ -68,6 +78,9 @@ impl Config {
         Ok(serde_json::from_str::<Config>(json).unwrap())
     }
 }
+
+const EPIC_BOX_ADDRESS: &str = "5.9.155.102";
+const EPIC_BOX_PORT: u16 = 13420;
 
 
 
@@ -114,6 +127,9 @@ extern crate android_logger;
 use log::Level;
 use android_logger::Config as AndroidConfig;
 use stack_test_epic_wallet_util::stack_test_epic_api::response;
+use stack_test_epicboxlib::utils::crypto::{Hex, sign_challenge};
+use tokio_tungstenite::WebSocketStream;
+use tungstenite::client::AutoStream;
 
 /*
     Create a new wallet
@@ -427,6 +443,28 @@ pub unsafe extern "C" fn rust_tx_receive(
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
+}
+
+pub fn test_wallet_init() -> Result<String, Error> {
+
+    let config = get_default_config();
+    let phrase = mnemonic().unwrap();
+    let password = "58498542".to_string();
+
+    // let config = Config::from_str(config_json).unwrap();
+    let wallet = get_wallet(&config)?;
+    let mut wallet_lock = wallet.lock();
+    let lc = wallet_lock.lc_provider()?;
+
+    lc.create_wallet(
+        None,
+        Some(ZeroingString::from(phrase)),
+        32,
+        ZeroingString::from(password),
+        false,
+    )?;
+
+    Ok("".to_owned())
 }
 
 
@@ -828,10 +866,6 @@ pub fn private_pub_key_pair() -> Result<(PublicKey, SecretKey), Error> {
     let s = Secp256k1::new();
     let secret_key = SecretKey::new(&s, &mut thread_rng());
     let public_key = PublicKey::from_secret_key(&s, &secret_key).unwrap();
-
-    //These will be store as strings in flutter's private storage
-    // let secret_key = serde_json::to_string(&secret_key).unwrap();
-    // let public_key = serde_json::to_string(&public_key).unwrap();
     Ok((public_key, secret_key))
 }
 
@@ -840,15 +874,53 @@ pub fn private_pub_key_pair() -> Result<(PublicKey, SecretKey), Error> {
  */
 pub fn get_epicbox_address(
     public_key: PublicKey,
-    domain: Option<String>,
-    port: Option<u16>) -> EpicboxAddress {
-    EpicboxAddress::new(public_key, domain, port)
+    domain: &str,
+    port: Option<u16>) -> EpicboxAddress
+{
+    let domain = domain.to_string();
+    EpicboxAddress::new(public_key, Some(domain), port)
 }
 
 pub fn derive_public_key_from_address(address: &str) -> PublicKey {
     let address = EpicboxAddress::from_str(address).unwrap();
     let public_key = address.public_key().unwrap();
     public_key
+}
+
+pub fn build_post_slate_request(receiver_address: &str, sender_secret_key: &str, tx: String) -> String {
+    let secret_key: SecretKey = serde_json::from_str(sender_secret_key).unwrap();
+    let s = Secp256k1::new();
+    let pub_key = PublicKey::from_secret_key(&s, &secret_key).unwrap();
+    let address_sender = get_epicbox_address(pub_key, EPIC_BOX_ADDRESS.clone(), Some(EPIC_BOX_PORT));
+
+    let address_receiver = EpicboxAddress::from_str(receiver_address).unwrap();
+    let pub_key_receiver = address_receiver.public_key().unwrap();
+    let address_receiver = get_epicbox_address(pub_key_receiver, EPIC_BOX_ADDRESS.clone(), Some(EPIC_BOX_PORT));
+
+    let mut challenge = String::new();
+    let message = EpicboxMessage::new(
+        tx, &address_receiver.clone(), &address_receiver.public_key().unwrap(), &secret_key
+    ).map_err(|_| WsError::new(WsErrorKind::Protocol, "could not encrypt slate!")).unwrap();
+    let message_ser = serde_json::to_string(&message).unwrap();
+
+    challenge.push_str(&message_ser);
+    let signature = sign_challenge(&challenge, &secret_key).unwrap().to_hex();
+    let json_request = format!(r#"{{"type": "PostSlate", "from": "{}", "to": "{}", "str": {}, "signature": "{}"}}"#,
+        address_sender,
+        address_receiver.public_key,
+        json::as_json(&message_ser),
+        signature);
+
+    json_request
+
+}
+
+pub fn connect_to_ws() -> WebSocket<AutoStream> {
+    let url = format!("ws://{}:{}", EPIC_BOX_ADDRESS, EPIC_BOX_PORT);
+    let (socket, response) = connect(
+        Url::parse(&url).unwrap()
+    ).expect("Can't connect");
+    socket
 }
 
 /*
@@ -879,18 +951,6 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<Wallet, Error> {
     } else {
         Err(Error::from(ErrorKind::WalletSeedDoesntExist))
     }
-}
-
-use tokio_tungstenite::connect_async;
-use websocket::futures::future::Err;
-
-pub async fn connect_to_epicbox() {
-
-    let connect_addr = "ws://5.9.155.102:3420";
-    let url = url::Url::parse(&connect_addr).unwrap();
-    let (mut ws_stream, _) = connect_async(url).await.expect("Failed to connect");
-
-    println!("{}", "Connected");
 }
 
 
