@@ -428,8 +428,6 @@ pub unsafe extern "C" fn rust_tx_receive(
     let slate = slate.to_str().unwrap();
 
     let wallet = open_wallet(config, password).unwrap();
-    let slate = Slate::deserialize_upgrade(slate).unwrap();
-
     //Send funds to default account for now
     let owner_api = Owner::new(wallet.clone());
     let accounts = owner_api.accounts(None).unwrap();
@@ -444,30 +442,6 @@ pub unsafe extern "C" fn rust_tx_receive(
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
 }
-
-pub fn test_wallet_init() -> Result<String, Error> {
-
-    let config = get_default_config();
-    let phrase = mnemonic().unwrap();
-    let password = "58498542".to_string();
-
-    // let config = Config::from_str(config_json).unwrap();
-    let wallet = get_wallet(&config)?;
-    let mut wallet_lock = wallet.lock();
-    let lc = wallet_lock.lc_provider()?;
-
-    lc.create_wallet(
-        None,
-        Some(ZeroingString::from(phrase)),
-        32,
-        ZeroingString::from(password),
-        false,
-    )?;
-
-    Ok("".to_owned())
-}
-
-
 
 /*
     Get wallet info
@@ -523,11 +497,6 @@ fn create_seed(seed_length: u64) -> Vec<u8> {
     seed
 }
 
-
-
-
-
-//
 /*
     Get wallet that will be used for calls to epic wallet
 */
@@ -784,13 +753,17 @@ pub fn tx_create(
     };
 
     let result = owner_api.init_send_tx(None, args);
-    if let Ok(slate) = result.as_ref() {
-        //TODO - Send Slate
-        //Lock slate uptputs
-        owner_api.tx_lock_outputs(None, &slate, 0);
+    match result {
+        Ok(slate)=> {
+            //TODO - Send Slate
+            //Lock slate uptputs
+            owner_api.tx_lock_outputs(None, &slate, 0);
+            Ok(serde_json::to_string(&slate).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+        },
+        Err(e)=> {
+            Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+        }
     }
-    let init_slate = &result.unwrap();
-    Ok(serde_json::to_string(init_slate).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
 }
 
 /*
@@ -844,7 +817,8 @@ fn check_middleware(
     }
 }
 
-fn tx_receive(wallet: &Wallet, account: &str, slate: &Slate) -> Result<String, Error> {
+pub fn tx_receive(wallet: &Wallet, account: &str, str_slate: &str) -> Result<String, Error> {
+    let slate = Slate::deserialize_upgrade(str_slate).unwrap();
     let foreign_api = Foreign::new(wallet.clone(), None, Some(check_middleware));
     let response = foreign_api.receive_tx(&slate, Some(&account), None).unwrap();
     Ok(serde_json::to_string(&response).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
@@ -853,10 +827,11 @@ fn tx_receive(wallet: &Wallet, account: &str, slate: &Slate) -> Result<String, E
 /*
 
 */
-fn tx_finalize(wallet: &Wallet, reponse_slate: &Slate) -> Result<Slate, Error> {
+pub fn tx_finalize(wallet: &Wallet, str_slate: &str) -> Result<String, Error> {
+    let slate = Slate::deserialize_upgrade(str_slate).unwrap();
     let owner_api = Owner::new(wallet.clone());
-    let final_slate = owner_api.finalize_tx(None, &reponse_slate).unwrap();
-    Ok(final_slate)
+    let final_slate = owner_api.finalize_tx(None, &slate).unwrap();
+    Ok(serde_json::to_string(&final_slate).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
 }
 
 /*
@@ -903,11 +878,12 @@ pub fn build_post_slate_request(receiver_address: &str, sender_secret_key: &str,
     ).map_err(|_| WsError::new(WsErrorKind::Protocol, "could not encrypt slate!")).unwrap();
     let message_ser = serde_json::to_string(&message).unwrap();
 
+    let to_address = format!("{}@{}", address_receiver.public_key, address_receiver.domain);
     challenge.push_str(&message_ser);
     let signature = sign_challenge(&challenge, &secret_key).unwrap().to_hex();
     let json_request = format!(r#"{{"type": "PostSlate", "from": "{}", "to": "{}", "str": {}, "signature": "{}"}}"#,
         address_sender,
-        address_receiver.public_key,
+        to_address,
         json::as_json(&message_ser),
         signature);
 
@@ -1032,6 +1008,7 @@ pub fn fiat_price(symbol: &str, base_currency: &str) -> f64 {
 
 }
 
+//To be deleted
 pub fn get_default_config() -> Config {
     ///data/user/0/com.example.flutter_libepiccash_example/app_flutter/test/
     Config {
