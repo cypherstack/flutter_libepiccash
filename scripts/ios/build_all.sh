@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+mkdir build
+cp -r ../../rust build/rust
+cd build/rust
+
+# building
+cbindgen src/lib.rs -l c > libepic_cash_wallet.h
+cargo lipo --release
+
+# moving files to the ios project
+inc=../../../../ios/include
+libs=../../../../ios/libs
+
+rm -rf ${inc} ${libs}
+
+mkdir ${inc}
+mkdir ${libs}
+
+cp libepic_cash_wallet.h ${inc}
+cp target/universal/release/libepic_cash_wallet.a ${libs}
