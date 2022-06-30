@@ -110,10 +110,18 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
     }
   }
 
-  String _getWalletConfig(name) {
+  Future<String> _getWalletConfig(name) async {
     var config = {};
-    config["wallet_dir"] =
-        "/data/user/0/com.example.flutter_libepiccash_example/app_flutter/$name/";
+    // TODO: make robust path finder for IOS and Android
+    // although getApplicationDocumentsDirectory should be enough for both.
+    if (Platform.isIOS) {
+      config["wallet_dir"] =
+          "${(await getApplicationDocumentsDirectory()).path}/epiccash/$name/";
+      print("wallet dir ${config["wallet_dir"]}");
+    } else {
+      config["wallet_dir"] =
+          "/data/user/0/com.example.flutter_libepiccash_example/app_flutter/$name/";
+    }
     config["check_node_api_http_addr"] = "http://95.216.215.107:3413";
     config["chain"] = "mainnet";
     config["account"] = "default";
@@ -161,7 +169,7 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
             children: <Widget>[
               Text("$mnemonic"),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   // _createWalletFolder(widget.name);
                   print(widget.name);
                   print(widget.password);
@@ -172,7 +180,7 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
 
                     String walletName = widget.name;
                     String walletPassword = widget.password;
-                    String walletConfig = _getWalletConfig(walletName);
+                    String walletConfig = await _getWalletConfig(walletName);
 
                     // String strConf = json.encode(walletConfig);
                     final Pointer<Utf8> configPointer =

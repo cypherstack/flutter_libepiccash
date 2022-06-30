@@ -31,3 +31,6 @@ build/
 rust/src/bin
 android/src/main/jniLibs/
 rust/default/
+ios/include/
+ios/libs/
+rust/libepic_cash_wallet.h

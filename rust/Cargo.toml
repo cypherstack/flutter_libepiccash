@@ -53,7 +53,7 @@ ws = { version = "0.8", features = ["nativetls"] }
 
 [lib]
 name = "epic_cash_wallet"
-crate-type = ["cdylib"]
+crate-type = ["staticlib", "cdylib"]
 
 [patch.crates-io]
 liblmdb-sys = { git = "https://github.com/i1skn/lmdb-rs" }
