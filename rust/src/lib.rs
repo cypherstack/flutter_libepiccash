@@ -82,8 +82,6 @@ impl Config {
 const EPIC_BOX_ADDRESS: &str = "5.9.155.102";
 const EPIC_BOX_PORT: u16 = 13420;
 
-
-
 /*
     Create Wallet config
 */
@@ -212,23 +210,27 @@ pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
 #[no_mangle]
 pub unsafe extern "C"  fn rust_wallet_balances(
     config: *const c_char,
-    password: *const c_char
+    password: *const c_char,
+    refresh: *const c_char,
 ) -> *const c_char {
 
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
+    let c_refresh = unsafe { CStr::from_ptr(refresh) };
 
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
+    let refresh_from_node: u64 = c_refresh.to_str().unwrap().to_string().parse().unwrap();
 
-    debug!("{}", input_pass);
-    debug!("{}", input_conf);
+    let refresh = match refresh_from_node {
+        0 => false,
+        _=> true
+    };
 
     let wallet = open_wallet(&input_conf, &input_pass).unwrap();
-    let info = get_wallet_info(&wallet, true, 10).unwrap();
+    let info = get_wallet_info(&wallet, refresh, 10).unwrap();
 
     let string_info = serde_json::to_string(&info).unwrap();
-
     let s = CString::new(string_info).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
@@ -355,24 +357,32 @@ pub unsafe extern "C" fn rust_create_tx(
 pub unsafe extern "C" fn rust_txs_get(
     config: *const c_char,
     password: *const c_char,
-    minimum_confirmations: *const c_char
+    minimum_confirmations: *const c_char,
+    refresh_from_node: *const c_char,
 ) -> *const c_char {
 
     init_logger();
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let minimum_confirmations = unsafe { CStr::from_ptr(minimum_confirmations) };
+    let c_refresh_from_node = unsafe { CStr::from_ptr(refresh_from_node) };
 
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
     let minimum_confirmations: u64 = minimum_confirmations.to_str().unwrap().to_string().parse().unwrap();
+    let refresh_from_node: u64 = c_refresh_from_node.to_str().unwrap().to_string().parse().unwrap();
+
+    let refresh = match refresh_from_node {
+        0 => false,
+        _=> true
+    };
 
     let wallet = open_wallet(input_conf, input_pass).unwrap();
 
     let txs = txs_get(
         &wallet,
         minimum_confirmations,
-        true
+        refresh
     ).unwrap();
 
     let s = CString::new(txs).unwrap();
@@ -720,10 +730,8 @@ pub fn txs_get(
 ) -> Result<String, Error> {
 
     let api = Owner::new(wallet.clone());
-    let txs = api.retrieve_txs(None, true, None, None)?;
+    let txs = api.retrieve_txs(None, refresh_from_node, None, None)?;
     let result = (txs.1);
-
-    debug!("{}", serde_json::to_string(&result.clone()).unwrap());
 
     Ok(serde_json::to_string(&result).unwrap())
 }

@@ -24,7 +24,7 @@ class InitTransactionView extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: EpicInitTransactionView(
-          title: 'Please enter wallet name', password: password),
+          title: 'Please enter amount to send', password: password),
     );
   }
 }

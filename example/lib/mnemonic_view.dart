@@ -1,6 +1,7 @@
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:flutter_libepiccash_example/main.dart';
 import 'package:flutter_libepiccash_example/password_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash/flutter_libepiccash.dart';
@@ -184,6 +185,7 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
                     _storeConfig(walletConfig);
                     _createWallet(
                         configPointer, mnemonicPtr, passwordPtr, namePtr);
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(

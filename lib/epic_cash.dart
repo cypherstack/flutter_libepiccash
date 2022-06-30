@@ -18,8 +18,10 @@ typedef WalletInit = Pointer<Utf8> Function(
 typedef WalletInitFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 
-typedef WalletInfo = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
-typedef WalletInfoFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef WalletInfo = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+typedef WalletInfoFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
 
 typedef RecoverWallet = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
@@ -38,9 +40,9 @@ typedef CreateTransactionFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
 typedef GetTransactions = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 typedef GetTransactionsFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
 typedef CancelTransaction = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
