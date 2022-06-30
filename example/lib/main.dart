@@ -129,11 +129,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // const amount = "1";
     // final amountPtr = amount.toNativeUtf8().cast<Int8>();
-
+    //
     // const minimumConfirmations = "10";
     // final minimumConfirmatiosPtr =
     //     minimumConfirmations.toNativeUtf8().cast<Int8>();
-
+    //
     // final Pointer<Utf8> createTransactionPtr = createTransaction(
     //     configPointer, passwordPointer, amountPtr, minimumConfirmatiosPtr);
     //

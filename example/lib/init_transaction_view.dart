@@ -1,6 +1,11 @@
+import 'dart:ffi';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert';
+import 'package:flutter_libepiccash/epic_cash.dart';
+import 'package:ffi/ffi.dart';
 
 class InitTransactionView extends StatelessWidget {
   const InitTransactionView({Key? key, required this.password})
@@ -52,6 +57,27 @@ class EpicInitTransactionView extends StatefulWidget {
 
 class _EpicInitTransactionView extends State<EpicInitTransactionView> {
   var amount = "";
+  var walletConfig = "";
+  final storage = new FlutterSecureStorage();
+  var initTxResponse = "";
+
+  Future<void> _getWalletConfig() async {
+    var config = await storage.read(key: "config");
+    String strConf = json.encode(config);
+
+    setState(() {
+      walletConfig = strConf;
+    });
+  }
+
+  String _initTransaction(Pointer<Utf8> config, Pointer<Utf8> password,
+      Pointer<Int8> amount, Pointer<Int8> minimumConfirmations) {
+    final Pointer<Utf8> createTransactionPtr =
+        createTransaction(config, password, amount, minimumConfirmations);
+
+    final String createTransactionStr = createTransactionPtr.toDartString();
+    return createTransactionStr;
+  }
 
   void _setAmount(value) {
     setState(() {
@@ -64,9 +90,17 @@ class _EpicInitTransactionView extends State<EpicInitTransactionView> {
     });
   }
 
+  void _setInitTxResponse(value) {
+    setState(() {
+      initTxResponse = value;
+    });
+  }
+
   final _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
+    _getWalletConfig();
+    String password = widget.password;
     return Scaffold(
         appBar: AppBar(
           // Here we take the value from the MyHomePage object that was created by
@@ -95,28 +129,31 @@ class _EpicInitTransactionView extends State<EpicInitTransactionView> {
                   String password = widget.password;
                   // Validate returns true if the form is valid, or false otherwise.
                   if (_formKey.currentState!.validate()) {
-                    print("Amount is still $amount");
-                    print("Wallet recover is  $password");
-                    // if (isRecover == true) {
-                    //   Navigator.push(
-                    //     context,
-                    //     MaterialPageRoute(
-                    //         builder: (context) => RecoverWalletView(
-                    //           name: name,
-                    //         )),
-                    //   );
-                    // } else {
-                    //   Navigator.push(
-                    //     context,
-                    //     MaterialPageRoute(
-                    //         builder: (context) => PasswordView(
-                    //           name: name,
-                    //         )),
-                    //   );
-                    // }
+                    print("Amount is $amount");
+                    print("Password is  $password");
+                    const minimumConfirmations = "10";
+
+                    String decodeConfig = json.decode(walletConfig);
+                    final Pointer<Utf8> configPointer =
+                        decodeConfig.toNativeUtf8();
+                    final Pointer<Utf8> passwordPtr = password.toNativeUtf8();
+                    final amountPtr = amount.toNativeUtf8().cast<Int8>();
+                    final minimumConfirmatiosPtr =
+                        minimumConfirmations.toNativeUtf8().cast<Int8>();
+
+                    String transaction = _initTransaction(configPointer,
+                        passwordPtr, amountPtr, minimumConfirmatiosPtr);
+                    _setInitTxResponse(transaction);
                   }
                 },
                 child: const Text('Init Transaction'),
+              ),
+
+              TextFormField(
+                decoration: InputDecoration(hintText: initTxResponse),
+                enabled: false,
+                maxLines: 10,
+                // The validator receives the text that the user has entered.
               ),
               // Add TextFormFields and ElevatedButton here.
             ],
