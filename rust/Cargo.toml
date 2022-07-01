@@ -39,8 +39,8 @@ stack_test_epic_wallet_util = "3.0.1"
 stack_test_epic_wallet_controller = "3.0.1"
 
 # Epic box for posting slates and getting epic addresses
-stack_test_epicboxlib = "1.0.2"
-#epicboxlib = { path = "../../../dev/epicbox/epicboxlib" }
+stack_test_epicboxlib = "1.0.3"
+#stack_test_epicboxlib = { path = "../../../dev/epicbox/epicboxlib" }
 
 url = "2.1.0"
 futures = "0.3.15"

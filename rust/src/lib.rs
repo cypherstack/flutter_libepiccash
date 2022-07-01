@@ -79,7 +79,10 @@ impl Config {
     }
 }
 
-const EPIC_BOX_ADDRESS: &str = "5.9.155.102";
+// const EPIC_BOX_ADDRESS: &str = "5.9.155.102";
+// const EPIC_BOX_PORT: u16 = 13420;
+
+const EPIC_BOX_ADDRESS: &str = "209.127.179.199";
 const EPIC_BOX_PORT: u16 = 13420;
 
 /*
@@ -887,16 +890,28 @@ pub fn build_post_slate_request(receiver_address: &str, sender_secret_key: &str,
     let message_ser = serde_json::to_string(&message).unwrap();
 
     let to_address = format!("{}@{}", address_receiver.public_key, address_receiver.domain);
+    let from_address = format!("{}@{}", address_sender.public_key, address_sender.domain);
     challenge.push_str(&message_ser);
     let signature = sign_challenge(&challenge, &secret_key).unwrap().to_hex();
     let json_request = format!(r#"{{"type": "PostSlate", "from": "{}", "to": "{}", "str": {}, "signature": "{}"}}"#,
-        address_sender,
+                               from_address,
         to_address,
         json::as_json(&message_ser),
         signature);
 
     json_request
+}
 
+pub fn build_subscribe_request(challenge: String, str_secret_key: &str) -> String {
+
+    let secret_key: SecretKey = serde_json::from_str(str_secret_key).unwrap();
+    let s = Secp256k1::new();
+    let pub_key = PublicKey::from_secret_key(&s, &secret_key).unwrap();
+    let address = get_epicbox_address(pub_key, EPIC_BOX_ADDRESS.clone(), Some(EPIC_BOX_PORT));
+
+    let signature = sign_challenge(&challenge, &secret_key).unwrap().to_hex();
+    let subscribe_str = format!(r#"{{"type": "Subscribe", "address": "{}", "signature": "{}"}}"#, address.public_key, signature);
+    subscribe_str
 }
 
 pub fn connect_to_ws() -> WebSocket<AutoStream> {
