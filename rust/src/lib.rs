@@ -48,7 +48,7 @@ use stack_test_epic_wallet_libwallet::api_impl::owner_updater::StatusMessage;
 use stack_test_epic_util::secp::rand::Rng;
 use stack_test_epic_util::to_hex;
 
-use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxError, version_bytes, EpicboxMessage};
+use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxError, version_bytes, EpicboxMessage, TxProofErrorKind};
 
 #[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
 pub struct Config {
@@ -831,8 +831,16 @@ fn check_middleware(
 pub fn tx_receive(wallet: &Wallet, account: &str, str_slate: &str) -> Result<String, Error> {
     let slate = Slate::deserialize_upgrade(str_slate).unwrap();
     let foreign_api = Foreign::new(wallet.clone(), None, Some(check_middleware));
-    let response = foreign_api.receive_tx(&slate, Some(&account), None).unwrap();
-    Ok(serde_json::to_string(&response).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+    let response = foreign_api.receive_tx(&slate, Some(&account), None);
+
+    match response {
+        Ok(slate)=> {
+            Ok(serde_json::to_string(&slate).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+        },
+        Err(e)=> {
+            Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+        }
+    }
 }
 
 /*
@@ -912,6 +920,31 @@ pub fn build_subscribe_request(challenge: String, str_secret_key: &str) -> Strin
     let signature = sign_challenge(&challenge, &secret_key).unwrap().to_hex();
     let subscribe_str = format!(r#"{{"type": "Subscribe", "address": "{}", "signature": "{}"}}"#, address.public_key, signature);
     subscribe_str
+}
+
+pub fn convert_deci_to_nano(amount: f64) -> u64 {
+    // let  amount = 0.15;
+    let base_nano = 100000000;
+    let nano = amount * base_nano as f64;
+    nano as u64
+}
+
+pub fn decrypt_message(receiver_key: &str, msg_json: serde_json::Value) -> String {
+    let secret_key: SecretKey = serde_json::from_str(receiver_key).unwrap();
+    let sender_address = msg_json.get("from").unwrap().as_str().unwrap();
+    let sender_public_key: PublicKey = EpicboxAddress::from_str(sender_address).unwrap().public_key()
+        .unwrap();
+
+    let message = msg_json.get("str").unwrap().as_str().unwrap();
+    let encrypted_message: EpicboxMessage =
+        serde_json::from_str(message).map_err(|_| TxProofErrorKind::ParseEpicboxMessage).unwrap();
+
+    //Derive a key for decrypting a slate
+    let key = encrypted_message.key(&sender_public_key, &secret_key).unwrap();
+    let decrypted_message = encrypted_message.decrypt_with_key(&key)
+        .map_err(|_| stack_test_epicboxlib::error::ErrorKind::Decryption).unwrap();
+
+    decrypted_message
 }
 
 pub fn connect_to_ws() -> WebSocket<AutoStream> {
