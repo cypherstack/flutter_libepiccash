@@ -477,7 +477,7 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
 
     //First check if wallet seed directory exists, if not create
     if let Ok(exists_wallet_seed) = lc.wallet_exists(None) {
-        if (exists_wallet_seed) {
+        if exists_wallet_seed {
             lc.recover_from_mnemonic(ZeroingString::from(mnemonic), ZeroingString::from(password))?;
         } else {
             lc.create_wallet(
@@ -734,7 +734,7 @@ pub fn txs_get(
 
     let api = Owner::new(wallet.clone());
     let txs = api.retrieve_txs(None, refresh_from_node, None, None)?;
-    let result = (txs.1);
+    let result = txs.1;
 
     Ok(serde_json::to_string(&result).unwrap())
 }
@@ -849,8 +849,67 @@ pub fn tx_receive(wallet: &Wallet, account: &str, str_slate: &str) -> Result<Str
 pub fn tx_finalize(wallet: &Wallet, str_slate: &str) -> Result<String, Error> {
     let slate = Slate::deserialize_upgrade(str_slate).unwrap();
     let owner_api = Owner::new(wallet.clone());
-    let final_slate = owner_api.finalize_tx(None, &slate).unwrap();
-    Ok(serde_json::to_string(&final_slate).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+    let response = owner_api.finalize_tx(None, &slate);
+    match response {
+        Ok(slate)=> {
+            Ok(serde_json::to_string(&slate).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+        },
+        Err(e)=> {
+            Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+        }
+    }
+}
+
+/*
+    Post transaction to the node after finalising
+*/
+pub fn tx_post(wallet: &Wallet, slate_uuid: &str) -> Result<String, Error> {
+
+    let owner_api = Owner::new(wallet.clone());
+    let tx_uuid =
+        Uuid::parse_str(slate_uuid).map_err(|e| ErrorKind::GenericError(e.to_string()))?;
+    let (_, txs) = owner_api.retrieve_txs(None, true, None, Some(tx_uuid.clone()))?;
+    if txs[0].confirmed {
+        return Err(Error::from(ErrorKind::GenericError(format!(
+            "Transaction with id {} is already confirmed. Not posting.",
+            slate_uuid
+        ))));
+    }
+    let response = owner_api.get_stored_tx(None, &txs[0]);
+
+    match response {
+        Ok(Some(stored_tx)) => {
+            let post_tx = owner_api.post_tx(None, &stored_tx, true);
+            match post_tx {
+                Ok(()) => {
+                    Ok("".to_owned())
+                },
+                Err(err)=> {
+                    Ok(serde_json::to_string(&err.to_string()).map_err(|err| ErrorKind::GenericError(err.to_string()))?)
+                }
+            }
+        }
+        Ok(None) => {
+            Err(Error::from(ErrorKind::GenericError(format!(
+                "Transaction with id {} does not have transaction data. Not posting.",
+                slate_uuid
+            ))))
+        },
+        Err(e)=> {
+            Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+        }
+    }
+
+    // match stored_tx {
+    //     Some(stored_tx) => {
+    //         owner_api.post_tx(None, &stored_tx, true)?;
+    //         Ok("".to_owned())
+    //     }
+    //     None => Err(Error::from(ErrorKind::GenericError(format!(
+    //         "Transaction with id {} does not have transaction data. Not posting.",
+    //         slate_uuid
+    //     )))),
+    // }
 }
 
 /*
