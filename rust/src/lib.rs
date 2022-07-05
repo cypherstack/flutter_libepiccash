@@ -34,11 +34,7 @@ use stack_test_epic_core::global;
 use stack_test_epic_util::file::get_first_line;
 use stack_test_epic_wallet_util::stack_test_epic_util::ZeroingString;
 use stack_test_epic_util::Mutex;
-use stack_test_epic_wallet_libwallet::{
-    address, scan, slate_versions, wallet_lock, NodeClient,
-    NodeVersionInfo, Slate, WalletInst, WalletLCProvider,
-    WalletInfo, Error, ErrorKind
-};
+use stack_test_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, WalletInfo, Error, ErrorKind, TxLogEntry, TxLogEntryType};
 
 use stack_test_epicboxlib::utils::secp::{SecretKey, PublicKey, Secp256k1};
 use stack_test_epic_wallet_util::stack_test_epic_keychain::{Keychain, ExtKeychain};
@@ -456,6 +452,31 @@ pub unsafe extern "C" fn rust_tx_receive(
     p
 }
 
+pub fn test_wallet_init() -> Result<String, Error> {
+
+    let config = get_utxo_test_config();
+    let phrase = mnemonic().unwrap();
+    println!("Mnemonic is :::::::: {}", phrase);
+    let password = "58498542".to_string();
+
+    // let config = Config::from_str(config_json).unwrap();
+    let wallet = get_wallet(&config)?;
+    let mut wallet_lock = wallet.lock();
+    let lc = wallet_lock.lc_provider()?;
+
+    lc.create_wallet(
+        None,
+        Some(ZeroingString::from(phrase)),
+        32,
+        ZeroingString::from(password),
+        false,
+    )?;
+
+    Ok("".to_owned())
+}
+
+
+
 /*
     Get wallet info
     This contains wallet balances
@@ -769,7 +790,14 @@ pub fn tx_create(
             //TODO - Send Slate
             //Lock slate uptputs
             owner_api.tx_lock_outputs(None, &slate, 0);
-            Ok(serde_json::to_string(&slate).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+            //Get transaction for the slate, we will use type to determing if we should finalize or receive tx
+            let txs = owner_api.retrieve_txs(None, false, None, Some(slate.id)).unwrap();
+
+            let final_result = (
+                serde_json::to_string(&txs.1).unwrap(),
+                serde_json::to_string(&slate).unwrap()
+                );
+            Ok(serde_json::to_string(&final_result).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
         },
         Err(e)=> {
             Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
@@ -830,12 +858,18 @@ fn check_middleware(
 
 pub fn tx_receive(wallet: &Wallet, account: &str, str_slate: &str) -> Result<String, Error> {
     let slate = Slate::deserialize_upgrade(str_slate).unwrap();
+    let owner_api = Owner::new(wallet.clone());
     let foreign_api = Foreign::new(wallet.clone(), None, Some(check_middleware));
     let response = foreign_api.receive_tx(&slate, Some(&account), None);
 
     match response {
         Ok(slate)=> {
-            Ok(serde_json::to_string(&slate).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+            let txs = owner_api.retrieve_txs(None, false, None, Some(slate.id)).unwrap();
+            let final_result = (
+                serde_json::to_string(&txs.1).unwrap(),
+                serde_json::to_string(&slate).unwrap()
+            );
+            Ok(serde_json::to_string(&final_result).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
         },
         Err(e)=> {
             Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
@@ -899,17 +933,6 @@ pub fn tx_post(wallet: &Wallet, slate_uuid: &str) -> Result<String, Error> {
             Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
         }
     }
-
-    // match stored_tx {
-    //     Some(stored_tx) => {
-    //         owner_api.post_tx(None, &stored_tx, true)?;
-    //         Ok("".to_owned())
-    //     }
-    //     None => Err(Error::from(ErrorKind::GenericError(format!(
-    //         "Transaction with id {} does not have transaction data. Not posting.",
-    //         slate_uuid
-    //     )))),
-    // }
 }
 
 /*
@@ -988,6 +1011,9 @@ pub fn convert_deci_to_nano(amount: f64) -> u64 {
     nano as u64
 }
 
+/*
+    Decrypt slate retreived from epic box
+*/
 pub fn decrypt_message(receiver_key: &str, msg_json: serde_json::Value) -> String {
     let secret_key: SecretKey = serde_json::from_str(receiver_key).unwrap();
     let sender_address = msg_json.get("from").unwrap().as_str().unwrap();
@@ -1004,6 +1030,22 @@ pub fn decrypt_message(receiver_key: &str, msg_json: serde_json::Value) -> Strin
         .map_err(|_| stack_test_epicboxlib::error::ErrorKind::Decryption).unwrap();
 
     decrypted_message
+}
+
+/*
+    Process received slate from Epicbox, and return processed slate for posting
+*/
+pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> String {
+    let msg_tuple: (String, String) =  serde_json::from_str(&slate_info).unwrap();
+    let transaction: Vec<TxLogEntry> = serde_json::from_str(&msg_tuple.0).unwrap();
+    if transaction[0].tx_type == TxLogEntryType::TxSent {
+        let receive = tx_receive(&wallet, "default", &msg_tuple.1).unwrap();
+        receive
+    } else {
+        println!("Not a receive:: What is type now???? {}", transaction[0].tx_type);
+        "".to_owned()
+    }
+
 }
 
 pub fn connect_to_ws() -> WebSocket<AutoStream> {
@@ -1128,6 +1170,19 @@ pub fn get_default_config() -> Config {
     ///data/user/0/com.example.flutter_libepiccash_example/app_flutter/test/
     Config {
         wallet_dir: String::from("default"),
+        check_node_api_http_addr: String::from("http://95.216.215.107:3413"),
+        chain: String::from("mainnet"),
+        account: Some(String::from("default")),
+        api_listen_port: 3413,
+        api_listen_interface: "95.216.215.107".to_string()
+    }
+}
+
+
+pub fn get_utxo_test_config() -> Config {
+    ///data/user/0/com.example.flutter_libepiccash_example/app_flutter/test/
+    Config {
+        wallet_dir: String::from("test_utxo"),
         check_node_api_http_addr: String::from("http://95.216.215.107:3413"),
         chain: String::from("mainnet"),
         account: Some(String::from("default")),
