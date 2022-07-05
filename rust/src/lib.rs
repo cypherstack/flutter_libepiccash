@@ -886,7 +886,12 @@ pub fn tx_finalize(wallet: &Wallet, str_slate: &str) -> Result<String, Error> {
     let response = owner_api.finalize_tx(None, &slate);
     match response {
         Ok(slate)=> {
-            Ok(serde_json::to_string(&slate).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+            let txs = owner_api.retrieve_txs(None, false, None, Some(slate.id)).unwrap();
+            let final_result = (
+                serde_json::to_string(&txs.1).unwrap(),
+                serde_json::to_string(&slate).unwrap()
+            );
+            Ok(serde_json::to_string(&final_result).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
         },
         Err(e)=> {
             Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
@@ -1035,15 +1040,39 @@ pub fn decrypt_message(receiver_key: &str, msg_json: serde_json::Value) -> Strin
 /*
     Process received slate from Epicbox, and return processed slate for posting
 */
-pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> String {
+pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<String, Error> {
     let msg_tuple: (String, String) =  serde_json::from_str(&slate_info).unwrap();
     let transaction: Vec<TxLogEntry> = serde_json::from_str(&msg_tuple.0).unwrap();
-    if transaction[0].tx_type == TxLogEntryType::TxSent {
-        let receive = tx_receive(&wallet, "default", &msg_tuple.1).unwrap();
-        receive
-    } else {
-        println!("Not a receive:: What is type now???? {}", transaction[0].tx_type);
-        "".to_owned()
+    match transaction[0].tx_type {
+        // print
+        TxLogEntryType::TxSent => {
+            let receive = tx_receive(&wallet, "default", &msg_tuple.1).unwrap();
+            Ok(receive)
+        },
+        TxLogEntryType::TxReceived =>  {
+            let finalize = tx_finalize(&wallet, &msg_tuple.1);
+            match finalize {
+                Ok(str_slate) => {
+                    let slate: Slate = serde_json::from_str(&str_slate).unwrap();
+                    //Post slate to the node
+                    // let tx_post = tx_post(&wallet, &slate.tx.)?;
+                    Ok(str_slate)
+                },
+                Err(e)=> {
+                    Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+                }
+            }
+        },
+        TxLogEntryType::ConfirmedCoinbase => {
+            Err(Error::from(ErrorKind::GenericError(format!(
+                "The provided slate has already been confirmed, not processed.",
+            ))))
+        },
+        _ => {
+            Err(Error::from(ErrorKind::GenericError(format!(
+                "The provided slate could not be processed, cancelled by user.",
+            ))))
+        }
     }
 
 }
