@@ -323,6 +323,7 @@ pub unsafe extern "C" fn rust_create_tx(
     password: *const c_char,
     amount: *const c_char,
     minimum_confirmations: *const c_char,
+    utxo_use_all: *const c_char,
 ) -> *const c_char {
 
     init_logger();
@@ -331,19 +332,23 @@ pub unsafe extern "C" fn rust_create_tx(
     let c_password = unsafe { CStr::from_ptr(password) };
     let amount = unsafe { CStr::from_ptr(amount) };
     let minimum_confirmations = unsafe { CStr::from_ptr(minimum_confirmations) };
+    let utxo_use_all = unsafe { CStr::from_ptr(utxo_use_all) };
+    let selection_strategy_use_all: u64 = utxo_use_all.to_str().unwrap().to_string().parse().unwrap();
 
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
     let amount = amount.to_str().unwrap().to_string();
     let minimum_confirmations = minimum_confirmations.to_str().unwrap().to_string();
+    let use_all_txo = match selection_strategy_use_all {
+        0 => false,
+        _=> true
+    };
 
     let amount: u64 = amount.parse().unwrap();
     let minimum_confirmations: u64 = minimum_confirmations.parse().unwrap();
 
     let wallet = open_wallet(input_conf, input_pass).unwrap();
-    let json_slate = tx_create(&wallet, amount, minimum_confirmations, true).unwrap();
-    debug!("{}", "Tx debug below:::::");
-    debug!("{}", json_slate);
+    let json_slate = tx_create(&wallet, amount, minimum_confirmations, use_all_txo).unwrap();
 
     let s = CString::new(json_slate).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
@@ -452,40 +457,36 @@ pub unsafe extern "C" fn rust_tx_receive(
     p
 }
 
-pub fn test_wallet_init() -> Result<String, Error> {
-
-    let config = get_utxo_test_config();
-    let phrase = mnemonic().unwrap();
-    println!("Mnemonic is :::::::: {}", phrase);
-    let password = "58498542".to_string();
-
-    // let config = Config::from_str(config_json).unwrap();
-    let wallet = get_wallet(&config)?;
-    let mut wallet_lock = wallet.lock();
-    let lc = wallet_lock.lc_provider()?;
-
-    lc.create_wallet(
-        None,
-        Some(ZeroingString::from(phrase)),
-        32,
-        ZeroingString::from(password),
-        false,
-    )?;
-
-    Ok("".to_owned())
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WalletInfoFormatted {
+    pub last_confirmed_height: u64,
+    pub minimum_confirmations: u64,
+    pub total: f64,
+    pub amount_awaiting_finalization: f64,
+    pub amount_awaiting_confirmation: f64,
+    pub amount_immature: f64,
+    pub amount_currently_spendable: f64,
+    pub amount_locked: f64,
 }
-
-
 
 /*
     Get wallet info
     This contains wallet balances
 */
-pub fn get_wallet_info(wallet: &Wallet, refresh_from_node: bool, min_confirmations: u64) -> Result<WalletInfo, Error> {
+pub fn get_wallet_info(wallet: &Wallet, refresh_from_node: bool, min_confirmations: u64) -> Result<WalletInfoFormatted, Error> {
     let api = Owner::new(wallet.clone());
     let (_, wallet_summary) =
         api.retrieve_summary_info(None, refresh_from_node, min_confirmations).unwrap();
-    Ok(wallet_summary)
+    Ok(WalletInfoFormatted {
+        last_confirmed_height: wallet_summary.last_confirmed_height,
+        minimum_confirmations: wallet_summary.minimum_confirmations,
+        total: nano_to_deci(wallet_summary.total),
+        amount_awaiting_finalization: nano_to_deci(wallet_summary.amount_awaiting_finalization),
+        amount_awaiting_confirmation: nano_to_deci(wallet_summary.amount_awaiting_confirmation),
+        amount_immature: nano_to_deci(wallet_summary.amount_immature),
+        amount_currently_spendable: nano_to_deci(wallet_summary.amount_currently_spendable),
+        amount_locked: nano_to_deci(wallet_summary.amount_locked)
+    })
 }
 
 /*
@@ -1010,10 +1011,15 @@ pub fn build_subscribe_request(challenge: String, str_secret_key: &str) -> Strin
 }
 
 pub fn convert_deci_to_nano(amount: f64) -> u64 {
-    // let  amount = 0.15;
     let base_nano = 100000000;
     let nano = amount * base_nano as f64;
     nano as u64
+}
+
+pub fn nano_to_deci(amount: u64) -> f64 {
+    let base_nano = 100000000;
+    let decimal = amount as f64 / base_nano as f64;
+    decimal
 }
 
 /*
@@ -1044,7 +1050,6 @@ pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<Strin
     let msg_tuple: (String, String) =  serde_json::from_str(&slate_info).unwrap();
     let transaction: Vec<TxLogEntry> = serde_json::from_str(&msg_tuple.0).unwrap();
     match transaction[0].tx_type {
-        // print
         TxLogEntryType::TxSent => {
             let receive = tx_receive(&wallet, "default", &msg_tuple.1).unwrap();
             Ok(receive)
@@ -1053,9 +1058,10 @@ pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<Strin
             let finalize = tx_finalize(&wallet, &msg_tuple.1);
             match finalize {
                 Ok(str_slate) => {
-                    let slate: Slate = serde_json::from_str(&str_slate).unwrap();
+                    // let slate: Slate = serde_json::from_str(&str_slate).unwrap();
                     //Post slate to the node
-                    // let tx_post = tx_post(&wallet, &slate.tx.)?;
+                    let tx_slate_id = transaction[0].tx_slate_id.unwrap().to_string();
+                    let tx_post = tx_post(&wallet, &tx_slate_id)?;
                     Ok(str_slate)
                 },
                 Err(e)=> {
@@ -1192,32 +1198,6 @@ pub fn fiat_price(symbol: &str, base_currency: &str) -> f64 {
     }
     final_price
 
-}
-
-//To be deleted
-pub fn get_default_config() -> Config {
-    ///data/user/0/com.example.flutter_libepiccash_example/app_flutter/test/
-    Config {
-        wallet_dir: String::from("default"),
-        check_node_api_http_addr: String::from("http://95.216.215.107:3413"),
-        chain: String::from("mainnet"),
-        account: Some(String::from("default")),
-        api_listen_port: 3413,
-        api_listen_interface: "95.216.215.107".to_string()
-    }
-}
-
-
-pub fn get_utxo_test_config() -> Config {
-    ///data/user/0/com.example.flutter_libepiccash_example/app_flutter/test/
-    Config {
-        wallet_dir: String::from("test_utxo"),
-        check_node_api_http_addr: String::from("http://95.216.215.107:3413"),
-        chain: String::from("mainnet"),
-        account: Some(String::from("default")),
-        api_listen_port: 3413,
-        api_listen_interface: "95.216.215.107".to_string()
-    }
 }
 
 

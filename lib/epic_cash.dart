@@ -35,9 +35,9 @@ typedef ScanOutPuts = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 typedef ScanOutPutsFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 
 typedef CreateTransaction = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>, Pointer<Int8>);
 typedef CreateTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>, Pointer<Int8>);
 
 typedef GetTransactions = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);

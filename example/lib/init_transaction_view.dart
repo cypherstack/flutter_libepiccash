@@ -70,10 +70,14 @@ class _EpicInitTransactionView extends State<EpicInitTransactionView> {
     });
   }
 
-  String _initTransaction(Pointer<Utf8> config, Pointer<Utf8> password,
-      Pointer<Int8> amount, Pointer<Int8> minimumConfirmations) {
-    final Pointer<Utf8> createTransactionPtr =
-        createTransaction(config, password, amount, minimumConfirmations);
+  String _initTransaction(
+      Pointer<Utf8> config,
+      Pointer<Utf8> password,
+      Pointer<Int8> amount,
+      Pointer<Int8> minimumConfirmations,
+      Pointer<Int8> selectionStrategyUseAll) {
+    final Pointer<Utf8> createTransactionPtr = createTransaction(config,
+        password, amount, minimumConfirmations, selectionStrategyUseAll);
 
     final String createTransactionStr = createTransactionPtr.toDartString();
     return createTransactionStr;
@@ -132,6 +136,7 @@ class _EpicInitTransactionView extends State<EpicInitTransactionView> {
                     print("Amount is $amount");
                     print("Password is  $password");
                     const minimumConfirmations = "10";
+                    const selectionStrategyUseAll = "0";
 
                     String decodeConfig = json.decode(walletConfig);
                     final Pointer<Utf8> configPointer =
@@ -140,9 +145,15 @@ class _EpicInitTransactionView extends State<EpicInitTransactionView> {
                     final amountPtr = amount.toNativeUtf8().cast<Int8>();
                     final minimumConfirmatiosPtr =
                         minimumConfirmations.toNativeUtf8().cast<Int8>();
+                    final selectionStrategyUseAllPtr =
+                        selectionStrategyUseAll.toNativeUtf8().cast<Int8>();
 
-                    String transaction = _initTransaction(configPointer,
-                        passwordPtr, amountPtr, minimumConfirmatiosPtr);
+                    String transaction = _initTransaction(
+                        configPointer,
+                        passwordPtr,
+                        amountPtr,
+                        minimumConfirmatiosPtr,
+                        selectionStrategyUseAllPtr);
                     _setInitTxResponse(transaction);
                   }
                 },
