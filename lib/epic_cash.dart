@@ -100,9 +100,19 @@ final CreateTransaction createTransaction = epicCashNative
     .lookup<NativeFunction<CreateTransactionFFI>>("rust_create_tx")
     .asFunction();
 
-final GetTransactions getTransactions = epicCashNative
+final GetTransactions _getTransactions = epicCashNative
     .lookup<NativeFunction<GetTransactionsFFI>>("rust_txs_get")
     .asFunction();
+
+String getTransactions(
+    String config, String password, int minimumConfirmatios, int refreshFromNode
+    ) {
+    return _getTransactions(
+        config.toNativeUtf8(), password.toNativeUtf8(),
+        minimumConfirmatios.toString().toNativeUtf8().cast<Int8>(),
+        refreshFromNode.toString().toNativeUtf8().cast<Int8>()
+    ).toDartString();
+}
 
 final CancelTransaction cancelTransaction = epicCashNative
     .lookup<NativeFunction<CancelTransactionFFI>>("rust_tx_cancel")

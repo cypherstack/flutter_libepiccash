@@ -80,14 +80,6 @@ class _EpicTransactionView extends State<EpicTransactionView> {
   //   return walletInfoStr;
   // }
 
-  String _getTransactions(Pointer<Utf8> config, Pointer<Utf8> password,
-      Pointer<Int8> confirmations, Pointer<Int8> refreshFromNode) {
-    final Pointer<Utf8> getTransactionsPtr =
-        getTransactions(config, password, confirmations, refreshFromNode);
-    final String transactionsStr = getTransactionsPtr.toDartString();
-    return transactionsStr;
-  }
-
   final _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
@@ -97,11 +89,7 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     // print("Wallet Config");
     // print(json.decode(walletConfig));
     String decodeConfig = json.decode(walletConfig);
-    const refreshFromNode = "0";
 
-    final Pointer<Utf8> configPointer = decodeConfig.toNativeUtf8();
-    final Pointer<Utf8> passwordPtr = password.toNativeUtf8();
-    final refreshFromNodePtr = refreshFromNode.toNativeUtf8().cast<Int8>();
     String walletInfo =
         getWalletInfo(decodeConfig, password, 0);
     var data = json.decode(walletInfo);
@@ -112,12 +100,8 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     var spendable = data['amount_currently_spendable'].toString();
     var locked = data['amount_locked'].toString();
 
-    const minimumConfirmations = "10";
-    final minimumConfirmatiosPtr =
-        minimumConfirmations.toNativeUtf8().cast<Int8>();
-
-    String transactions = _getTransactions(
-        configPointer, passwordPtr, minimumConfirmatiosPtr, refreshFromNodePtr);
+    String transactions = getTransactions(
+        decodeConfig, password, 10, 0);
 
     print("List Transactions count");
     print(transactions);
