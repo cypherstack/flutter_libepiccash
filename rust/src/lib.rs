@@ -296,21 +296,23 @@ pub unsafe extern "C"  fn rust_wallet_phrase(
 #[no_mangle]
 pub unsafe extern "C" fn rust_wallet_scan_outputs(
     config: *const c_char,
-    password: *const c_char
+    password: *const c_char,
+    start_height: *const c_char,
 ) -> *const c_char {
 
     debug!("{}", "Calling wallet scanner");
 
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
+    let start_height = unsafe { CStr::from_ptr(start_height) };
+    let start_height: u64 = start_height.to_str().unwrap().to_string().parse().unwrap();
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
+    debug!("Start height is :::::: {}", start_height);
+
     let wallet = open_wallet(&input_conf, &input_pass).unwrap();
-    let pmmr_range = wallet_pmmr_range(&wallet).unwrap();
-
     //Scan wallet
-    let scan = wallet_scan_outputs(&wallet, Some(pmmr_range.0)).unwrap();
-
+    let scan = wallet_scan_outputs(&wallet, Some(start_height)).unwrap();
     let s = CString::new("").unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
@@ -457,6 +459,20 @@ pub unsafe extern "C" fn rust_tx_receive(
     p
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_get_chain_height(
+    config: *const c_char,
+) -> *const c_char {
+    init_logger();
+    let c_config = unsafe { CStr::from_ptr(config) };
+    let str_config = c_config.to_str().unwrap();
+    let chain_tip = get_chain_height(&str_config).unwrap().to_string();
+    let s = CString::new(chain_tip).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WalletInfoFormatted {
     pub last_confirmed_height: u64,
@@ -586,6 +602,15 @@ pub fn wallet_pmmr_range(wallet: &Wallet) -> Result<(u64, u64), Error> {
     wallet_lock!(wallet, w);
     let pmmr_range = w.w2n_client().height_range_to_pmmr_indices(0, None)?;
     Ok(pmmr_range)
+}
+
+pub fn get_chain_height(config: &str) -> Result<u64, Error> {
+    let config = Config::from_str(config).unwrap();
+    let wallet_config = create_wallet_config(config.clone())?;
+    let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
+    let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
+    let chain_tip = node_client.chain_height()?;
+    Ok(chain_tip.0)
 }
 
 
@@ -1198,6 +1223,18 @@ pub fn fiat_price(symbol: &str, base_currency: &str) -> f64 {
     }
     final_price
 
+}
+
+pub fn get_default_config() -> Config {
+    ///data/user/0/com.example.epic_cash_wallet/app_flutter/test/
+    Config {
+        wallet_dir: String::from("default"),
+        check_node_api_http_addr: String::from("http://95.216.215.107:3413"),
+        chain: String::from("mainnet"),
+        account: Some(String::from("default")),
+        api_listen_port: 3413,
+        api_listen_interface: "95.216.215.107".to_string()
+    }
 }
 
 

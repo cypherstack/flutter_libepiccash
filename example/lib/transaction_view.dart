@@ -72,13 +72,13 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     });
   }
 
-  String _getWalletInfo(Pointer<Utf8> config, Pointer<Utf8> password,
-      Pointer<Int8> refreshFromNode) {
-    final Pointer<Utf8> walletInfoPtr =
-        walletInfo(config, password, refreshFromNode);
-    final String walletInfoStr = walletInfoPtr.toDartString();
-    return walletInfoStr;
-  }
+  // String _getWalletInfo(Pointer<Utf8> config, Pointer<Utf8> password,
+  //     Pointer<Int8> refreshFromNode) {
+  //   final Pointer<Utf8> walletInfoPtr =
+  //       walletInfo(config, password, refreshFromNode);
+  //   final String walletInfoStr = walletInfoPtr.toDartString();
+  //   return walletInfoStr;
+  // }
 
   String _getTransactions(Pointer<Utf8> config, Pointer<Utf8> password,
       Pointer<Int8> confirmations, Pointer<Int8> refreshFromNode) {
@@ -103,7 +103,7 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     final Pointer<Utf8> passwordPtr = password.toNativeUtf8();
     final refreshFromNodePtr = refreshFromNode.toNativeUtf8().cast<Int8>();
     String walletInfo =
-        _getWalletInfo(configPointer, passwordPtr, refreshFromNodePtr);
+        getWalletInfo(decodeConfig, password, 0);
     var data = json.decode(walletInfo);
 
     var total = data['total'].toString();
