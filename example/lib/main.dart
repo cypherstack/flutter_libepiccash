@@ -102,6 +102,11 @@ class _MyHomePageState extends State<MyHomePage> {
     config["api_listen_interface"] = "95.216.215.107";
 
     String strConf = json.encode(config);
+
+
+    String addressInfo = getAddressInfo();
+    print("Address Info is");
+    print(addressInfo);
     // final Pointer<Utf8> configPointer = strConf.toNativeUtf8();
 
     // final height = getChainHeight(strConf);
