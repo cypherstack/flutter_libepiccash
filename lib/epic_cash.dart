@@ -59,13 +59,28 @@ typedef GetChainHeight = Pointer<Utf8> Function(
 typedef GetChainHeightFFI = Pointer<Utf8> Function(
     Pointer<Utf8>);
 
-final Pointer<Utf8> Function() walletMnemonic = epicCashNative
-    .lookup<NativeFunction<Pointer<Utf8> Function()>>("get_mnemonic")
+typedef AddressInfo = Pointer<Utf8> Function();
+typedef AddressInfoFFI = Pointer<Utf8> Function();
+
+final WalletMnemonic _walletMnemonic = epicCashNative
+    .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
     .asFunction();
 
-final WalletInit initWallet = epicCashNative
+String walletMnemonic() {
+    return _walletMnemonic().toDartString();
+}
+
+final WalletInit _initWallet = epicCashNative
     .lookup<NativeFunction<WalletInitFFI>>("wallet_init")
     .asFunction();
+
+String initWallet(String config, String mnemonic, String password, String name) {
+    return _initWallet(
+        config.toNativeUtf8(), mnemonic.toNativeUtf8(), password.toNativeUtf8(),
+        name.toNativeUtf8()
+    ).toDartString();
+}
+
 
 final WalletInfo _walletInfo = epicCashNative
     .lookup<NativeFunction<WalletInfoFFI>>("rust_wallet_balances")
@@ -78,9 +93,16 @@ String getWalletInfo(String config, String password, int refreshFromNode) {
     ).toDartString();
 }
 
-final RecoverWallet recoverWallet = epicCashNative
+final RecoverWallet _recoverWallet = epicCashNative
     .lookup<NativeFunction<RecoverWalletFFI>>("rust_recover_from_mnemonic")
     .asFunction();
+
+String recoverWallet(String config, String password, String mnemonic, String name) {
+    return _recoverWallet(
+        config.toNativeUtf8(), password.toNativeUtf8(), mnemonic.toNativeUtf8(),
+        name.toNativeUtf8()
+    ).toDartString();
+}
 
 final WalletPhrase walletPhrase = epicCashNative
     .lookup<NativeFunction<WalletPhraseFFI>>("rust_wallet_phrase")
@@ -127,6 +149,14 @@ final GetChainHeight _getChainHeight = epicCashNative
     .asFunction();
 
 int getChainHeight(String config) {
-    String chainHeight = _getChainHeight(config.toNativeUtf8()).toDartString();
-    return int.parse(chainHeight);
+    String latestHeight = _getChainHeight(config.toNativeUtf8()).toDartString();
+    return int.parse(latestHeight);
+}
+
+final AddressInfo _addressInfo = epicCashNative
+    .lookup<NativeFunction<AddressInfoFFI>>("rust_get_address_and_keys")
+    .asFunction();
+
+String getAddressInfo() {
+    return _addressInfo().toDartString();
 }

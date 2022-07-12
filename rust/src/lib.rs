@@ -474,6 +474,33 @@ pub unsafe extern "C" fn rust_get_chain_height(
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EpicboxInfo {
+    pub address: String,
+    pub public_key: String,
+    pub secret_key: String,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_get_address_and_keys() -> *const c_char {
+
+    let key_pair = private_pub_key_pair().unwrap();
+    let address = get_epicbox_address(key_pair.0, EPIC_BOX_ADDRESS, Some(EPIC_BOX_PORT)).public_key;
+
+    let epic_box_info = EpicboxInfo {
+        address,
+        public_key: serde_json::to_string(&key_pair.0).unwrap(),
+        secret_key: serde_json::to_string(&key_pair.1).unwrap()
+    };
+
+    let info_to_json = serde_json::to_string(&epic_box_info).unwrap();
+
+    let s = CString::new(info_to_json).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WalletInfoFormatted {
     pub last_confirmed_height: u64,
     pub minimum_confirmations: u64,
