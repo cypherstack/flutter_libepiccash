@@ -311,9 +311,15 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
     debug!("Start height is :::::: {}", start_height);
 
     let wallet = open_wallet(&input_conf, &input_pass).unwrap();
+<<<<<<< HEAD
 
     let scan = wallet_scan_outputs(&wallet, Some(start_height)).unwrap().to_string();
     let s = CString::new(scan).unwrap();
+=======
+    //Scan wallet
+    let scan = wallet_scan_outputs(&wallet, Some(start_height)).unwrap();
+    let s = CString::new("").unwrap();
+>>>>>>> 61180cced6501eaa25a12f36628689623578d4e1
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -461,6 +467,10 @@ pub unsafe extern "C" fn rust_tx_receive(
 pub unsafe extern "C" fn rust_get_chain_height(
     config: *const c_char,
 ) -> *const c_char {
+<<<<<<< HEAD
+=======
+    init_logger();
+>>>>>>> 61180cced6501eaa25a12f36628689623578d4e1
     let c_config = unsafe { CStr::from_ptr(config) };
     let str_config = c_config.to_str().unwrap();
     let chain_tip = get_chain_height(&str_config).unwrap().to_string();
@@ -470,6 +480,7 @@ pub unsafe extern "C" fn rust_get_chain_height(
     p
 }
 
+<<<<<<< HEAD
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EpicboxInfo {
@@ -498,6 +509,8 @@ pub unsafe extern "C" fn rust_get_address_and_keys() -> *const c_char {
     p
 }
 
+=======
+>>>>>>> 61180cced6501eaa25a12f36628689623578d4e1
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WalletInfoFormatted {
     pub last_confirmed_height: u64,
@@ -637,6 +650,15 @@ pub fn wallet_pmmr_range(wallet: &Wallet) -> Result<(u64, u64), Error> {
     wallet_lock!(wallet, w);
     let pmmr_range = w.w2n_client().height_range_to_pmmr_indices(0, None)?;
     Ok(pmmr_range)
+}
+
+pub fn get_chain_height(config: &str) -> Result<u64, Error> {
+    let config = Config::from_str(config).unwrap();
+    let wallet_config = create_wallet_config(config.clone())?;
+    let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
+    let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
+    let chain_tip = node_client.chain_height()?;
+    Ok(chain_tip.0)
 }
 
 
@@ -1249,6 +1271,18 @@ pub fn fiat_price(symbol: &str, base_currency: &str) -> f64 {
     }
     final_price
 
+}
+
+pub fn get_default_config() -> Config {
+    ///data/user/0/com.example.epic_cash_wallet/app_flutter/test/
+    Config {
+        wallet_dir: String::from("default"),
+        check_node_api_http_addr: String::from("http://95.216.215.107:3413"),
+        chain: String::from("mainnet"),
+        account: Some(String::from("default")),
+        api_listen_port: 3413,
+        api_listen_interface: "95.216.215.107".to_string()
+    }
 }
 
 

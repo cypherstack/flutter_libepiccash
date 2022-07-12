@@ -102,7 +102,11 @@ class _MyHomePageState extends State<MyHomePage> {
     config["api_listen_interface"] = "95.216.215.107";
 
     String strConf = json.encode(config);
-    final Pointer<Utf8> configPointer = strConf.toNativeUtf8();
+    // final Pointer<Utf8> configPointer = strConf.toNativeUtf8();
+
+    // final height = getChainHeight(strConf);
+    // print("Chain height is ");
+    // print(height);
 
     // final Pointer<Utf8> walletInfoPtr =
     //     walletInfo(configPointer, passwordPointer);

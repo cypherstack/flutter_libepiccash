@@ -72,6 +72,17 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     });
   }
 
+<<<<<<< HEAD
+=======
+  // String _getWalletInfo(Pointer<Utf8> config, Pointer<Utf8> password,
+  //     Pointer<Int8> refreshFromNode) {
+  //   final Pointer<Utf8> walletInfoPtr =
+  //       walletInfo(config, password, refreshFromNode);
+  //   final String walletInfoStr = walletInfoPtr.toDartString();
+  //   return walletInfoStr;
+  // }
+
+>>>>>>> 61180cced6501eaa25a12f36628689623578d4e1
   final _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
@@ -81,9 +92,15 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     // print("Wallet Config");
     // print(json.decode(walletConfig));
     String decodeConfig = json.decode(walletConfig);
+<<<<<<< HEAD
     const refreshFromNode = 0;
 
     String walletInfo = getWalletInfo(decodeConfig, password, refreshFromNode);
+=======
+
+    String walletInfo =
+        getWalletInfo(decodeConfig, password, 0);
+>>>>>>> 61180cced6501eaa25a12f36628689623578d4e1
     var data = json.decode(walletInfo);
 
     var total = data['total'].toString();
@@ -92,9 +109,14 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     var spendable = data['amount_currently_spendable'].toString();
     var locked = data['amount_locked'].toString();
 
+<<<<<<< HEAD
     const minimumConfirmations = 10;
 
     String transactions = getTransactions(decodeConfig, password, minimumConfirmations, refreshFromNode);
+=======
+    String transactions = getTransactions(
+        decodeConfig, password, 10, 0);
+>>>>>>> 61180cced6501eaa25a12f36628689623578d4e1
 
     print("List Transactions count");
     print(transactions);
