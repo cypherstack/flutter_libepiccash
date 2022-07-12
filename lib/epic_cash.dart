@@ -104,9 +104,16 @@ String recoverWallet(String config, String password, String mnemonic, String nam
     ).toDartString();
 }
 
-final WalletPhrase walletPhrase = epicCashNative
+final WalletPhrase _walletRecoveryPhrase = epicCashNative
     .lookup<NativeFunction<WalletPhraseFFI>>("rust_wallet_phrase")
     .asFunction();
+
+String walletRecoveryPhrase(String config, String password) {
+    return _walletRecoveryPhrase(
+        config.toNativeUtf8(), password.toNativeUtf8()
+    ).toDartString();
+}
+
 
 final ScanOutPuts _scanOutPuts = epicCashNative
     .lookup<NativeFunction<ScanOutPutsFFI>>("rust_wallet_scan_outputs")
