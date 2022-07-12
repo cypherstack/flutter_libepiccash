@@ -72,22 +72,6 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     });
   }
 
-  String _getWalletInfo(Pointer<Utf8> config, Pointer<Utf8> password,
-      Pointer<Int8> refreshFromNode) {
-    final Pointer<Utf8> walletInfoPtr =
-        walletInfo(config, password, refreshFromNode);
-    final String walletInfoStr = walletInfoPtr.toDartString();
-    return walletInfoStr;
-  }
-
-  String _getTransactions(Pointer<Utf8> config, Pointer<Utf8> password,
-      Pointer<Int8> confirmations, Pointer<Int8> refreshFromNode) {
-    final Pointer<Utf8> getTransactionsPtr =
-        getTransactions(config, password, confirmations, refreshFromNode);
-    final String transactionsStr = getTransactionsPtr.toDartString();
-    return transactionsStr;
-  }
-
   final _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
@@ -97,13 +81,9 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     // print("Wallet Config");
     // print(json.decode(walletConfig));
     String decodeConfig = json.decode(walletConfig);
-    const refreshFromNode = "0";
+    const refreshFromNode = 0;
 
-    final Pointer<Utf8> configPointer = decodeConfig.toNativeUtf8();
-    final Pointer<Utf8> passwordPtr = password.toNativeUtf8();
-    final refreshFromNodePtr = refreshFromNode.toNativeUtf8().cast<Int8>();
-    String walletInfo =
-        _getWalletInfo(configPointer, passwordPtr, refreshFromNodePtr);
+    String walletInfo = getWalletInfo(decodeConfig, password, refreshFromNode);
     var data = json.decode(walletInfo);
 
     var total = data['total'].toString();
@@ -112,12 +92,9 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     var spendable = data['amount_currently_spendable'].toString();
     var locked = data['amount_locked'].toString();
 
-    const minimumConfirmations = "10";
-    final minimumConfirmatiosPtr =
-        minimumConfirmations.toNativeUtf8().cast<Int8>();
+    const minimumConfirmations = 10;
 
-    String transactions = _getTransactions(
-        configPointer, passwordPtr, minimumConfirmatiosPtr, refreshFromNodePtr);
+    String transactions = getTransactions(decodeConfig, password, minimumConfirmations, refreshFromNode);
 
     print("List Transactions count");
     print(transactions);

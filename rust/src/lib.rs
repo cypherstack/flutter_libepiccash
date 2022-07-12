@@ -296,22 +296,24 @@ pub unsafe extern "C"  fn rust_wallet_phrase(
 #[no_mangle]
 pub unsafe extern "C" fn rust_wallet_scan_outputs(
     config: *const c_char,
-    password: *const c_char
+    password: *const c_char,
+    start_height: *const c_char,
 ) -> *const c_char {
 
     debug!("{}", "Calling wallet scanner");
 
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
+    let start_height = unsafe { CStr::from_ptr(start_height) };
+    let start_height: u64 = start_height.to_str().unwrap().to_string().parse().unwrap();
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
+    debug!("Start height is :::::: {}", start_height);
+
     let wallet = open_wallet(&input_conf, &input_pass).unwrap();
-    let pmmr_range = wallet_pmmr_range(&wallet).unwrap();
 
-    //Scan wallet
-    let scan = wallet_scan_outputs(&wallet, Some(pmmr_range.0)).unwrap();
-
-    let s = CString::new("").unwrap();
+    let scan = wallet_scan_outputs(&wallet, Some(start_height)).unwrap().to_string();
+    let s = CString::new(scan).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -364,8 +366,6 @@ pub unsafe extern "C" fn rust_txs_get(
     minimum_confirmations: *const c_char,
     refresh_from_node: *const c_char,
 ) -> *const c_char {
-
-    init_logger();
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let minimum_confirmations = unsafe { CStr::from_ptr(minimum_confirmations) };
@@ -457,6 +457,47 @@ pub unsafe extern "C" fn rust_tx_receive(
     p
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_get_chain_height(
+    config: *const c_char,
+) -> *const c_char {
+    let c_config = unsafe { CStr::from_ptr(config) };
+    let str_config = c_config.to_str().unwrap();
+    let chain_tip = get_chain_height(&str_config).unwrap().to_string();
+    let s = CString::new(chain_tip).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+}
+
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EpicboxInfo {
+    pub address: String,
+    pub public_key: String,
+    pub secret_key: String,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_get_address_and_keys() -> *const c_char {
+
+    let key_pair = private_pub_key_pair().unwrap();
+    let address = get_epicbox_address(key_pair.0, EPIC_BOX_ADDRESS, Some(EPIC_BOX_PORT)).public_key;
+
+    let epic_box_info = EpicboxInfo {
+        address,
+        public_key: serde_json::to_string(&key_pair.0).unwrap(),
+        secret_key: serde_json::to_string(&key_pair.1).unwrap()
+    };
+
+    let info_to_json = serde_json::to_string(&epic_box_info).unwrap();
+
+    let s = CString::new(info_to_json).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WalletInfoFormatted {
     pub last_confirmed_height: u64,
@@ -512,6 +553,16 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
         }
     }
     Ok(())
+}
+
+
+pub fn get_chain_height(config: &str) -> Result<u64, Error> {
+    let config = Config::from_str(config).unwrap();
+    let wallet_config = create_wallet_config(config.clone())?;
+    let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
+    let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
+    let chain_tip = node_client.chain_height()?;
+    Ok(chain_tip.0)
 }
 
 

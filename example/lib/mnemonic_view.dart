@@ -191,6 +191,7 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
                         walletPassword.toNativeUtf8();
                     //Store config and password in secure storage since we will need them again
                     _storeConfig(walletConfig);
+                    initWallet(walletConfig, mnemonic, walletPassword, walletName);
                     _createWallet(
                         configPointer, mnemonicPtr, passwordPtr, namePtr);
 
