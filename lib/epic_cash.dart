@@ -35,10 +35,10 @@ typedef ScanOutPuts = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Point
 typedef ScanOutPutsFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
 
 typedef CreateTransaction = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>
     );
 typedef CreateTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>
     );
 
 typedef GetTransactions = Pointer<Utf8> Function(
@@ -135,12 +135,12 @@ final CreateTransaction _createTransaction = epicCashNative
     .asFunction();
 
 String createTransaction(
-    String config, String password, int amount, String address
+    String config, String password, int amount, String address, String secretKey
     ) {
     return _createTransaction(
         config.toNativeUtf8(), password.toNativeUtf8(),
         amount.toString().toNativeUtf8().cast<Int8>(),
-        address.toNativeUtf8()
+        address.toNativeUtf8(), secretKey.toNativeUtf8()
     ).toDartString();
 }
 
@@ -158,9 +158,16 @@ String getTransactions(
     ).toDartString();
 }
 
-final CancelTransaction cancelTransaction = epicCashNative
+final CancelTransaction _cancelTransaction = epicCashNative
     .lookup<NativeFunction<CancelTransactionFFI>>("rust_tx_cancel")
     .asFunction();
+
+String cancelTransaction(String config, String password, int transactionId) {
+    return _cancelTransaction(
+        config.toNativeUtf8(), password.toNativeUtf8(),
+        transactionId.toString().toNativeUtf8().cast<Int8>()
+    ).toDartString();
+}
 
 final ReceiveTransaction receiveTransaction = epicCashNative
     .lookup<NativeFunction<ReceiveTransactionFFI>>("rust_tx_receive")

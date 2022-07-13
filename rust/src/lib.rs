@@ -300,6 +300,8 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
     start_height: *const c_char,
 ) -> *const c_char {
 
+    debug!("{}", "Calling wallet scanner");
+
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let start_height = unsafe { CStr::from_ptr(start_height) };
@@ -321,6 +323,7 @@ pub unsafe extern "C" fn rust_create_tx(
     password: *const c_char,
     amount: *const c_char,
     to_address: *const c_char,
+    sender_key: *const c_char,
 ) -> *const c_char {
 
     debug!("{}", "Calling transaction init");
@@ -328,13 +331,13 @@ pub unsafe extern "C" fn rust_create_tx(
     let c_password = unsafe { CStr::from_ptr(password) };
     let amount = unsafe { CStr::from_ptr(amount) };
     let c_address = unsafe { CStr::from_ptr(to_address) };
+    let c_encrypt_key = unsafe { CStr::from_ptr(sender_key) };
 
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
     let amount: u64 = amount.to_str().unwrap().to_string().parse().unwrap();
-    let address = c_address.to_str().unwrap().to_string();
-
-    debug!("Amount is {}", amount);
+    let address = c_address.to_str().unwrap();
+    let sender_secret_key = c_encrypt_key.to_str().unwrap();
 
     let wallet = open_wallet(input_conf, input_pass).unwrap();
     let json_slate = tx_create(&wallet, amount, 10, false);
@@ -344,13 +347,23 @@ pub unsafe extern "C" fn rust_create_tx(
         Ok(slate) => {
             debug!("{}", "Transaction success");
             message.push_str(&slate);
+
+            //Send tx via epicbox
+            let mut socket = connect_to_ws();
+            let slate_msg = build_post_slate_request(address, sender_secret_key, slate);
+            socket.write_message(Message::Text(slate_msg));
+
+            loop {
+                let msg = socket.read_message().expect("Error reading message");
+                debug!("Received FROM EPIC box: {}", msg);
+            }
         },
         Err(e) => {
             debug!("{}", "It has failed");
             let return_data = (
                 "transaction_failed",
                 e.to_string()
-                );
+            );
             let json_return = serde_json::to_string(&return_data).unwrap();
             message.push_str(&json_return);
         }
@@ -430,6 +443,14 @@ pub unsafe extern "C" fn rust_tx_cancel(
     }
 }
 
+pub unsafe extern "C" fn rust_check_for_new_slates(
+    config: *const c_char,
+    password: *const c_char,
+    receiver_key: *const c_char,
+) -> *const c_char {
+
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rust_tx_receive(
     config: *const c_char,
@@ -486,6 +507,7 @@ pub unsafe extern "C" fn rust_get_address_and_keys() -> *const c_char {
 
     let key_pair = private_pub_key_pair().unwrap();
     let address = get_epicbox_address(key_pair.0, EPIC_BOX_ADDRESS, Some(EPIC_BOX_PORT)).public_key;
+
     let epic_box_info = EpicboxInfo {
         address,
         public_key: serde_json::to_string(&key_pair.0).unwrap(),
@@ -493,6 +515,7 @@ pub unsafe extern "C" fn rust_get_address_and_keys() -> *const c_char {
     };
 
     let info_to_json = serde_json::to_string(&epic_box_info).unwrap();
+
     let s = CString::new(info_to_json).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
@@ -573,7 +596,6 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
     }
     Ok(())
 }
-
 
 /*
     Create a new wallet seed
@@ -842,7 +864,7 @@ pub fn tx_create(
     let owner_api = Owner::new(wallet.clone());
     let accounts = owner_api.accounts(None).unwrap();
     let account = &accounts[0].label;
-
+    debug!("{}", "GETS INTO CREATE FN");
     let args = InitTxArgs {
         src_acct_name: Some(account.clone()),
         amount,
@@ -857,6 +879,7 @@ pub fn tx_create(
     let result = owner_api.init_send_tx(None, args);
     match result {
         Ok(slate)=> {
+            //TODO - Send Slate
             //Lock slate uptputs
             owner_api.tx_lock_outputs(None, &slate, 0);
             //Get transaction for the slate, we will use type to determing if we should finalize or receive tx
@@ -865,12 +888,12 @@ pub fn tx_create(
             let final_result = (
                 serde_json::to_string(&txs.1).unwrap(),
                 serde_json::to_string(&slate).unwrap()
-                );
+            );
+            serde_json::to_string(&final_result).unwrap();
             Ok(serde_json::to_string(&final_result).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
         },
         Err(e)=> {
             return Err(e);
-            // Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
         }
     }
 }
@@ -1060,9 +1083,9 @@ pub fn build_post_slate_request(receiver_address: &str, sender_secret_key: &str,
     let signature = sign_challenge(&challenge, &secret_key).unwrap().to_hex();
     let json_request = format!(r#"{{"type": "PostSlate", "from": "{}", "to": "{}", "str": {}, "signature": "{}"}}"#,
                                from_address,
-        to_address,
-        json::as_json(&message_ser),
-        signature);
+                               to_address,
+                               json::as_json(&message_ser),
+                               signature);
 
     json_request
 }
