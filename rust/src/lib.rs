@@ -300,26 +300,16 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
     start_height: *const c_char,
 ) -> *const c_char {
 
-    debug!("{}", "Calling wallet scanner");
-
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let start_height = unsafe { CStr::from_ptr(start_height) };
     let start_height: u64 = start_height.to_str().unwrap().to_string().parse().unwrap();
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
-    debug!("Start height is :::::: {}", start_height);
 
     let wallet = open_wallet(&input_conf, &input_pass).unwrap();
-<<<<<<< HEAD
-
     let scan = wallet_scan_outputs(&wallet, Some(start_height)).unwrap().to_string();
     let s = CString::new(scan).unwrap();
-=======
-    //Scan wallet
-    let scan = wallet_scan_outputs(&wallet, Some(start_height)).unwrap();
-    let s = CString::new("").unwrap();
->>>>>>> 61180cced6501eaa25a12f36628689623578d4e1
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -330,35 +320,43 @@ pub unsafe extern "C" fn rust_create_tx(
     config: *const c_char,
     password: *const c_char,
     amount: *const c_char,
-    minimum_confirmations: *const c_char,
-    utxo_use_all: *const c_char,
+    to_address: *const c_char,
 ) -> *const c_char {
 
-    init_logger();
-    debug!("Calling logger");
+    debug!("{}", "Calling transaction init");
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let amount = unsafe { CStr::from_ptr(amount) };
-    let minimum_confirmations = unsafe { CStr::from_ptr(minimum_confirmations) };
-    let utxo_use_all = unsafe { CStr::from_ptr(utxo_use_all) };
-    let selection_strategy_use_all: u64 = utxo_use_all.to_str().unwrap().to_string().parse().unwrap();
+    let c_address = unsafe { CStr::from_ptr(to_address) };
 
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
-    let amount = amount.to_str().unwrap().to_string();
-    let minimum_confirmations = minimum_confirmations.to_str().unwrap().to_string();
-    let use_all_txo = match selection_strategy_use_all {
-        0 => false,
-        _=> true
-    };
+    let amount: u64 = amount.to_str().unwrap().to_string().parse().unwrap();
+    let address = c_address.to_str().unwrap().to_string();
 
-    let amount: u64 = amount.parse().unwrap();
-    let minimum_confirmations: u64 = minimum_confirmations.parse().unwrap();
+    debug!("Amount is {}", amount);
 
     let wallet = open_wallet(input_conf, input_pass).unwrap();
-    let json_slate = tx_create(&wallet, amount, minimum_confirmations, use_all_txo).unwrap();
+    let json_slate = tx_create(&wallet, amount, 10, false);
 
-    let s = CString::new(json_slate).unwrap();
+    let  mut message = String::from("");
+    match json_slate {
+        Ok(slate) => {
+            debug!("{}", "Transaction success");
+            message.push_str(&slate);
+        },
+        Err(e) => {
+            debug!("{}", "It has failed");
+            let return_data = (
+                "transaction_failed",
+                e.to_string()
+                );
+            let json_return = serde_json::to_string(&return_data).unwrap();
+            message.push_str(&json_return);
+        }
+    }
+
+    let s = CString::new(message).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -467,10 +465,6 @@ pub unsafe extern "C" fn rust_tx_receive(
 pub unsafe extern "C" fn rust_get_chain_height(
     config: *const c_char,
 ) -> *const c_char {
-<<<<<<< HEAD
-=======
-    init_logger();
->>>>>>> 61180cced6501eaa25a12f36628689623578d4e1
     let c_config = unsafe { CStr::from_ptr(config) };
     let str_config = c_config.to_str().unwrap();
     let chain_tip = get_chain_height(&str_config).unwrap().to_string();
@@ -480,8 +474,6 @@ pub unsafe extern "C" fn rust_get_chain_height(
     p
 }
 
-<<<<<<< HEAD
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EpicboxInfo {
     pub address: String,
@@ -494,7 +486,6 @@ pub unsafe extern "C" fn rust_get_address_and_keys() -> *const c_char {
 
     let key_pair = private_pub_key_pair().unwrap();
     let address = get_epicbox_address(key_pair.0, EPIC_BOX_ADDRESS, Some(EPIC_BOX_PORT)).public_key;
-
     let epic_box_info = EpicboxInfo {
         address,
         public_key: serde_json::to_string(&key_pair.0).unwrap(),
@@ -502,37 +493,25 @@ pub unsafe extern "C" fn rust_get_address_and_keys() -> *const c_char {
     };
 
     let info_to_json = serde_json::to_string(&epic_box_info).unwrap();
-
     let s = CString::new(info_to_json).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
 }
 
-=======
->>>>>>> 61180cced6501eaa25a12f36628689623578d4e1
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct EpicboxInfo {
-    pub address: String,
-    pub public_key: String,
-    pub secret_key: String,
-}
-
 #[no_mangle]
-pub unsafe extern "C" fn rust_get_address_and_keys() -> *const c_char {
-
-    let key_pair = private_pub_key_pair().unwrap();
-    let address = get_epicbox_address(key_pair.0, EPIC_BOX_ADDRESS, Some(EPIC_BOX_PORT)).public_key;
-
-    let epic_box_info = EpicboxInfo {
-        address,
-        public_key: serde_json::to_string(&key_pair.0).unwrap(),
-        secret_key: serde_json::to_string(&key_pair.1).unwrap()
+pub unsafe extern "C" fn rust_validate_address(
+    address: *const c_char,
+) -> *const c_char {
+    let address = unsafe { CStr::from_ptr(address) };
+    let str_address = address.to_str().unwrap();
+    let validate = validate_address(str_address);
+    let return_value = match validate {
+        true => 1,
+        false => 0
     };
 
-    let info_to_json = serde_json::to_string(&epic_box_info).unwrap();
-
-    let s = CString::new(info_to_json).unwrap();
+    let s = CString::new(return_value.to_string()).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -593,16 +572,6 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
         }
     }
     Ok(())
-}
-
-
-pub fn get_chain_height(config: &str) -> Result<u64, Error> {
-    let config = Config::from_str(config).unwrap();
-    let wallet_config = create_wallet_config(config.clone())?;
-    let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
-    let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
-    let chain_tip = node_client.chain_height()?;
-    Ok(chain_tip.0)
 }
 
 
@@ -888,7 +857,6 @@ pub fn tx_create(
     let result = owner_api.init_send_tx(None, args);
     match result {
         Ok(slate)=> {
-            //TODO - Send Slate
             //Lock slate uptputs
             owner_api.tx_lock_outputs(None, &slate, 0);
             //Get transaction for the slate, we will use type to determing if we should finalize or receive tx
@@ -901,7 +869,8 @@ pub fn tx_create(
             Ok(serde_json::to_string(&final_result).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
         },
         Err(e)=> {
-            Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+            return Err(e);
+            // Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
         }
     }
 }
@@ -1231,6 +1200,18 @@ pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
         }
     }
     Ok("Wallet has been closed".to_owned())
+}
+
+pub fn validate_address(address: &str) -> bool {
+    let address = EpicboxAddress::from_str(address);
+    match address {
+        Ok(pub_key) => {
+            true
+        },
+        _ => {
+            false
+        }
+    }
 }
 
 

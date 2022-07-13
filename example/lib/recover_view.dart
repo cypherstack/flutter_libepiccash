@@ -193,16 +193,7 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
                     String walletConfig = _getWalletConfig(name);
 
                     // String strConf = json.encode(walletConfig);
-                    final Pointer<Utf8> configPointer =
-                        walletConfig.toNativeUtf8();
-                    final Pointer<Utf8> mnemonicPtr =
-                        walletMnemonic.toNativeUtf8();
-                    final Pointer<Utf8> passwordPtr =
-                        walletPassword.toNativeUtf8();
-                    final Pointer<Utf8> namePtr = name.toNativeUtf8();
-
-                    String recover = _recoverWallet(
-                        configPointer, passwordPtr, mnemonicPtr, namePtr);
+                    String recover = recoverWallet(walletConfig, password, mnemonic, name);
 
                     if (recover == "recovered") {
                       _storeConfig(walletConfig);

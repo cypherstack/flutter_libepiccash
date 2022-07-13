@@ -146,18 +146,10 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
     await storage.write(key: "config", value: config);
   }
 
-  String _createWallet(Pointer<Utf8> config, Pointer<Utf8> mnemonic,
-      Pointer<Utf8> password, Pointer<Utf8> name) {
-    final Pointer<Utf8> initWalletPtr =
-        initWallet(config, mnemonic, password, name);
-    final String initWalletStr = initWalletPtr.toDartString();
-    return initWalletStr;
-  }
-
   final _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
-    _getMnemonic();
+    walletMnemonic();
     return Scaffold(
         appBar: AppBar(
           // Here we take the value from the MyHomePage object that was created by
@@ -183,17 +175,9 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
                     String walletConfig = await _getWalletConfig(walletName);
 
                     // String strConf = json.encode(walletConfig);
-                    final Pointer<Utf8> configPointer =
-                        walletConfig.toNativeUtf8();
-                    final Pointer<Utf8> mnemonicPtr = mnemonic.toNativeUtf8();
-                    final Pointer<Utf8> namePtr = walletName.toNativeUtf8();
-                    final Pointer<Utf8> passwordPtr =
-                        walletPassword.toNativeUtf8();
                     //Store config and password in secure storage since we will need them again
                     _storeConfig(walletConfig);
                     initWallet(walletConfig, mnemonic, walletPassword, walletName);
-                    _createWallet(
-                        configPointer, mnemonicPtr, passwordPtr, namePtr);
 
                     Navigator.push(
                       context,

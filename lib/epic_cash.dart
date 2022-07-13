@@ -35,9 +35,11 @@ typedef ScanOutPuts = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Point
 typedef ScanOutPutsFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
 
 typedef CreateTransaction = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>
+    );
 typedef CreateTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>
+    );
 
 typedef GetTransactions = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
@@ -61,6 +63,9 @@ typedef GetChainHeightFFI = Pointer<Utf8> Function(
 
 typedef AddressInfo = Pointer<Utf8> Function();
 typedef AddressInfoFFI = Pointer<Utf8> Function();
+
+typedef ValidateAddress = Pointer<Utf8> Function(Pointer<Utf8>);
+typedef ValidateAddressFFI = Pointer<Utf8> Function(Pointer<Utf8>);
 
 final WalletMnemonic _walletMnemonic = epicCashNative
     .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
@@ -125,9 +130,19 @@ String scanOutPuts(String config, String password, int startHeight) {
     ).toDartString();
 }
 
-final CreateTransaction createTransaction = epicCashNative
+final CreateTransaction _createTransaction = epicCashNative
     .lookup<NativeFunction<CreateTransactionFFI>>("rust_create_tx")
     .asFunction();
+
+String createTransaction(
+    String config, String password, int amount, String address
+    ) {
+    return _createTransaction(
+        config.toNativeUtf8(), password.toNativeUtf8(),
+        amount.toString().toNativeUtf8().cast<Int8>(),
+        address.toNativeUtf8()
+    ).toDartString();
+}
 
 final GetTransactions _getTransactions = epicCashNative
     .lookup<NativeFunction<GetTransactionsFFI>>("rust_txs_get")
@@ -166,4 +181,12 @@ final AddressInfo _addressInfo = epicCashNative
 
 String getAddressInfo() {
     return _addressInfo().toDartString();
+}
+
+final ValidateAddress _validateSendAddress = epicCashNative
+    .lookup<NativeFunction<ValidateAddressFFI>>("rust_validate_address")
+    .asFunction();
+
+String validateSendAddress(String address) {
+    return _validateSendAddress(address.toNativeUtf8()).toDartString();
 }
