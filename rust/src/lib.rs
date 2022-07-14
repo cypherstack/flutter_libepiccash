@@ -355,7 +355,15 @@ pub unsafe extern "C" fn rust_create_tx(
 
             loop {
                 let msg = socket.read_message().expect("Error reading message");
-                debug!("Received FROM EPIC box: {}", msg);
+                let msg = match msg {
+                    tungstenite::Message::Text(s) => { s }
+                    _ => { panic!() }
+                };
+                let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
+                if parsed["type"] == String::from("Ok") {
+                    debug!("{}", "Slate sent via epicbox");
+                    break;
+                }
             }
         },
         Err(e) => {
@@ -419,7 +427,6 @@ pub unsafe extern "C" fn rust_tx_cancel(
     tx_id: *const c_char,
 ) -> *const c_char {
 
-    init_logger();
     let config = unsafe { CStr::from_ptr(config) };
     let password = unsafe { CStr::from_ptr(password) };
     let tx_id = unsafe { CStr::from_ptr(tx_id) };
@@ -443,12 +450,67 @@ pub unsafe extern "C" fn rust_tx_cancel(
     }
 }
 
+#[no_mangle]
 pub unsafe extern "C" fn rust_check_for_new_slates(
     config: *const c_char,
     password: *const c_char,
     receiver_key: *const c_char,
 ) -> *const c_char {
 
+    let config = unsafe { CStr::from_ptr(config) };
+    let password = unsafe { CStr::from_ptr(password) };
+    let secret_key = unsafe { CStr::from_ptr(receiver_key) };
+
+    let config = config.to_str().unwrap();
+    let password = password.to_str().unwrap();
+    let secret_key = secret_key.to_str().unwrap();
+
+    let wallet = open_wallet(config, password).unwrap();
+
+    let mut socket = connect_to_ws();
+    //First subscribe
+    let subscribe_req = build_subscribe_request(
+        String::from("7WUDtkSaKyGRUnQ22rE3QUXChV8DmA6NnunDYP4vheTpc"),
+        secret_key.clone()
+    );
+
+    socket.write_message(Message::Text(subscribe_req));
+    let mut response_message = String::from("");
+
+    loop {
+        let msg = socket.read_message().expect("Error reading message");
+        let msg = match msg {
+            tungstenite::Message::Text(s) => { s }
+            _ => { panic!() }
+        };
+        let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
+
+        if parsed["type"] == String::from("Slate") {
+            //Decrypt slate
+            let decrypted_message = decrypt_message(&secret_key, parsed.clone());
+            debug!("Decrypted message:::: {}", decrypted_message);
+            let process = process_epic_box_slate(&wallet, &decrypted_message);
+
+            match process {
+                Ok(slate) => {
+                    let send_to = parsed["from"].as_str().unwrap();
+                    //Reprocess
+                    debug!("{}", "Posting slate again");
+                    let slate_again = build_post_slate_request(&send_to, &secret_key, slate);
+                    socket.write_message(Message::Text(slate_again));
+                    response_message.push_str("Slate posted");
+                },
+                Err(e) => {
+                    response_message.push_str(&e.to_string());
+                }
+            };
+            break;
+        }
+    }
+    let s = CString::new(response_message).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
 }
 
 #[no_mangle]
@@ -1143,8 +1205,15 @@ pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<Strin
     let transaction: Vec<TxLogEntry> = serde_json::from_str(&msg_tuple.0).unwrap();
     match transaction[0].tx_type {
         TxLogEntryType::TxSent => {
-            let receive = tx_receive(&wallet, "default", &msg_tuple.1).unwrap();
-            Ok(receive)
+            let receive = tx_receive(&wallet, "default", &msg_tuple.1);
+            match receive {
+                Ok(slate) => {
+                    Ok(slate)
+                },
+                Err(e) => {
+                    return Err(e);
+                }
+            }
         },
         TxLogEntryType::TxReceived =>  {
             let finalize = tx_finalize(&wallet, &msg_tuple.1);
@@ -1157,7 +1226,7 @@ pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<Strin
                     Ok(str_slate)
                 },
                 Err(e)=> {
-                    Ok(serde_json::to_string(&e.to_string()).map_err(|e| ErrorKind::GenericError(e.to_string()))?)
+                    Err(e)
                 }
             }
         },

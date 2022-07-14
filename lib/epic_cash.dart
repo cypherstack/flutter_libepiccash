@@ -51,10 +51,10 @@ typedef CancelTransaction = Pointer<Utf8> Function(
 typedef CancelTransactionFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
 
-typedef ReceiveTransaction = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
-typedef ReceiveTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+// typedef ReceiveTransaction = Pointer<Utf8> Function(
+//     Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+// typedef ReceiveTransactionFFI = Pointer<Utf8> Function(
+//     Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 
 typedef GetChainHeight = Pointer<Utf8> Function(
     Pointer<Utf8>);
@@ -66,6 +66,9 @@ typedef AddressInfoFFI = Pointer<Utf8> Function();
 
 typedef ValidateAddress = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef ValidateAddressFFI = Pointer<Utf8> Function(Pointer<Utf8>);
+
+typedef PendingSlates = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+typedef PendingSlatesFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 
 final WalletMnemonic _walletMnemonic = epicCashNative
     .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
@@ -169,9 +172,9 @@ String cancelTransaction(String config, String password, int transactionId) {
     ).toDartString();
 }
 
-final ReceiveTransaction receiveTransaction = epicCashNative
-    .lookup<NativeFunction<ReceiveTransactionFFI>>("rust_tx_receive")
-    .asFunction();
+// final ReceiveTransaction receiveTransaction = epicCashNative
+//     .lookup<NativeFunction<ReceiveTransactionFFI>>("rust_tx_receive")
+//     .asFunction();
 
 final GetChainHeight _getChainHeight = epicCashNative
     .lookup<NativeFunction<GetChainHeightFFI>>("rust_get_chain_height")
@@ -196,4 +199,16 @@ final ValidateAddress _validateSendAddress = epicCashNative
 
 String validateSendAddress(String address) {
     return _validateSendAddress(address.toNativeUtf8()).toDartString();
+}
+
+final PendingSlates _getPendingSlates = epicCashNative
+    .lookup<NativeFunction<PendingSlatesFFI>>("rust_check_for_new_slates")
+    .asFunction();
+
+String getPendingSlates(
+    String config, String password, String secretKey
+    ) {
+    return _getPendingSlates(
+        config.toNativeUtf8(), password.toNativeUtf8(), secretKey.toNativeUtf8()
+    ).toDartString();
 }
