@@ -9,6 +9,7 @@ use rustc_serialize::json;
 use serde_json::json as serde_json;
 use serde_json::to_string;
 use uuid::Uuid;
+use chrono::{Duration, Utc};
 
 use stack_test_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
 use stack_test_epic_wallet_config::{WalletConfig};
@@ -455,7 +456,7 @@ pub unsafe extern "C" fn rust_check_for_new_slates(
     config: *const c_char,
     password: *const c_char,
     receiver_key: *const c_char,
-) -> *const c_char {
+) {
 
     let config = unsafe { CStr::from_ptr(config) };
     let password = unsafe { CStr::from_ptr(password) };
@@ -469,23 +470,26 @@ pub unsafe extern "C" fn rust_check_for_new_slates(
 
     let mut socket = connect_to_ws();
     //First subscribe
-    let subscribe_req = build_subscribe_request(
-        String::from("7WUDtkSaKyGRUnQ22rE3QUXChV8DmA6NnunDYP4vheTpc"),
-        secret_key.clone()
-    );
-
-    socket.write_message(Message::Text(subscribe_req));
-    let mut response_message = String::from("");
-
-    loop {
+    // let subscribe_req = build_subscribe_request(
+    //     String::from("7WUDtkSaKyGRUnQ22rE3QUXChV8DmA6NnunDYP4vheTpc"),
+    //     secret_key.clone()
+    // );
+    //
+    // socket.write_message(Message::Text(subscribe_req));
+    let mut my_vec: Vec<String> = Vec::new();
+    let dt = Utc::now() + Duration::seconds(10);
+    while Utc::now() < dt {
         let msg = socket.read_message().expect("Error reading message");
         let msg = match msg {
             tungstenite::Message::Text(s) => { s }
             _ => { panic!() }
         };
         let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
+        if parsed["type"] == String::from("Challenge") {
+            let sub = build_subscribe_request(parsed["str"].as_str().unwrap().to_string(), &secret_key);
+            socket.write_message(Message::Text(sub));
 
-        if parsed["type"] == String::from("Slate") {
+        } else if parsed["type"] == String::from("Slate") {
             //Decrypt slate
             let decrypted_message = decrypt_message(&secret_key, parsed.clone());
             debug!("Decrypted message:::: {}", decrypted_message);
@@ -498,19 +502,18 @@ pub unsafe extern "C" fn rust_check_for_new_slates(
                     debug!("{}", "Posting slate again");
                     let slate_again = build_post_slate_request(&send_to, &secret_key, slate);
                     socket.write_message(Message::Text(slate_again));
-                    response_message.push_str("Slate posted");
                 },
                 Err(e) => {
-                    response_message.push_str(&e.to_string());
+                    debug!("{}", "Error posting slate :::");
+                    debug!("{}", &e.to_string());
                 }
             };
-            break;
+        } else if  parsed["type"] == String::from("Ok") {
+            debug!("{}", "Ok message");
+        } else {
+            debug!("{}", "Unknown message");
         }
     }
-    let s = CString::new(response_message).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    p
 }
 
 #[no_mangle]
@@ -600,6 +603,11 @@ pub unsafe extern "C" fn rust_validate_address(
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_get_tx_fees() {
+
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

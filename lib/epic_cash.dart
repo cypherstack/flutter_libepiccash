@@ -205,10 +205,10 @@ final PendingSlates _getPendingSlates = epicCashNative
     .lookup<NativeFunction<PendingSlatesFFI>>("rust_check_for_new_slates")
     .asFunction();
 
-String getPendingSlates(
+Future<void> getPendingSlates(
     String config, String password, String secretKey
-    ) {
-    return _getPendingSlates(
+    ) async {
+    _getPendingSlates(
         config.toNativeUtf8(), password.toNativeUtf8(), secretKey.toNativeUtf8()
     ).toDartString();
 }
