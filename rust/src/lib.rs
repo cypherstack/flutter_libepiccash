@@ -19,15 +19,6 @@ use stack_test_epic_wallet_impls::{
     DefaultLCProvider, DefaultWalletImpl, HTTPNodeClient, HttpSlateSender, SlateSender,
 };
 
-use futures::executor::block_on;
-use url::Url;
-// use tungstenite::{connect, Message, WebSocket};
-
-// use ws::{
-//     CloseCode, Error as WsError, ErrorKind as WsErrorKind, Handler, Handshake,
-//     Result as WsResult, Sender,
-// };
-
 use ws::{
     CloseCode, connect, listen, Message, Error as WsError, ErrorKind as WsErrorKind
 };
@@ -448,7 +439,7 @@ pub unsafe extern "C" fn rust_check_for_new_slates(
     config: *const c_char,
     password: *const c_char,
     receiver_key: *const c_char,
-) {
+) -> *const c_char  {
 
     let config = unsafe { CStr::from_ptr(config) };
     let password = unsafe { CStr::from_ptr(password) };
@@ -460,6 +451,11 @@ pub unsafe extern "C" fn rust_check_for_new_slates(
 
     let wallet = open_wallet(config, password).unwrap();
     get_pending_slates(&wallet, &secret_key);
+
+    let s = CString::new("").unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
 }
 
 
@@ -924,7 +920,7 @@ fn post_slate_to_epic_box(slate_request: &str) {
             println!("Post slate got message: {}", msg);
             out.close(CloseCode::Normal)
         }
-    }).unwrap()
+    }).unwrap();
 }
 
 /*
@@ -936,18 +932,16 @@ pub fn get_pending_slates(wallet: &Wallet, secret_key: &str) {
         &secret_key
     );
     let url = format!("ws://{}:{}", EPIC_BOX_ADDRESS, EPIC_BOX_PORT);
-
+    debug!("{}", "GETTING PENDING SLATES");
     connect(&*url, |out| {
         out.send(&*subscribe_request).unwrap();
 
         move |msg| {
-            println!("Got message: {}", msg);
             let msg = match msg {
                 Message::Text(s) => { s }
                 _ => { panic!() }
             };
             let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
-
             if parsed["type"] == "Slate" {
                 let decrypted_message = decrypt_message(&secret_key, parsed.clone());
                 debug!("Decrypted message:::: {}", decrypted_message);
@@ -969,7 +963,7 @@ pub fn get_pending_slates(wallet: &Wallet, secret_key: &str) {
             }
             out.close(CloseCode::Normal)
         }
-    }).unwrap()
+    }).unwrap();
 }
 
 /*
@@ -1255,14 +1249,6 @@ pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<Strin
     }
 
 }
-
-// pub fn connect_to_ws() -> WebSocket<AutoStream> {
-//     let url = format!("ws://{}:{}", EPIC_BOX_ADDRESS, EPIC_BOX_PORT);
-//     let (socket, response) = connect(
-//         Url::parse(&url).unwrap()
-//     ).expect("Can't connect");
-//     socket
-// }
 
 /*
 
