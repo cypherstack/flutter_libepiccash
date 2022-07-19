@@ -21,10 +21,15 @@ use stack_test_epic_wallet_impls::{
 
 use futures::executor::block_on;
 use url::Url;
-use tungstenite::{connect, Message, WebSocket};
+// use tungstenite::{connect, Message, WebSocket};
+
+// use ws::{
+//     CloseCode, Error as WsError, ErrorKind as WsErrorKind, Handler, Handshake,
+//     Result as WsResult, Sender,
+// };
+
 use ws::{
-    CloseCode, Error as WsError, ErrorKind as WsErrorKind, Handler, Handshake,
-    Result as WsResult, Sender,
+    CloseCode, connect, listen, Message, Error as WsError, ErrorKind as WsErrorKind
 };
 
 
@@ -350,22 +355,9 @@ pub unsafe extern "C" fn rust_create_tx(
             message.push_str(&slate);
 
             //Send tx via epicbox
-            let mut socket = connect_to_ws();
             let slate_msg = build_post_slate_request(address, sender_secret_key, slate);
-            socket.write_message(Message::Text(slate_msg));
-
-            loop {
-                let msg = socket.read_message().expect("Error reading message");
-                let msg = match msg {
-                    tungstenite::Message::Text(s) => { s }
-                    _ => { panic!() }
-                };
-                let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
-                if parsed["type"] == String::from("Ok") {
-                    debug!("{}", "Slate sent via epicbox");
-                    break;
-                }
-            }
+            debug!("{}", "POSTING SLATE TO EPICBOX");
+            post_slate_to_epic_box(&slate_msg);
         },
         Err(e) => {
             debug!("{}", "It has failed");
@@ -467,54 +459,9 @@ pub unsafe extern "C" fn rust_check_for_new_slates(
     let secret_key = secret_key.to_str().unwrap();
 
     let wallet = open_wallet(config, password).unwrap();
-
-    let mut socket = connect_to_ws();
-    //First subscribe
-    // let subscribe_req = build_subscribe_request(
-    //     String::from("7WUDtkSaKyGRUnQ22rE3QUXChV8DmA6NnunDYP4vheTpc"),
-    //     secret_key.clone()
-    // );
-    //
-    // socket.write_message(Message::Text(subscribe_req));
-    let mut my_vec: Vec<String> = Vec::new();
-    let dt = Utc::now() + Duration::seconds(10);
-    while Utc::now() < dt {
-        let msg = socket.read_message().expect("Error reading message");
-        let msg = match msg {
-            tungstenite::Message::Text(s) => { s }
-            _ => { panic!() }
-        };
-        let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
-        if parsed["type"] == String::from("Challenge") {
-            let sub = build_subscribe_request(parsed["str"].as_str().unwrap().to_string(), &secret_key);
-            socket.write_message(Message::Text(sub));
-
-        } else if parsed["type"] == String::from("Slate") {
-            //Decrypt slate
-            let decrypted_message = decrypt_message(&secret_key, parsed.clone());
-            debug!("Decrypted message:::: {}", decrypted_message);
-            let process = process_epic_box_slate(&wallet, &decrypted_message);
-
-            match process {
-                Ok(slate) => {
-                    let send_to = parsed["from"].as_str().unwrap();
-                    //Reprocess
-                    debug!("{}", "Posting slate again");
-                    let slate_again = build_post_slate_request(&send_to, &secret_key, slate);
-                    socket.write_message(Message::Text(slate_again));
-                },
-                Err(e) => {
-                    debug!("{}", "Error posting slate :::");
-                    debug!("{}", &e.to_string());
-                }
-            };
-        } else if  parsed["type"] == String::from("Ok") {
-            debug!("{}", "Ok message");
-        } else {
-            debug!("{}", "Unknown message");
-        }
-    }
+    get_pending_slates(&wallet, &secret_key);
 }
+
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_tx_receive(
@@ -949,12 +896,10 @@ pub fn tx_create(
     let result = owner_api.init_send_tx(None, args);
     match result {
         Ok(slate)=> {
-            //TODO - Send Slate
             //Lock slate uptputs
             owner_api.tx_lock_outputs(None, &slate, 0);
             //Get transaction for the slate, we will use type to determing if we should finalize or receive tx
             let txs = owner_api.retrieve_txs(None, false, None, Some(slate.id)).unwrap();
-
             let final_result = (
                 serde_json::to_string(&txs.1).unwrap(),
                 serde_json::to_string(&slate).unwrap()
@@ -966,6 +911,65 @@ pub fn tx_create(
             return Err(e);
         }
     }
+}
+
+/*
+    Post slate via epicbox
+*/
+fn post_slate_to_epic_box(slate_request: &str) {
+    let url = format!("ws://{}:{}", EPIC_BOX_ADDRESS, EPIC_BOX_PORT);
+    connect(&*url, |out| {
+        out.send(&*slate_request).unwrap();
+        move |msg| {
+            println!("Post slate got message: {}", msg);
+            out.close(CloseCode::Normal)
+        }
+    }).unwrap()
+}
+
+/*
+    Get pending slates
+*/
+pub fn get_pending_slates(wallet: &Wallet, secret_key: &str) {
+    let subscribe_request = build_subscribe_request(
+        String::from("7WUDtkSaKyGRUnQ22rE3QUXChV8DmA6NnunDYP4vheTpc"),
+        &secret_key
+    );
+    let url = format!("ws://{}:{}", EPIC_BOX_ADDRESS, EPIC_BOX_PORT);
+
+    connect(&*url, |out| {
+        out.send(&*subscribe_request).unwrap();
+
+        move |msg| {
+            println!("Got message: {}", msg);
+            let msg = match msg {
+                Message::Text(s) => { s }
+                _ => { panic!() }
+            };
+            let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
+
+            if parsed["type"] == "Slate" {
+                let decrypted_message = decrypt_message(&secret_key, parsed.clone());
+                debug!("Decrypted message:::: {}", decrypted_message);
+
+                let process = process_epic_box_slate(&wallet, &decrypted_message);
+                match process {
+                    Ok(slate) => {
+                        let send_to = parsed["from"].as_str().unwrap();
+                        //Reprocess
+                        debug!("{}", "Posting slate again");
+                        let slate_again = build_post_slate_request(send_to, &secret_key, slate);
+                        out.send(&*slate_again).unwrap();
+                    },
+                    Err(e) => {
+                        debug!("{}", "Error processing slate :::");
+                        debug!("{}", &e.to_string());
+                    }
+                };
+            }
+            out.close(CloseCode::Normal)
+        }
+    }).unwrap()
 }
 
 /*
@@ -1252,13 +1256,13 @@ pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<Strin
 
 }
 
-pub fn connect_to_ws() -> WebSocket<AutoStream> {
-    let url = format!("ws://{}:{}", EPIC_BOX_ADDRESS, EPIC_BOX_PORT);
-    let (socket, response) = connect(
-        Url::parse(&url).unwrap()
-    ).expect("Can't connect");
-    socket
-}
+// pub fn connect_to_ws() -> WebSocket<AutoStream> {
+//     let url = format!("ws://{}:{}", EPIC_BOX_ADDRESS, EPIC_BOX_PORT);
+//     let (socket, response) = connect(
+//         Url::parse(&url).unwrap()
+//     ).expect("Can't connect");
+//     socket
+// }
 
 /*
 
