@@ -947,21 +947,26 @@ pub fn get_pending_slates(wallet: &Wallet, secret_key: &str) {
                 let decrypted_message = decrypt_message(&secret_key, parsed.clone());
                 debug!("Decrypted message:::: {}", decrypted_message);
 
-                let process = process_epic_box_slate(&wallet, &decrypted_message);
-                match process {
-                    Ok(slate) => {
-                        let send_to = parsed.get("from").unwrap().as_str().unwrap();
-                        //Reprocess
-                        debug!("Posting slate to {}", send_to);
-                        let slate_again = build_post_slate_request(send_to, &secret_key, slate);
-                        debug!("Slate again is ::::::::: {}", slate_again.clone());
-                        post_slate_to_epic_box(&slate_again);
-                    },
-                    Err(e) => {
-                        debug!("{}", "Error processing slate :::");
-                        debug!("{}", &e.to_string());
-                    }
-                };
+                if decrypted_message.clone().as_str().contains("has already been received") {
+                    debug!("{}", "Slate already received");
+                } else {
+                    let process = process_epic_box_slate(&wallet, &decrypted_message);
+                    match process {
+                        Ok(slate) => {
+                            let send_to = parsed.get("from").unwrap().as_str().unwrap();
+                            //Reprocess
+                            debug!("Posting slate to {}", send_to);
+                            let slate_again = build_post_slate_request(send_to, &secret_key, slate);
+                            debug!("Slate again is ::::::::: {}", slate_again.clone());
+                            post_slate_to_epic_box(&slate_again);
+                        },
+                        Err(e) => {
+                            debug!("{}", "Error processing slate :::");
+                            debug!("{}", &e.to_string());
+                        }
+                    };
+                }
+
             }
             out.close(CloseCode::Normal)
         }
