@@ -127,7 +127,7 @@ final ScanOutPuts _scanOutPuts = epicCashNative
     .lookup<NativeFunction<ScanOutPutsFFI>>("rust_wallet_scan_outputs")
     .asFunction();
 
-String scanOutPuts(String config, String password, int startHeight) {
+Future<String> scanOutPuts(String config, String password, int startHeight) async {
     return _scanOutPuts(
         config.toNativeUtf8(), password.toNativeUtf8(), startHeight.toString().toNativeUtf8().cast<Int8>()
     ).toDartString();

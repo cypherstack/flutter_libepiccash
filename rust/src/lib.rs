@@ -917,7 +917,7 @@ fn post_slate_to_epic_box(slate_request: &str) {
     connect(&*url, |out| {
         out.send(&*slate_request).unwrap();
         move |msg| {
-            println!("Post slate got message: {}", msg);
+            debug!("Post slate got message: {}", msg);
             out.close(CloseCode::Normal)
         }
     }).unwrap();
@@ -937,6 +937,7 @@ pub fn get_pending_slates(wallet: &Wallet, secret_key: &str) {
         out.send(&*subscribe_request).unwrap();
 
         move |msg| {
+            println!("Got message: {}", msg);
             let msg = match msg {
                 Message::Text(s) => { s }
                 _ => { panic!() }
@@ -949,11 +950,12 @@ pub fn get_pending_slates(wallet: &Wallet, secret_key: &str) {
                 let process = process_epic_box_slate(&wallet, &decrypted_message);
                 match process {
                     Ok(slate) => {
-                        let send_to = parsed["from"].as_str().unwrap();
+                        let send_to = parsed.get("from").unwrap().as_str().unwrap();
                         //Reprocess
-                        debug!("{}", "Posting slate again");
+                        debug!("Posting slate to {}", send_to);
                         let slate_again = build_post_slate_request(send_to, &secret_key, slate);
-                        out.send(&*slate_again).unwrap();
+                        debug!("Slate again is ::::::::: {}", slate_again.clone());
+                        post_slate_to_epic_box(&slate_again);
                     },
                     Err(e) => {
                         debug!("{}", "Error processing slate :::");
@@ -971,7 +973,7 @@ pub fn get_pending_slates(wallet: &Wallet, secret_key: &str) {
 */
 pub fn tx_cancel(wallet: &Wallet, id: u32) -> Result<String, Error> {
     let api = Owner::new(wallet.clone());
-    api.cancel_tx(None, Some(id), None);
+    let _cancel = api.cancel_tx(None, Some(id), None).unwrap();
     Ok("".to_owned())
 }
 
@@ -1042,6 +1044,7 @@ pub fn tx_receive(wallet: &Wallet, account: &str, str_slate: &str) -> Result<Str
 
 */
 pub fn tx_finalize(wallet: &Wallet, str_slate: &str) -> Result<String, Error> {
+    debug!("{}", "Finalizing slate");
     let slate = Slate::deserialize_upgrade(str_slate).unwrap();
     let owner_api = Owner::new(wallet.clone());
     let response = owner_api.finalize_tx(None, &slate);
@@ -1068,7 +1071,7 @@ pub fn tx_post(wallet: &Wallet, slate_uuid: &str) -> Result<String, Error> {
     let owner_api = Owner::new(wallet.clone());
     let tx_uuid =
         Uuid::parse_str(slate_uuid).map_err(|e| ErrorKind::GenericError(e.to_string()))?;
-    let (_, txs) = owner_api.retrieve_txs(None, true, None, Some(tx_uuid.clone()))?;
+    let (_, txs) = owner_api.retrieve_txs(None, false, None, Some(tx_uuid.clone()))?;
     if txs[0].confirmed {
         return Err(Error::from(ErrorKind::GenericError(format!(
             "Transaction with id {} is already confirmed. Not posting.",
@@ -1209,8 +1212,10 @@ pub fn decrypt_message(receiver_key: &str, msg_json: serde_json::Value) -> Strin
 pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<String, Error> {
     let msg_tuple: (String, String) =  serde_json::from_str(&slate_info).unwrap();
     let transaction: Vec<TxLogEntry> = serde_json::from_str(&msg_tuple.0).unwrap();
+
     match transaction[0].tx_type {
         TxLogEntryType::TxSent => {
+            debug!("{}", "TXSENT");
             let receive = tx_receive(&wallet, "default", &msg_tuple.1);
             match receive {
                 Ok(slate) => {
@@ -1222,10 +1227,11 @@ pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<Strin
             }
         },
         TxLogEntryType::TxReceived =>  {
+            debug!("{}", "TXRECEIVED");
             let finalize = tx_finalize(&wallet, &msg_tuple.1);
             match finalize {
                 Ok(str_slate) => {
-                    // let slate: Slate = serde_json::from_str(&str_slate).unwrap();
+                    debug!("{}", "TX finalized");
                     //Post slate to the node
                     let tx_slate_id = transaction[0].tx_slate_id.unwrap().to_string();
                     let tx_post = tx_post(&wallet, &tx_slate_id)?;
