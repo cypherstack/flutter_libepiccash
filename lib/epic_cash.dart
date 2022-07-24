@@ -70,6 +70,9 @@ typedef ValidateAddressFFI = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef PendingSlates = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 typedef PendingSlatesFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 
+typedef TransactionFees = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+typedef TransactionFeesFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+
 final WalletMnemonic _walletMnemonic = epicCashNative
     .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
     .asFunction();
@@ -210,5 +213,17 @@ Future<void> getPendingSlates(
     ) async {
     _getPendingSlates(
         config.toNativeUtf8(), password.toNativeUtf8(), secretKey.toNativeUtf8()
+    ).toDartString();
+}
+
+final TransactionFees _transactionFees = epicCashNative
+    .lookup<NativeFunction<TransactionFeesFFI>>("rust_get_tx_fees")
+    .asFunction();
+
+String getTransactionFees(String config, String password, int amount) {
+    return _transactionFees(
+        config.toNativeUtf8(),
+        password.toNativeUtf8(),
+        amount.toString().toNativeUtf8().cast<Int8>()
     ).toDartString();
 }

@@ -549,8 +549,26 @@ pub unsafe extern "C" fn rust_validate_address(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_get_tx_fees() {
+pub unsafe extern "C" fn rust_get_tx_fees(
+    c_config: *const c_char,
+    c_password: *const c_char,
+    c_amount: *const c_char,
+) -> *const c_char {
+    let config = unsafe { CStr::from_ptr(c_config) };
+    let password = unsafe { CStr::from_ptr(c_password) };
+    let amount = unsafe { CStr::from_ptr(c_amount) };
 
+    let config = config.to_str().unwrap();
+    let password = password.to_str().unwrap();
+    let amount: u64 = amount.to_str().unwrap().to_string().parse().unwrap();
+    let wallet = open_wallet(config, password).unwrap();
+
+    let fees = tx_strategies(&wallet, amount, 10).unwrap();
+
+    let s = CString::new(fees).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -758,7 +776,7 @@ pub fn tx_strategies(
     let mut result = vec![];
     wallet_lock!(wallet, w);
 
-    for selection_strategy_is_use_all in vec![true, false].into_iter() {
+    for selection_strategy_is_use_all in vec![false].into_iter() {
         let args = InitTxArgs {
             src_acct_name: None,
             amount,
