@@ -348,6 +348,7 @@ pub unsafe extern "C" fn rust_create_tx(
             //Send tx via epicbox
             let slate_msg = build_post_slate_request(address, sender_secret_key, slate);
             debug!("{}", "POSTING SLATE TO EPICBOX");
+            debug!("{}", slate_msg.clone());
             post_slate_to_epic_box(&slate_msg);
         },
         Err(e) => {
@@ -564,7 +565,7 @@ pub unsafe extern "C" fn rust_get_tx_fees(
     let wallet = open_wallet(config, password).unwrap();
 
     let fees = tx_strategies(&wallet, amount, 10).unwrap();
-
+    debug!("Received fee is {}", fees);
     let s = CString::new(fees).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
@@ -931,6 +932,7 @@ pub fn tx_create(
     Post slate via epicbox
 */
 fn post_slate_to_epic_box(slate_request: &str) {
+    debug!("Slate request is :::: {}", slate_request);
     let url = format!("ws://{}:{}", EPIC_BOX_ADDRESS, EPIC_BOX_PORT);
     connect(&*url, |out| {
         out.send(&*slate_request).unwrap();
@@ -955,7 +957,7 @@ pub fn get_pending_slates(wallet: &Wallet, secret_key: &str) {
         out.send(&*subscribe_request).unwrap();
 
         move |msg| {
-            println!("Got message: {}", msg);
+            debug!("Got message: {}", msg);
             let msg = match msg {
                 Message::Text(s) => { s }
                 _ => { panic!() }
