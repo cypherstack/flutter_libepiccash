@@ -20,7 +20,8 @@ use stack_test_epic_wallet_impls::{
 };
 
 use ws::{
-    CloseCode, connect, listen, Message, Error as WsError, ErrorKind as WsErrorKind
+    CloseCode, connect, listen, Message, Error as WsError, ErrorKind as WsErrorKind,
+    Result as WSResult, Sender, Handler
 };
 
 
@@ -53,6 +54,11 @@ pub struct Config {
     pub api_listen_interface: String
 }
 
+#[derive(Clone)]
+struct Client {
+    out: Sender,
+}
+
 type Wallet = Arc<
     Mutex<
         Box<
@@ -72,6 +78,27 @@ impl Config {
     }
 }
 
+static mut  SLATES_VECTOR: Vec<String> = Vec::new();
+impl Handler for Client {
+
+    fn on_message(&mut self, msg: Message) -> WSResult<()> {
+        // Close the connection when we get a response from the server
+        println!("Got message: {}", msg);
+        let msg = match msg {
+            Message::Text(s) => { s }
+            _ => { panic!() }
+        };
+
+        let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
+        if parsed["type"] == "Slate" {
+            //Push into the vector
+            unsafe {
+                SLATES_VECTOR.push(msg);
+            }
+        }
+        self.out.close(CloseCode::Normal)
+    }
+}
 // const EPIC_BOX_ADDRESS: &str = "5.9.155.102";
 // const EPIC_BOX_PORT: u16 = 13420;
 
@@ -451,8 +478,8 @@ pub unsafe extern "C" fn rust_check_for_new_slates(
     let secret_key = secret_key.to_str().unwrap();
 
     let wallet = open_wallet(config, password).unwrap();
-    get_pending_slates(&wallet, &secret_key);
-
+    let pending_slates = get_pending_slates(&wallet, &secret_key);
+    debug!("Received Pending slates ::::: {}", pending_slates);
     let s = CString::new("").unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
@@ -582,6 +609,35 @@ pub struct WalletInfoFormatted {
     pub amount_immature: f64,
     pub amount_currently_spendable: f64,
     pub amount_locked: f64,
+}
+
+pub fn create_wallet_test(config: Config, mnemonic: &str, password: &str, name: &str) -> String {
+    let wallet = get_wallet(&config).unwrap();
+    let mut wallet_lock = wallet.lock();
+    let lc = wallet_lock.lc_provider().unwrap();
+    let rec_phrase = ZeroingString::from(mnemonic.clone());
+    let mut createMsg = String::from("");
+    let wallet_pass = ZeroingString::from(password);
+    let mut create_msg = String::from("");
+    match lc.create_wallet(
+        Some(&name),
+        Some(rec_phrase),
+        32,
+        wallet_pass.clone(),
+        false,
+    ) {
+        Ok(sk) => {
+            debug!("{}", "Wallet created");
+            create_msg.push_str("created");
+        },
+        Err(e) => {
+            create_msg.push_str(&e.to_string());
+            // let msg = format!("Wallet Exists inside epic-wallet at {}/wallet_data", config.wallet_dir);
+        },
+    }
+
+    create_msg
+
 }
 
 /*
@@ -946,51 +1002,61 @@ fn post_slate_to_epic_box(slate_request: &str) {
 /*
     Get pending slates
 */
-pub fn get_pending_slates(wallet: &Wallet, secret_key: &str) {
+fn get_pending_slates(wallet: &Wallet, secret_key: &str) -> String {
+
+    init_logger();
+    debug!("LOGGER_MSG:::{}", "GETTING PENDING SLATES");
     let subscribe_request = build_subscribe_request(
         String::from("7WUDtkSaKyGRUnQ22rE3QUXChV8DmA6NnunDYP4vheTpc"),
         &secret_key
     );
     let url = format!("ws://{}:{}", EPIC_BOX_ADDRESS, EPIC_BOX_PORT);
     debug!("{}", "GETTING PENDING SLATES");
-    connect(&*url, |out| {
+    // connect(&*url, |out| {
+    //     out.send(&*subscribe_request).unwrap();
+    //     Client { out: out };
+    //     // move |msg| {
+    //     //     debug!("Got message: {}", msg);
+    //     //     let msg = match msg {
+    //     //         Message::Text(s) => { s }
+    //     //         _ => { panic!() }
+    //     //     };
+    //     //     // let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
+    //     //     // if parsed["type"] == "Slate" {
+    //     //     //     let decrypted_message = decrypt_message(&secret_key, parsed.clone());
+    //     //     //     debug!("Decrypted message:::: {}", decrypted_message);
+    //     //     //
+    //     //     //     if decrypted_message.clone().as_str().contains("has already been received") {
+    //     //     //         debug!("{}", "Slate already received");
+    //     //     //     } else {
+    //     //     //         let process = process_epic_box_slate(&wallet, &decrypted_message);
+    //     //     //         match process {
+    //     //     //             Ok(slate) => {
+    //     //     //                 let send_to = parsed.get("from").unwrap().as_str().unwrap();
+    //     //     //                 //Reprocess
+    //     //     //                 debug!("Posting slate to {}", send_to);
+    //     //     //                 let slate_again = build_post_slate_request(send_to, &secret_key, slate);
+    //     //     //                 debug!("Slate again is ::::::::: {}", slate_again.clone());
+    //     //     //                 post_slate_to_epic_box(&slate_again);
+    //     //     //             },
+    //     //     //             Err(e) => {
+    //     //     //                 debug!("{}", "Error processing slate :::");
+    //     //     //                 debug!("{}", &e.to_string());
+    //     //     //             }
+    //     //     //         };
+    //     //     //     }
+    //     //     //
+    //     //     // }
+    //     //     // out.close(CloseCode::Normal)
+    //     // }
+    // }).unwrap();
+
+    connect(url, |out| {
         out.send(&*subscribe_request).unwrap();
-
-        move |msg| {
-            debug!("Got message: {}", msg);
-            let msg = match msg {
-                Message::Text(s) => { s }
-                _ => { panic!() }
-            };
-            let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
-            if parsed["type"] == "Slate" {
-                let decrypted_message = decrypt_message(&secret_key, parsed.clone());
-                debug!("Decrypted message:::: {}", decrypted_message);
-
-                if decrypted_message.clone().as_str().contains("has already been received") {
-                    debug!("{}", "Slate already received");
-                } else {
-                    let process = process_epic_box_slate(&wallet, &decrypted_message);
-                    match process {
-                        Ok(slate) => {
-                            let send_to = parsed.get("from").unwrap().as_str().unwrap();
-                            //Reprocess
-                            debug!("Posting slate to {}", send_to);
-                            let slate_again = build_post_slate_request(send_to, &secret_key, slate);
-                            debug!("Slate again is ::::::::: {}", slate_again.clone());
-                            post_slate_to_epic_box(&slate_again);
-                        },
-                        Err(e) => {
-                            debug!("{}", "Error processing slate :::");
-                            debug!("{}", &e.to_string());
-                        }
-                    };
-                }
-
-            }
-            out.close(CloseCode::Normal)
-        }
+        Client { out: out }
     }).unwrap();
+
+    return unsafe { serde_json::to_string(&SLATES_VECTOR).unwrap() }
 }
 
 /*
