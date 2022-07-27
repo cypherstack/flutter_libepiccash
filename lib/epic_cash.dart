@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:ffi';
-import 'dart:typed_data';
-import 'package:ffi/ffi.dart';
 import 'dart:io' as io;
+
+import 'package:ffi/ffi.dart';
 
 const base = 'greeter';
 final DynamicLibrary epicCashNative =
@@ -209,9 +208,9 @@ final PendingSlates _getPendingSlates = epicCashNative
     .lookup<NativeFunction<PendingSlatesFFI>>("rust_check_for_new_slates")
     .asFunction();
 
-Future<void> getPendingSlates(
+Future<String> getPendingSlates(
     String config, String password, String secretKey) async {
-  _getPendingSlates(config.toNativeUtf8(), password.toNativeUtf8(),
+  return _getPendingSlates(config.toNativeUtf8(), password.toNativeUtf8(),
           secretKey.toNativeUtf8())
       .toDartString();
 }
