@@ -88,7 +88,7 @@ impl Handler for Client {
             Message::Text(s) => { s }
             _ => { panic!() }
         };
-        println!("Got message: {}", msg);
+        debug!("Got message: {}", msg);
         let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
         if parsed["type"] == "Slate" {
             //Push into the vector
@@ -192,7 +192,7 @@ pub unsafe extern "C" fn wallet_init(
     let mut wallet_lock = wallet.lock();
     let lc = wallet_lock.lc_provider().unwrap();
     let rec_phrase = ZeroingString::from(phrase.clone());
-    let mut createMsg = String::from("");
+    let mut create_msg = String::from("");
 
     match lc.create_wallet(
         Some(&wallet_name),
@@ -202,16 +202,14 @@ pub unsafe extern "C" fn wallet_init(
         false,
     ) {
         Ok(sk) => {
-            debug!("{}", "Wallet created");
-            createMsg.push_str("created");
+            create_msg.push_str("");
         },
         Err(e) => {
-            createMsg.push_str(&e.to_string());
-            // let msg = format!("Wallet Exists inside epic-wallet at {}/wallet_data", config.wallet_dir);
+            create_msg.push_str(&e.to_string());
         },
     }
 
-    let s = CString::new(createMsg).unwrap();
+    let s = CString::new(create_msg).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -219,7 +217,14 @@ pub unsafe extern "C" fn wallet_init(
 
 #[no_mangle]
 pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
-    let wallet_phrase = mnemonic().unwrap();
+    let mut wallet_phrase = "".to_string();
+    match mnemonic() {
+        Ok(phrase) => {
+            wallet_phrase.push_str(&phrase);
+        },Err(e) => {
+            wallet_phrase.push_str(&e.to_string());
+        }
+    }
     let s = CString::new(wallet_phrase).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
@@ -283,7 +288,7 @@ pub unsafe extern "C"  fn rust_recover_from_mnemonic(
     let mut recover_response = "".to_string();
     let recover = recover_from_mnemonic(&phrase, &wallet_pass, &wallet_config, &name);
     match recover {
-        Ok(recover)=> {
+        Ok(_)=> {
             recover_response.push_str("recovered");
         },
         Err(e)=> {
@@ -334,8 +339,19 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
     let input_conf = c_conf.to_str().unwrap();
 
     let wallet = open_wallet(&input_conf, &input_pass).unwrap();
-    let scan = wallet_scan_outputs(&wallet, Some(start_height)).unwrap().to_string();
-    let s = CString::new(scan).unwrap();
+    // let scan = wallet_scan_outputs(&wallet, Some(start_height)).unwrap().to_string();
+    let mut scan_result = String::from("");
+    match wallet_scan_outputs(&wallet, Some(start_height)) {
+        Ok(scan) => {
+            debug!("{}", "Wallet created");
+            scan_result.push_str(&scan);
+        },
+        Err(e) => {
+            scan_result.push_str(&e.to_string());
+            // let msg = format!("Wallet Exists inside epic-wallet at {}/wallet_data", config.wallet_dir);
+        },
+    }
+    let s = CString::new(scan_result).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -420,13 +436,21 @@ pub unsafe extern "C" fn rust_txs_get(
 
     let wallet = open_wallet(input_conf, input_pass).unwrap();
 
-    let txs = txs_get(
+    let mut txs_result = "".to_string();
+    match txs_get(
         &wallet,
         minimum_confirmations,
         refresh
-    ).unwrap();
+    ) {
+        Ok(txs) => {
+            txs_result.push_str(&txs);
+        },
+        Err(e) => {
+            txs_result.push_str(&e.to_string());
+        },
+    }
 
-    let s = CString::new(txs).unwrap();
+    let s = CString::new(txs_result).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -448,18 +472,18 @@ pub unsafe extern "C" fn rust_tx_cancel(
     let tx_id: u32 = tx_id.to_str().unwrap().to_string().parse().unwrap();
     let wallet = open_wallet(config, password).unwrap();
 
+    let mut cancel_msg = "".to_string();
     match  tx_cancel(&wallet, tx_id) {
-        Ok(cancel) => {
-            debug!("{}", "Cancel success");
-            let s = CString::new(cancel).unwrap();
-            let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-            p
+        Ok(_) => {
+            cancel_msg.push_str("");
         },Err(e) => {
-            debug!("Cancel error {}", e.to_string());
-            panic!("{}", e.to_string())
+            cancel_msg.push_str(&e.to_string());
         }
     }
+    let s = CString::new(cancel_msg).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    p
 }
 
 #[no_mangle]
@@ -611,35 +635,6 @@ pub struct WalletInfoFormatted {
     pub amount_immature: f64,
     pub amount_currently_spendable: f64,
     pub amount_locked: f64,
-}
-
-pub fn create_wallet_test(config: Config, mnemonic: &str, password: &str, name: &str) -> String {
-    let wallet = get_wallet(&config).unwrap();
-    let mut wallet_lock = wallet.lock();
-    let lc = wallet_lock.lc_provider().unwrap();
-    let rec_phrase = ZeroingString::from(mnemonic.clone());
-    let mut createMsg = String::from("");
-    let wallet_pass = ZeroingString::from(password);
-    let mut create_msg = String::from("");
-    match lc.create_wallet(
-        Some(&name),
-        Some(rec_phrase),
-        32,
-        wallet_pass.clone(),
-        false,
-    ) {
-        Ok(sk) => {
-            debug!("{}", "Wallet created");
-            create_msg.push_str("created");
-        },
-        Err(e) => {
-            create_msg.push_str(&e.to_string());
-            // let msg = format!("Wallet Exists inside epic-wallet at {}/wallet_data", config.wallet_dir);
-        },
-    }
-
-    create_msg
-
 }
 
 /*
@@ -1033,21 +1028,21 @@ pub fn process_received_slates(wallet: &Wallet, secret_key: &str, messages: &str
         let parsed: serde_json::Value = serde_json::from_str(&message).expect("Can't parse to JSON");
         let decrypted_message = decrypt_message(&secret_key, parsed.clone());
         if decrypted_message.clone().as_str().contains("has already been received") {
-            debug!("{}", "Slate already received");
+            println!("{}", "Slate already received");
         } else {
             let process = process_epic_box_slate(&wallet, &decrypted_message);
             match process {
                 Ok(slate) => {
                     let send_to = parsed.get("from").unwrap().as_str().unwrap();
                     //Reprocess
-                    debug!("Posting slate to {}", send_to);
+                    println!("Posting slate to {}", send_to);
                     let slate_again = build_post_slate_request(send_to, &secret_key, slate);
-                    debug!("Slate again is ::::::::: {}", slate_again.clone());
+                    println!("Slate again is ::::::::: {}", slate_again.clone());
                     post_slate_to_epic_box(&slate_again);
                 },
                 Err(e) => {
-                    debug!("{}", "Error processing slate :::");
-                    debug!("{}", &e.to_string());
+                    println!("{}", "Error processing slate :::");
+                    println!("{}", &e.to_string());
                 }
             };
         }
@@ -1061,8 +1056,14 @@ pub fn process_received_slates(wallet: &Wallet, secret_key: &str, messages: &str
 */
 pub fn tx_cancel(wallet: &Wallet, id: u32) -> Result<String, Error> {
     let api = Owner::new(wallet.clone());
-    let _cancel = api.cancel_tx(None, Some(id), None).unwrap();
-    Ok("".to_owned())
+    // let _cancel = api.cancel_tx(None, Some(id), None).unwrap();
+    match  api.cancel_tx(None, Some(id), None) {
+        Ok(_) => {
+            Ok("cancelled".to_owned())
+        },Err(e) => {
+            Err(e)
+        }
+    }
 }
 
 /*
@@ -1160,6 +1161,7 @@ pub fn tx_post(wallet: &Wallet, slate_uuid: &str) -> Result<String, Error> {
     let tx_uuid =
         Uuid::parse_str(slate_uuid).map_err(|e| ErrorKind::GenericError(e.to_string()))?;
     let (_, txs) = owner_api.retrieve_txs(None, false, None, Some(tx_uuid.clone()))?;
+    println!("TX IS ::: {:?}", txs[0]);
     if txs[0].confirmed {
         return Err(Error::from(ErrorKind::GenericError(format!(
             "Transaction with id {} is already confirmed. Not posting.",
@@ -1303,10 +1305,12 @@ pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<Strin
 
     match transaction[0].tx_type {
         TxLogEntryType::TxSent => {
-            debug!("{}", "TXSENT");
+            debug!("PROCESSING_TX_SENT:::::{}", "TXSENT");
             let receive = tx_receive(&wallet, "default", &msg_tuple.1);
+
             match receive {
                 Ok(slate) => {
+                    debug!("RESULT_OF_RECEIVE_IS {} ::::", slate.clone());
                     Ok(slate)
                 },
                 Err(e) => {
@@ -1315,14 +1319,23 @@ pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<Strin
             }
         },
         TxLogEntryType::TxReceived =>  {
-            debug!("{}", "TXRECEIVED");
+            debug!("PROCESSING_TX_RECEIVED:::::{}", "TXRECEIVED");
             let finalize = tx_finalize(&wallet, &msg_tuple.1);
             match finalize {
                 Ok(str_slate) => {
-                    debug!("{}", "TX finalized");
+                    debug!("TX_FINALIZE_RESULT:::::{}", str_slate);
+
                     //Post slate to the node
+                    debug!("POSTING TRANSACTION:::::{:?}", transaction[0]);
                     let tx_slate_id = transaction[0].tx_slate_id.unwrap().to_string();
-                    let tx_post = tx_post(&wallet, &tx_slate_id)?;
+                    // let tx_post = tx_post(&wallet, &tx_slate_id)?;
+                    match tx_post(&wallet, &tx_slate_id) {
+                        Ok(_) =>  {
+                            debug!("{}", "Slate posted");
+                        }, Err(e) => {
+                            debug!("{}", e.to_string());
+                        }
+                    }
                     Ok(str_slate)
                 },
                 Err(e)=> {
