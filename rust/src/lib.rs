@@ -156,13 +156,6 @@ use tungstenite::client::AutoStream;
     Create a new wallet
 */
 
-pub fn init_logger() {
-    android_logger::init_once(
-        AndroidConfig::default().with_min_level(Level::Trace),
-    );
-}
-
-
 #[no_mangle]
 pub unsafe extern "C" fn wallet_init(
     config: *const c_char,
@@ -171,8 +164,6 @@ pub unsafe extern "C" fn wallet_init(
     name: *const c_char
 
 ) -> *const c_char {
-
-    init_logger();
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_mnemonic = unsafe { CStr::from_ptr(mnemonic) };
     let c_password = unsafe { CStr::from_ptr(password) };
@@ -256,10 +247,18 @@ pub unsafe extern "C"  fn rust_wallet_balances(
     };
 
     let wallet = open_wallet(&input_conf, &input_pass).unwrap();
-    let info = get_wallet_info(&wallet, refresh, 10).unwrap();
 
-    let string_info = serde_json::to_string(&info).unwrap();
-    let s = CString::new(string_info).unwrap();
+    let mut wallet_info = "".to_string();
+    match get_wallet_info(&wallet, refresh, 10) {
+        Ok(info) => {
+            let string_info = serde_json::to_string(&info).unwrap();
+            wallet_info.push_str(&string_info);
+        },Err(e) => {
+            wallet_info.push_str(&e.to_string());
+        }
+    }
+
+    let s = CString::new(wallet_info).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -272,7 +271,6 @@ pub unsafe extern "C"  fn rust_recover_from_mnemonic(
     mnemonic: *const c_char,
     name: *const c_char
 ) -> *const c_char {
-    init_logger();
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let c_mnemonic = unsafe { CStr::from_ptr(mnemonic) };
@@ -343,12 +341,11 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
     let mut scan_result = String::from("");
     match wallet_scan_outputs(&wallet, Some(start_height)) {
         Ok(scan) => {
-            debug!("{}", "Wallet created");
+            debug!("{}", "Wallet scanned");
             scan_result.push_str(&scan);
         },
         Err(e) => {
             scan_result.push_str(&e.to_string());
-            // let msg = format!("Wallet Exists inside epic-wallet at {}/wallet_data", config.wallet_dir);
         },
     }
     let s = CString::new(scan_result).unwrap();
@@ -519,7 +516,6 @@ pub unsafe extern "C" fn rust_tx_receive(
     password: *const c_char,
     slate: *const c_char,
 ) -> *const c_char {
-    init_logger();
     let config = unsafe { CStr::from_ptr(config) };
     let password = unsafe { CStr::from_ptr(password) };
     let slate = unsafe { CStr::from_ptr(slate) };
@@ -551,7 +547,16 @@ pub unsafe extern "C" fn rust_get_chain_height(
     let c_config = unsafe { CStr::from_ptr(config) };
     let str_config = c_config.to_str().unwrap();
     let chain_tip = get_chain_height(&str_config).unwrap().to_string();
-    let s = CString::new(chain_tip).unwrap();
+    let mut chain_height = "".to_string();
+    match get_chain_height(&str_config) {
+        Ok(chain_tip) => {
+            chain_height.push_str(&chain_tip.to_string());
+        },
+        Err(e) => {
+            chain_height.push_str(&e.to_string());
+        },
+    }
+    let s = CString::new(chain_height).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     p
@@ -643,18 +648,26 @@ pub struct WalletInfoFormatted {
 */
 pub fn get_wallet_info(wallet: &Wallet, refresh_from_node: bool, min_confirmations: u64) -> Result<WalletInfoFormatted, Error> {
     let api = Owner::new(wallet.clone());
-    let (_, wallet_summary) =
-        api.retrieve_summary_info(None, refresh_from_node, min_confirmations).unwrap();
-    Ok(WalletInfoFormatted {
-        last_confirmed_height: wallet_summary.last_confirmed_height,
-        minimum_confirmations: wallet_summary.minimum_confirmations,
-        total: nano_to_deci(wallet_summary.total),
-        amount_awaiting_finalization: nano_to_deci(wallet_summary.amount_awaiting_finalization),
-        amount_awaiting_confirmation: nano_to_deci(wallet_summary.amount_awaiting_confirmation),
-        amount_immature: nano_to_deci(wallet_summary.amount_immature),
-        amount_currently_spendable: nano_to_deci(wallet_summary.amount_currently_spendable),
-        amount_locked: nano_to_deci(wallet_summary.amount_locked)
-    })
+
+    match api.retrieve_summary_info(None, refresh_from_node, min_confirmations) {
+        Ok((_, wallet_summary)) => {
+            Ok(WalletInfoFormatted {
+                last_confirmed_height: wallet_summary.last_confirmed_height,
+                minimum_confirmations: wallet_summary.minimum_confirmations,
+                total: nano_to_deci(wallet_summary.total),
+                amount_awaiting_finalization: nano_to_deci(wallet_summary.amount_awaiting_finalization),
+                amount_awaiting_confirmation: nano_to_deci(wallet_summary.amount_awaiting_confirmation),
+                amount_immature: nano_to_deci(wallet_summary.amount_immature),
+                amount_currently_spendable: nano_to_deci(wallet_summary.amount_currently_spendable),
+                amount_locked: nano_to_deci(wallet_summary.amount_locked)
+            })
+        }, Err(e) => {
+            Err(e)
+        }
+    }
+    // let (_, wallet_summary) =
+    //     api.retrieve_summary_info(None, refresh_from_node, min_confirmations).unwrap();
+
 }
 
 /*
@@ -1003,7 +1016,6 @@ fn post_slate_to_epic_box(slate_request: &str) {
 */
 pub fn get_pending_slates(secret_key: &str) -> String {
 
-    init_logger();
     debug!("LOGGER_MSG:::{}", "GETTING PENDING SLATES");
     let subscribe_request = build_subscribe_request(
         String::from("7WUDtkSaKyGRUnQ22rE3QUXChV8DmA6NnunDYP4vheTpc"),
