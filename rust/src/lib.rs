@@ -1459,7 +1459,7 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<Wallet, Error> {
         let lc = wallet_lock.lc_provider()?;
         if let Ok(exists_wallet) = lc.wallet_exists(None) {
             if exists_wallet {
-                lc.open_wallet(None, ZeroingString::from(password), true, false).unwrap();
+                lc.open_wallet(None, ZeroingString::from(password), false, false).unwrap();
                 let wallet_inst = lc.wallet_inst()?;
                 if let Some(account) = config.account {
                     wallet_inst.set_parent_key_id_by_name(&account)?;
