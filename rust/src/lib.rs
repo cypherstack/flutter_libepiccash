@@ -162,7 +162,6 @@ pub unsafe extern "C" fn wallet_init(
     mnemonic: *const c_char,
     password: *const c_char,
     name: *const c_char
-
 ) -> *const c_char {
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_mnemonic = unsafe { CStr::from_ptr(mnemonic) };
@@ -546,7 +545,6 @@ pub unsafe extern "C" fn rust_get_chain_height(
 ) -> *const c_char {
     let c_config = unsafe { CStr::from_ptr(config) };
     let str_config = c_config.to_str().unwrap();
-    let chain_tip = get_chain_height(&str_config).unwrap().to_string();
     let mut chain_height = "".to_string();
     match get_chain_height(&str_config) {
         Ok(chain_tip) => {
@@ -665,8 +663,6 @@ pub fn get_wallet_info(wallet: &Wallet, refresh_from_node: bool, min_confirmatio
             Err(e)
         }
     }
-    // let (_, wallet_summary) =
-    //     api.retrieve_summary_info(None, refresh_from_node, min_confirmations).unwrap();
 
 }
 
@@ -790,9 +786,22 @@ pub fn wallet_scan_outputs(
 
     let tip = {
         wallet_lock!(wallet, w);
-        w.w2n_client().get_chain_tip().unwrap()
+        match w.w2n_client().get_chain_tip() {
+            Ok(chain_tip) => {
+                chain_tip.0
+            },
+            Err(e) => {
+                0
+            }
+        }
     };
-    println!("{}", tip.0);
+
+    if tip == 0 {
+        return Err(Error::from(ErrorKind::GenericError(format!(
+            "{}",
+            "Unable to scan, could not determine chain height"
+        ))));
+    }
 
     let start_height: u64 = match start_height {
         Some(h) => h,
@@ -804,7 +813,7 @@ pub fn wallet_scan_outputs(
         None,
         false,
         start_height,
-        tip.0,
+        tip,
         &None
     ).unwrap();
 
@@ -1022,7 +1031,6 @@ pub fn get_pending_slates(secret_key: &str) -> String {
         &secret_key
     );
     let url = format!("ws://{}:{}", EPIC_BOX_ADDRESS, EPIC_BOX_PORT);
-    debug!("{}", "GETTING PENDING SLATES");
     connect(url, |out| {
         out.send(&*subscribe_request).unwrap();
         Client { out: out }
@@ -1057,8 +1065,9 @@ pub fn process_received_slates(wallet: &Wallet, secret_key: &str, messages: &str
                     println!("{}", &e.to_string());
                 }
             };
+            decrypted_slates.push(decrypted_message);
         }
-        decrypted_slates.push(decrypted_message);
+
     }
     serde_json::to_string(&decrypted_slates).unwrap()
 }
