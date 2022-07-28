@@ -205,37 +205,6 @@ pub unsafe extern "C" fn wallet_init(
     p
 }
 
-// pub fn create_wallet_test(config: Config, mnemonic: &str, password: &str, name: &str) -> String {
-//     let wallet = get_wallet(&config).unwrap();
-//     let mut wallet_lock = wallet.lock();
-//     let lc = wallet_lock.lc_provider().unwrap();
-//     let rec_phrase = ZeroingString::from(mnemonic.clone());
-//     let mut createMsg = String::from("");
-//     let wallet_pass = ZeroingString::from(password);
-//     let mut create_msg = String::from("");
-//     match lc.create_wallet(
-//         Some(&name),
-//         Some(rec_phrase),
-//         32,
-//         wallet_pass.clone(),
-//         false,
-//     ) {
-//         Ok(sk) => {
-//             //Create Secret Key
-//             debug!("{}", "Wallet created");
-//             let secret_key = lc.open_wallet(Some(&name), &wallet_pass, true, false).unwrap();
-//             let string_secret_key = json_serde::to_string(&secret_key).unwrap();
-//             create_msg.push_str(string_secret_key);
-//         },
-//         Err(e) => {
-//             create_msg.push_str(&e.to_string());
-//             // let msg = format!("Wallet Exists inside epic-wallet at {}/wallet_data", config.wallet_dir);
-//         },
-//     }
-//
-//     create_msg
-//
-// }
 
 #[no_mangle]
 pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
@@ -1118,20 +1087,22 @@ pub fn process_received_slates(wallet: &Wallet, secret_key: &str, messages: &str
         //Decrypt message
         let parsed: serde_json::Value = serde_json::from_str(&message).expect("Can't parse to JSON");
         let decrypted_message = decrypt_message(&secret_key, parsed.clone());
-        if decrypted_message.clone().as_str().contains("has already been received") {
-            println!("{}", "Slate already received");
+        debug!("DECRYPTED_MESSAGE_IS:::::{}", decrypted_message.clone());
+        if decrypted_message.clone().as_str().contains("has already been received") ||  decrypted_message.clone().as_str().contains("Wallet store error"){
+            debug!("{}", "Slate already received");
         } else {
             let process = process_epic_box_slate(&wallet, &decrypted_message);
             match process {
                 Ok(slate) => {
                     let send_to = parsed.get("from").unwrap().as_str().unwrap();
                     //Reprocess
-                    println!("Posting slate to {}", send_to);
+                    debug!("Posting slate to {}", send_to);
                     let slate_again = build_post_slate_request(send_to, &secret_key, slate);
-                    println!("Slate again is ::::::::: {}", slate_again.clone());
+                    debug!("Slate again is ::::::::: {}", slate_again.clone());
                     post_slate_to_epic_box(&slate_again);
                 },
                 Err(e) => {
+                    debug!("ERROR_PROCESSING_SLATE {}", e.to_string());
                     return  Err(e);
                 }
             };
@@ -1403,6 +1374,7 @@ pub fn process_epic_box_slate(wallet: &Wallet, slate_info: &str) -> Result<Strin
                     Ok(slate)
                 },
                 Err(e) => {
+                    debug!("ERROR RECEIVING {} ::::", e.to_string());
                     return Err(e);
                 }
             }
