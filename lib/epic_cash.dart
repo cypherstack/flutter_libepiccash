@@ -64,10 +64,13 @@ typedef AddressInfoFFI = Pointer<Utf8> Function();
 typedef ValidateAddress = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef ValidateAddressFFI = Pointer<Utf8> Function(Pointer<Utf8>);
 
-typedef PendingSlates = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
-typedef PendingSlatesFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+typedef PendingSlates = Pointer<Utf8> Function(Pointer<Utf8>);
+typedef PendingSlatesFFI = Pointer<Utf8> Function(Pointer<Utf8>);
+
+typedef ProcessSlates = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+typedef ProcessSlatesFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 
 typedef TransactionFees = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
@@ -208,10 +211,18 @@ final PendingSlates _getPendingSlates = epicCashNative
     .lookup<NativeFunction<PendingSlatesFFI>>("rust_check_for_new_slates")
     .asFunction();
 
-Future<String> getPendingSlates(
-    String config, String password, String secretKey) async {
-  return _getPendingSlates(config.toNativeUtf8(), password.toNativeUtf8(),
-          secretKey.toNativeUtf8())
+Future<String> getPendingSlates(String secretKey) async {
+  return _getPendingSlates(secretKey.toNativeUtf8()).toDartString();
+}
+
+final ProcessSlates _processSlates = epicCashNative
+    .lookup<NativeFunction<ProcessSlatesFFI>>("rust_process_pending_slates")
+    .asFunction();
+
+Future<String> processSlates(
+    String config, String password, String secretKey, String slates) async {
+  return _processSlates(config.toNativeUtf8(), password.toNativeUtf8(),
+          secretKey.toNativeUtf8(), slates.toNativeUtf8())
       .toDartString();
 }
 
