@@ -76,14 +76,13 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
   var walletConfig = "";
   final storage = new FlutterSecureStorage();
 
-  void _getMnemonic() {
-    final Pointer<Utf8> mnemonicPtr = walletMnemonic();
-    final String mnemonicString = mnemonicPtr.toDartString();
-
-    setState(() {
-      mnemonic = mnemonicString;
-    });
-  }
+  // void _getMnemonic() {
+  //   final String mnemonicString = walletMnemonic();
+  //
+  //   setState(() {
+  //     mnemonic = mnemonicString;
+  //   });
+  // }
 
   String walletDirectory = "";
   Future<String> createFolder(String folderName) async {
@@ -177,7 +176,9 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
                     // String strConf = json.encode(walletConfig);
                     //Store config and password in secure storage since we will need them again
                     _storeConfig(walletConfig);
-                    initWallet(walletConfig, mnemonic, walletPassword, walletName);
+                    mnemonic = walletMnemonic();
+                    initWallet(
+                        walletConfig, mnemonic, walletPassword, walletName);
 
                     Navigator.push(
                       context,
