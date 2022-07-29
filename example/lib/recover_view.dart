@@ -111,11 +111,14 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
     return true;
   }
 
-  String _recoverWallet(Pointer<Utf8> configPtr, Pointer<Utf8> passwordPtr,
-      Pointer<Utf8> mnemonicPtr, Pointer<Utf8> namePtr) {
-    final Pointer<Utf8> recoverWalletPtr =
+  String _recoverWallet(
+    String configPtr,
+    String passwordPtr,
+    String mnemonicPtr,
+    String namePtr,
+  ) {
+    final String recoverWalletStr =
         recoverWallet(configPtr, passwordPtr, mnemonicPtr, namePtr);
-    final String recoverWalletStr = recoverWalletPtr.toDartString();
     return recoverWalletStr;
   }
 
@@ -193,7 +196,8 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
                     String walletConfig = _getWalletConfig(name);
 
                     // String strConf = json.encode(walletConfig);
-                    String recover = recoverWallet(walletConfig, password, mnemonic, name);
+                    String recover =
+                        recoverWallet(walletConfig, password, mnemonic, name);
 
                     if (recover == "recovered") {
                       _storeConfig(walletConfig);
