@@ -86,7 +86,10 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
 
   String walletDirectory = "";
   Future<String> createFolder(String folderName) async {
-    Directory appDocDir = await getApplicationDocumentsDirectory();
+    Directory appDocDir = (await getApplicationDocumentsDirectory());
+    if (Platform.isIOS) {
+      appDocDir = (await getLibraryDirectory());
+    }
     String appDocPath = appDocDir.path;
     print("Doc path is $appDocPath");
 
@@ -115,7 +118,7 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
     // although getApplicationDocumentsDirectory should be enough for both.
     if (Platform.isIOS) {
       config["wallet_dir"] =
-          "${(await getApplicationDocumentsDirectory()).path}/epiccash/$name/";
+          "${(await getLibraryDirectory()).path}/epiccash/$name/";
       print("wallet dir ${config["wallet_dir"]}");
     } else {
       config["wallet_dir"] =

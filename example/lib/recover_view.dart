@@ -64,11 +64,17 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
 
   String walletDirectory = "";
   Future<String> createFolder(String folderName) async {
-    Directory appDocDir = await getApplicationDocumentsDirectory();
+    Directory appDocDir = (await getApplicationDocumentsDirectory());
+    if (Platform.isIOS) {
+      appDocDir = (await getLibraryDirectory());
+    }
     String appDocPath = appDocDir.path;
     print("Doc path is $appDocPath");
 
-    final Directory _appDocDir = await getApplicationDocumentsDirectory();
+    Directory _appDocDir = (await getApplicationDocumentsDirectory());
+    if (Platform.isIOS) {
+      _appDocDir = (await getLibraryDirectory());
+    }
     final Directory _appDocDirFolder =
         Directory('${_appDocDir.path}/$folderName/');
 
