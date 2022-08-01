@@ -68,11 +68,17 @@ class _MyHomePageState extends State<MyHomePage> {
   final greeting = "";
 
   Future<String> createFolder(String folderName) async {
-    io.Directory appDocDir = await getApplicationDocumentsDirectory();
+    Directory appDocDir = (await getApplicationDocumentsDirectory());
+    if (Platform.isIOS) {
+      appDocDir = (await getLibraryDirectory());
+    }
     String appDocPath = appDocDir.path;
     print(appDocPath);
 
-    final io.Directory _appDocDir = await getApplicationDocumentsDirectory();
+    Directory _appDocDir = (await getApplicationDocumentsDirectory());
+    if (Platform.isIOS) {
+      _appDocDir = (await getLibraryDirectory());
+    }
     final io.Directory _appDocDirFolder =
         io.Directory('${_appDocDir.path}/$folderName/');
 
@@ -102,7 +108,6 @@ class _MyHomePageState extends State<MyHomePage> {
     config["api_listen_interface"] = "95.216.215.107";
 
     String strConf = json.encode(config);
-
 
     String addressInfo = getAddressInfo();
     print("Address Info is");

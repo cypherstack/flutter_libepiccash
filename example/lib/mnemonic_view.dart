@@ -76,18 +76,20 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
   var walletConfig = "";
   final storage = new FlutterSecureStorage();
 
-  void _getMnemonic() {
-    final Pointer<Utf8> mnemonicPtr = walletMnemonic();
-    final String mnemonicString = mnemonicPtr.toDartString();
-
-    setState(() {
-      mnemonic = mnemonicString;
-    });
-  }
+  // void _getMnemonic() {
+  //   final String mnemonicString = walletMnemonic();
+  //
+  //   setState(() {
+  //     mnemonic = mnemonicString;
+  //   });
+  // }
 
   String walletDirectory = "";
   Future<String> createFolder(String folderName) async {
-    Directory appDocDir = await getApplicationDocumentsDirectory();
+    Directory appDocDir = (await getApplicationDocumentsDirectory());
+    if (Platform.isIOS) {
+      appDocDir = (await getLibraryDirectory());
+    }
     String appDocPath = appDocDir.path;
     print("Doc path is $appDocPath");
 
@@ -116,7 +118,7 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
     // although getApplicationDocumentsDirectory should be enough for both.
     if (Platform.isIOS) {
       config["wallet_dir"] =
-          "${(await getApplicationDocumentsDirectory()).path}/epiccash/$name/";
+          "${(await getLibraryDirectory()).path}/epiccash/$name/";
       print("wallet dir ${config["wallet_dir"]}");
     } else {
       config["wallet_dir"] =
@@ -177,7 +179,9 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
                     // String strConf = json.encode(walletConfig);
                     //Store config and password in secure storage since we will need them again
                     _storeConfig(walletConfig);
-                    initWallet(walletConfig, mnemonic, walletPassword, walletName);
+                    mnemonic = walletMnemonic();
+                    initWallet(
+                        walletConfig, mnemonic, walletPassword, walletName);
 
                     Navigator.push(
                       context,

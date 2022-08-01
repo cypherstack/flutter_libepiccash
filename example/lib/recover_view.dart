@@ -64,11 +64,17 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
 
   String walletDirectory = "";
   Future<String> createFolder(String folderName) async {
-    Directory appDocDir = await getApplicationDocumentsDirectory();
+    Directory appDocDir = (await getApplicationDocumentsDirectory());
+    if (Platform.isIOS) {
+      appDocDir = (await getLibraryDirectory());
+    }
     String appDocPath = appDocDir.path;
     print("Doc path is $appDocPath");
 
-    final Directory _appDocDir = await getApplicationDocumentsDirectory();
+    Directory _appDocDir = (await getApplicationDocumentsDirectory());
+    if (Platform.isIOS) {
+      _appDocDir = (await getLibraryDirectory());
+    }
     final Directory _appDocDirFolder =
         Directory('${_appDocDir.path}/$folderName/');
 
@@ -111,11 +117,14 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
     return true;
   }
 
-  String _recoverWallet(Pointer<Utf8> configPtr, Pointer<Utf8> passwordPtr,
-      Pointer<Utf8> mnemonicPtr, Pointer<Utf8> namePtr) {
-    final Pointer<Utf8> recoverWalletPtr =
+  String _recoverWallet(
+    String configPtr,
+    String passwordPtr,
+    String mnemonicPtr,
+    String namePtr,
+  ) {
+    final String recoverWalletStr =
         recoverWallet(configPtr, passwordPtr, mnemonicPtr, namePtr);
-    final String recoverWalletStr = recoverWalletPtr.toDartString();
     return recoverWalletStr;
   }
 
@@ -193,7 +202,8 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
                     String walletConfig = _getWalletConfig(name);
 
                     // String strConf = json.encode(walletConfig);
-                    String recover = recoverWallet(walletConfig, password, mnemonic, name);
+                    String recover =
+                        recoverWallet(walletConfig, password, mnemonic, name);
 
                     if (recover == "recovered") {
                       _storeConfig(walletConfig);
