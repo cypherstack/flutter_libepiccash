@@ -96,7 +96,7 @@ impl Handler for Client {
     }
 }
 
-const EPIC_BOX_ADDRESS: &str = "209.127.179.199";
+const EPIC_BOX_ADDRESS: &str = "epicbox.stackwallet.com";
 const EPIC_BOX_PORT: u16 = 13420;
 
 /*
