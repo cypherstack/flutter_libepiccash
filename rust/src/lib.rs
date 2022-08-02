@@ -1,13 +1,10 @@
-use std::os::raw::{c_char, c_int, c_uint};
+use std::os::raw::{c_char};
 use std::ffi::{CString, CStr};
-use std::collections::HashMap;
 use std::sync::Arc;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use rustc_serialize::json;
-use serde_json::json as serde_json;
-use serde_json::to_string;
 use uuid::Uuid;
 use chrono::{Duration, Utc};
 
@@ -16,11 +13,11 @@ use stack_test_epic_wallet_config::{WalletConfig};
 use stack_test_epic_wallet_libwallet::api_impl::types::InitTxArgs;
 use stack_test_epic_wallet_libwallet::api_impl::owner;
 use stack_test_epic_wallet_impls::{
-    DefaultLCProvider, DefaultWalletImpl, HTTPNodeClient, HttpSlateSender, SlateSender,
+    DefaultLCProvider, DefaultWalletImpl, HTTPNodeClient,
 };
 
 use ws::{
-    CloseCode, connect, listen, Message, Error as WsError, ErrorKind as WsErrorKind,
+    CloseCode, connect, Message, Error as WsError, ErrorKind as WsErrorKind,
     Result as WSResult, Sender, Handler
 };
 
@@ -28,23 +25,19 @@ use ws::{
 
 use stack_test_epic_keychain::mnemonic;
 use stack_test_epic_wallet_util::stack_test_epic_core::global::ChainTypes;
-use stack_test_epic_core::global;
 use stack_test_epic_util::file::get_first_line;
 use stack_test_epic_wallet_util::stack_test_epic_util::ZeroingString;
 use stack_test_epic_util::Mutex;
-use stack_test_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, WalletInfo, Error, ErrorKind, TxLogEntry, TxLogEntryType};
+use stack_test_epic_wallet_libwallet::{scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, WalletInfo, Error, ErrorKind, TxLogEntry, TxLogEntryType};
 
 use stack_test_epicboxlib::utils::secp::{SecretKey, PublicKey, Secp256k1};
 use stack_test_epic_wallet_util::stack_test_epic_keychain::{Keychain, ExtKeychain};
-use stack_test_epic_wallet_libwallet::api_impl::owner_updater::StatusMessage;
 
 use stack_test_epic_util::secp::rand::Rng;
-use stack_test_epic_util::to_hex;
 
 use stack_test_epic_util::secp::key::SecretKey as EpicSecretKey;
-use stack_test_epic_util::to_base64;
 
-use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxError, version_bytes, EpicboxMessage, TxProofErrorKind};
+use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
 
 #[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
 pub struct Config {
@@ -147,10 +140,7 @@ extern crate android_logger;
 
 use log::Level;
 use android_logger::Config as AndroidConfig;
-use stack_test_epic_wallet_util::stack_test_epic_api::response;
 use stack_test_epicboxlib::utils::crypto::{Hex, sign_challenge};
-use tokio_tungstenite::WebSocketStream;
-use tungstenite::client::AutoStream;
 
 /*
     Create a new wallet
@@ -196,13 +186,13 @@ pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
 }
 
 
-fn _get_mnemonic() -> Result<*const c_char, Error> {
+fn _get_mnemonic() -> Result<*const c_char, stack_test_epic_keychain::mnemonic::Error> {
     let mut wallet_phrase = "".to_string();
     match mnemonic() {
         Ok(phrase) => {
             wallet_phrase.push_str(&phrase);
         },Err(e) => {
-            wallet_phrase.push_str(&e.to_string());
+            return Err(e);
         }
     }
     let s = CString::new(wallet_phrase).unwrap();
@@ -233,7 +223,7 @@ fn _wallet_init(
         Ok(_) => {
             create_msg.push_str("");
         },Err(e) => {
-            create_msg.push_str(&e.to_string());
+            return Err(e);
         }
     }
     let s = CString::new(create_msg).unwrap();
@@ -295,7 +285,7 @@ fn _wallet_balances(
             let str_wallet_info = serde_json::to_string(&info).unwrap();
             wallet_info.push_str(&str_wallet_info);
         },Err(e) => {
-            wallet_info.push_str(&e.to_string());
+            return Err(e);
         }
     }
     let s = CString::new(wallet_info).unwrap();
@@ -357,7 +347,7 @@ fn _recover_from_mnemonic(
             recover_response.push_str("recovered");
         },
         Err(e)=> {
-            recover_response.push_str(&e.to_string());
+            return Err(e);
         }
     }
     let s = CString::new(recover_response).unwrap();
@@ -422,7 +412,7 @@ fn _wallet_scan_outputs(
         },
         Err(e) => {
             debug!("WALLET_SCAN_ERROR::: {:?}", e.to_string());
-            scan_result.push_str(&e.to_string());
+            return Err(e);
         },
     }
 
@@ -497,13 +487,14 @@ fn _create_tx(
             post_slate_to_epic_box(&slate_msg);
         },
         Err(e) => {
-            debug!("CREATE_TX_FAIL:::{}", e.to_string());
-            let return_data = (
-                "transaction_failed",
-                e.to_string()
-            );
-            let json_return = serde_json::to_string(&return_data).unwrap();
-            message.push_str(&json_return);
+            // debug!("CREATE_TX_FAIL:::{}", e.to_string());
+            // let return_data = (
+            //     "transaction_failed",
+            //     e.to_string()
+            // );
+            // let json_return = serde_json::to_string(&return_data).unwrap();
+            // message.push_str(&json_return);
+            return Err(e);
         }
     }
 
@@ -522,6 +513,31 @@ pub unsafe extern "C" fn rust_txs_get(
     minimum_confirmations: *const c_char,
     refresh_from_node: *const c_char,
 ) -> *const c_char {
+    let result = match _txs_get(
+        config,
+        password,
+        minimum_confirmations,
+        refresh_from_node,
+    ) {
+        Ok(txs) => {
+            txs
+        }, Err(e ) => {
+            let error_msg = format!("Error {}", &e.to_string());
+            let error_msg_ptr = CString::new(error_msg).unwrap();
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            std::mem::forget(error_msg_ptr);
+            ptr
+        }
+    };
+    result
+}
+
+fn _txs_get(
+    config: *const c_char,
+    password: *const c_char,
+    minimum_confirmations: *const c_char,
+    refresh_from_node: *const c_char,
+) -> Result<*const c_char, Error> {
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let minimum_confirmations = unsafe { CStr::from_ptr(minimum_confirmations) };
@@ -536,12 +552,11 @@ pub unsafe extern "C" fn rust_txs_get(
         0 => false,
         _=> true
     };
-
     let wallet = open_wallet(input_conf, input_pass).unwrap();
-
     let mut txs_result = "".to_string();
     match txs_get(
         &wallet.0,
+        wallet.1,
         minimum_confirmations,
         refresh
     ) {
@@ -549,14 +564,14 @@ pub unsafe extern "C" fn rust_txs_get(
             txs_result.push_str(&txs);
         },
         Err(e) => {
-            txs_result.push_str(&e.to_string());
+            return Err(e);
         },
     }
 
     let s = CString::new(txs_result).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    p
+    Ok(p)
 }
 
 #[no_mangle]
@@ -603,7 +618,7 @@ fn _tx_cancel(
         Ok(_) => {
             cancel_msg.push_str("");
         },Err(e) => {
-            cancel_msg.push_str(&e.to_string());
+            return Err(e);
         }
     }
     let s = CString::new(cancel_msg).unwrap();
@@ -641,6 +656,33 @@ pub unsafe extern "C" fn rust_process_pending_slates(
     receiver_key: *const c_char,
     slates: *const c_char,
 ) -> *const c_char  {
+
+    let result = match _process_pending_slates(
+        config,
+        password,
+        receiver_key,
+        slates,
+    ) {
+        Ok(processed_slates) => {
+            processed_slates
+        }, Err(e ) => {
+            let error_msg = format!("Error {}", &e.to_string());
+            let error_msg_ptr = CString::new(error_msg).unwrap();
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            std::mem::forget(error_msg_ptr);
+            ptr
+        }
+    };
+    result
+}
+
+fn _process_pending_slates(
+    config: *const c_char,
+    password: *const c_char,
+    receiver_key: *const c_char,
+    slates: *const c_char,
+) -> Result<*const c_char, Error> {
+
     let config = unsafe { CStr::from_ptr(config) };
     let password = unsafe { CStr::from_ptr(password) };
     let secret_key = unsafe { CStr::from_ptr(receiver_key) };
@@ -658,13 +700,13 @@ pub unsafe extern "C" fn rust_process_pending_slates(
         Ok(slates) => {
             processed_slates.push_str(&slates);
         }, Err(e) => {
-            processed_slates.push_str(&e.to_string());
+            return  Err(e);
         }
     }
     let s = CString::new(processed_slates).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    p
+    Ok(p)
 }
 
 #[no_mangle]
@@ -696,7 +738,7 @@ fn _get_chain_height(config: *const c_char,) -> Result<*const c_char, Error> {
             chain_height.push_str(&chain_tip.to_string());
         },
         Err(e) => {
-            chain_height.push_str(&e.to_string());
+            return Err(e);
         },
     }
     let s = CString::new(chain_height).unwrap();
@@ -794,7 +836,7 @@ fn _get_tx_fees(
         Ok(fees) => {
             fees_data.push_str(&fees);
         }, Err(e) => {
-            fees_data.push_str(&e.to_string());
+            return Err(e);
         }
     }
     let s = CString::new(fees_data).unwrap();
@@ -1158,12 +1200,13 @@ fn update_state<'a, L, C, K>(
 
 pub fn txs_get(
     wallet: &Wallet,
+    keychain_mask: Option<EpicSecretKey>,
     minimum_confirmations: u64,
     refresh_from_node: bool,
 ) -> Result<String, Error> {
 
     let api = Owner::new(wallet.clone());
-    let txs = api.retrieve_txs(None, refresh_from_node, None, None)?;
+    let txs = api.retrieve_txs(keychain_mask.as_ref(), refresh_from_node, None, None)?;
     let result = txs.1;
 
     Ok(serde_json::to_string(&result).unwrap())
@@ -1610,7 +1653,7 @@ pub fn process_epic_box_slate(wallet: &Wallet, keychain_mask: Option<EpicSecretK
                     debug!("TX_FINALIZE_RESULT:::::{}", str_slate);
 
                     //Post slate to the node
-                    debug!("POSTING TRANSACTION:::::{:?}", transaction[0]);
+                    debug!("POSTING_TRANSACTION:::::{:?}", transaction[0]);
                     let tx_slate_id = transaction[0].tx_slate_id.unwrap().to_string();
                     // let tx_post = tx_post(&wallet, &tx_slate_id)?;
                     match tx_post(&wallet, keychain_mask.clone(), &tx_slate_id) {
