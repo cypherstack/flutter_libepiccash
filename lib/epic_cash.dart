@@ -35,10 +35,10 @@ typedef ScanOutPuts = Pointer<Utf8> Function(
 typedef ScanOutPutsFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
 
-typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>,
-    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
-typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+typedef CreateTransaction = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
+typedef CreateTransactionFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
 
 typedef GetTransactions = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
@@ -117,14 +117,14 @@ String recoverWallet(
       .toDartString();
 }
 
-final WalletPhrase _walletRecoveryPhrase = epicCashNative
-    .lookup<NativeFunction<WalletPhraseFFI>>("rust_wallet_phrase")
-    .asFunction();
-
-String walletRecoveryPhrase(String config, String password) {
-  return _walletRecoveryPhrase(config.toNativeUtf8(), password.toNativeUtf8())
-      .toDartString();
-}
+// final WalletPhrase _walletRecoveryPhrase = epicCashNative
+//     .lookup<NativeFunction<WalletPhraseFFI>>("rust_wallet_phrase")
+//     .asFunction();
+//
+// String walletRecoveryPhrase(String config, String password) {
+//   return _walletRecoveryPhrase(config.toNativeUtf8(), password.toNativeUtf8())
+//       .toDartString();
+// }
 
 final ScanOutPuts _scanOutPuts = epicCashNative
     .lookup<NativeFunction<ScanOutPutsFFI>>("rust_wallet_scan_outputs")
@@ -142,15 +142,14 @@ final CreateTransaction _createTransaction = epicCashNative
     .asFunction();
 
 Future<String> createTransaction(String config, String password, int amount,
-    String address, int secretKey, int selection_strategy_is_use_all) async {
+    String address, int secretKey) async {
   return _createTransaction(
-          config.toNativeUtf8(),
-          password.toNativeUtf8(),
-          amount.toString().toNativeUtf8().cast<Int8>(),
-          address.toNativeUtf8(),
-          secretKey.toString().toNativeUtf8().cast<Int8>(),
-          selection_strategy_is_use_all.toString().toNativeUtf8().cast<Int8>())
-      .toDartString();
+    config.toNativeUtf8(),
+    password.toNativeUtf8(),
+    amount.toString().toNativeUtf8().cast<Int8>(),
+    address.toNativeUtf8(),
+    secretKey.toString().toNativeUtf8().cast<Int8>(),
+  ).toDartString();
 }
 
 final GetTransactions _getTransactions = epicCashNative
