@@ -24,8 +24,6 @@ const char *rust_recover_from_mnemonic(const char *config,
                                        const char *mnemonic,
                                        const char *name);
 
-const char *rust_wallet_phrase(const char *config, const char *password);
-
 const char *rust_wallet_scan_outputs(const char *config,
                                      const char *password,
                                      const char *start_height);
@@ -34,7 +32,7 @@ const char *rust_create_tx(const char *config,
                            const char *password,
                            const char *amount,
                            const char *to_address,
-                           const char *sender_key);
+                           const char *secret_key_index);
 
 const char *rust_txs_get(const char *config,
                          const char *password,
@@ -43,18 +41,18 @@ const char *rust_txs_get(const char *config,
 
 const char *rust_tx_cancel(const char *config, const char *password, const char *tx_id);
 
-const char *rust_check_for_new_slates(const char *receiver_key);
+const char *rust_check_for_new_slates(const char *config,
+                                      const char *password,
+                                      const char *secret_key_index);
 
 const char *rust_process_pending_slates(const char *config,
                                         const char *password,
-                                        const char *receiver_key,
+                                        const char *secret_key_index,
                                         const char *slates);
-
-const char *rust_tx_receive(const char *config, const char *password, const char *slate);
 
 const char *rust_get_chain_height(const char *config);
 
-const char *rust_get_address_and_keys(void);
+const char *rust_get_wallet_address(const char *config, const char *password, const char *index);
 
 const char *rust_validate_address(const char *address);
 

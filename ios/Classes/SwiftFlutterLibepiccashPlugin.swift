@@ -24,7 +24,7 @@ public class SwiftFlutterLibepiccashPlugin: NSObject, FlutterPlugin {
                                        "const char *password",
                                        "const char *mnemonic",
                                        "const char *name");
-    rust_wallet_phrase("const char *config", "const char *password");
+
     rust_wallet_scan_outputs("const char *config",
                                      "const char *password",
                                      "const char *start_height");
@@ -38,14 +38,14 @@ public class SwiftFlutterLibepiccashPlugin: NSObject, FlutterPlugin {
                          "const char *minimum_confirmations",
                          "const char *refresh_from_node");
     rust_tx_cancel("const char *config", "const char *password", "const char *tx_id");
-    rust_check_for_new_slates("const char *receiver_key");
+    rust_check_for_new_slates("const char *config", "const char *password", "const char *secret_key_index");
     rust_process_pending_slates("const char *config",
                                         "const char *password",
                                         "const char *receiver_key",
                                         "const char *slates");
-    rust_tx_receive("const char *config", "const char *password", "const char *slate");
+
     rust_get_chain_height("const char *config");
-    rust_get_address_and_keys();
+    rust_get_wallet_address("const char *config", "const char *password", "const char *index");
     rust_validate_address("const char *address");
     rust_get_tx_fees("const char *c_config", "const char *c_password", "const char *c_amount");
 
