@@ -96,7 +96,7 @@ impl Handler for Client {
     }
 }
 
-const EPIC_BOX_ADDRESS: &str = "epicbox.stackwallet.com";
+const EPIC_BOX_ADDRESS: &str = "209.127.179.199";
 const EPIC_BOX_PORT: u16 = 13420;
 
 /*
@@ -675,6 +675,7 @@ pub unsafe extern "C" fn rust_process_pending_slates(
 ) -> *const c_char  {
     init_logger();
     debug!("{}", "CALLING_GET_PENDING_SLATE");
+
     let result = match _process_pending_slates(
         config,
         password,
@@ -702,7 +703,7 @@ fn _process_pending_slates(
     secret_key_index: *const c_char,
     slates: *const c_char,
 ) -> Result<*const c_char, Error> {
-
+    init_logger();
     let config = unsafe { CStr::from_ptr(config) };
     let password = unsafe { CStr::from_ptr(password) };
     let key_index = unsafe { CStr::from_ptr(secret_key_index) };
@@ -713,7 +714,7 @@ fn _process_pending_slates(
     // let secret_key = secret_key.to_str().unwrap();
     let key_index: u32 = key_index.to_str().unwrap().to_string().parse().unwrap();
     let pending_slates = slates.to_str().unwrap().to_string();
-
+    debug!("SECRET_KEY_INDEX_IS :::: {}", key_index);
     let wallet = open_wallet(config, password).unwrap();
 
     let mut processed_slates = "".to_string();
@@ -935,19 +936,6 @@ pub fn get_wallet_secret_key_pair(wallet: &Wallet, keychain_mask: Option<EpicSec
     let pub_key = PublicKey::from_secret_key(&s, &sec_key)?;
 
     Ok((sec_key, pub_key))
-
-
-    // let address = get_epicbox_address(pub_key, EPIC_BOX_ADDRESS, Some(EPIC_BOX_PORT)).public_key;
-    // println!("Address is ::::: {:?}", address);
-
-    // let addd = EpicboxAddress::new(public_key, Some(domain), port);
-    // let sender_address = address::ed25519_keypair(&sec_addr_key).unwrap();
-    // let string_address = address::onion_v3_from_pubkey(&sender_address.1);
-    // let base_me = address::onion_v3_from_pubkey(&sender_address.1);
-    // println!("ADDRESS IS {:?}", base_me);
-    // zuv6h7fjyoao5n6wlqrwi3agjbm7yeyla35iohii6cgsh2qif2qtsrad
-    // let str_ret = serde_json::to_string(&address).unwrap();
-    // Ok("".to_owned())
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -1283,7 +1271,6 @@ pub fn tx_create(
     selection_strategy_is_use_all: bool,
 ) -> Result<String, Error> {
     let owner_api = Owner::new(wallet.clone());
-    // let accounts = owner_api.accounts(None).unwrap();
     let accounts = match  owner_api.accounts(keychain_mask.as_ref()) {
         Ok(accounts_list) => {
             accounts_list
@@ -1367,48 +1354,42 @@ pub fn process_received_slates(wallet: &Wallet, keychain_mask: Option<EpicSecret
     let mut decrypted_slates: Vec<String> = Vec::new();
 
     for message in messages.into_iter() {
-        if message.clone().as_str().to_lowercase().contains("error") {
-            //Ignore message
+
+        let parsed: serde_json::Value = serde_json::from_str(&message).expect("Can't parse to JSON");
+        debug!("RECEIVED_MESSAGE_IS {}", parsed.clone());
+        let decrypted_message = match  decrypt_message(&key_pair.0, parsed.clone()) {
+            Ok(decrypted_msg) => {
+                decrypted_msg
+            }, Err(e) => {
+                //Log and return error message
+                debug!("Error decrypting message :::: {}", e.to_string());
+                // return Err(e);
+                format!("Decrypt Error ::: {}", e.to_string())
+            }
+        };
+        debug!("DECRYPTED_MESSAGE_IS:::::{}", decrypted_message.clone());
+        if decrypted_message.clone().as_str().contains("has already been received")
+            ||  decrypted_message.clone().as_str().to_lowercase().contains("error")
+        {
+            debug!("SLATE_CANNOT_BE_PROCESSED{}", decrypted_message.clone());
         } else {
-            //Decrypt message
-            let parsed: serde_json::Value = serde_json::from_str(&message).expect("Can't parse to JSON");
-            debug!("RECEIVED_MESSAGE_IS {}", parsed.clone());
-            // let decrypted_message = decrypt_message(&secret_key, parsed.clone());
-            let decrypted_message = match  decrypt_message(&key_pair.0, parsed.clone()) {
-                Ok(decrypted_msg) => {
-                    decrypted_msg
-                }, Err(e) => {
-                    //Log and return error message
-                    debug!("Error decrypting message :::: {}", e.to_string());
-                    // return Err(e);
-                    format!("Decrypt Error ::: {}", e.to_string())
+            let process = process_epic_box_slate(&wallet, keychain_mask.clone(),  &decrypted_message);
+            match process {
+                Ok(slate) => {
+                    let send_to = parsed.get("from").unwrap().as_str().unwrap();
+                    //Reprocess
+                    debug!("Posting slate to {}", send_to);
+
+                    let slate_again = build_post_slate_request(send_to, key_pair.clone(), slate);
+                    debug!("Slate again is ::::::::: {}", slate_again.clone());
+                    post_slate_to_epic_box(&slate_again);
+                },
+                Err(e) => {
+                    debug!("ERROR_PROCESSING_SLATE {}", e.to_string());
+                    return  Err(e);
                 }
             };
-            debug!("DECRYPTED_MESSAGE_IS:::::{}", decrypted_message.clone());
-            if decrypted_message.clone().as_str().contains("has already been received")
-                ||  decrypted_message.clone().as_str().contains("Wallet store error")
-                ||  decrypted_message.clone().as_str().contains("Decrypt Error")
-            {
-                debug!("{}", "Cannot process slate");
-            } else {
-                let process = process_epic_box_slate(&wallet, keychain_mask.clone(),  &decrypted_message);
-                match process {
-                    Ok(slate) => {
-                        let send_to = parsed.get("from").unwrap().as_str().unwrap();
-                        //Reprocess
-                        debug!("Posting slate to {}", send_to);
-
-                        let slate_again = build_post_slate_request(send_to, key_pair.clone(), slate);
-                        debug!("Slate again is ::::::::: {}", slate_again.clone());
-                        post_slate_to_epic_box(&slate_again);
-                    },
-                    Err(e) => {
-                        debug!("ERROR_PROCESSING_SLATE {}", e.to_string());
-                        return  Err(e);
-                    }
-                };
-                decrypted_slates.push(decrypted_message);
-            }
+            decrypted_slates.push(decrypted_message);
         }
 
 
@@ -1644,7 +1625,6 @@ pub fn nano_to_deci(amount: u64) -> f64 {
     Decrypt slate retreived from epic box
 */
 pub fn decrypt_message(receiver_key: &EpicSecretKey, msg_json: serde_json::Value) -> Result<String, Error> {
-    // let secret_key: SecretKey = serde_json::from_str(receiver_key).unwrap();
     let sender_address = msg_json.get("from").unwrap().as_str().unwrap();
     let sender_public_key: PublicKey = EpicboxAddress::from_str(sender_address).unwrap().public_key()
         .unwrap();
@@ -1653,7 +1633,6 @@ pub fn decrypt_message(receiver_key: &EpicSecretKey, msg_json: serde_json::Value
     let encrypted_message: EpicboxMessage =
         serde_json::from_str(message).map_err(|_| TxProofErrorKind::ParseEpicboxMessage).unwrap();
 
-    //Derive a key for decrypting a slate
     let key = encrypted_message.key(&sender_public_key, &receiver_key).unwrap();
     let decrypted_message = match encrypted_message.decrypt_with_key(&key) {
         Ok(decrypted) => {
@@ -1662,8 +1641,6 @@ pub fn decrypt_message(receiver_key: &EpicSecretKey, msg_json: serde_json::Value
             format!("Error {}", e.to_string())
         }
     };
-    // let decrypted_message = encrypted_message.decrypt_with_key(&key)
-    //     .map_err(|_| stack_test_epicboxlib::error::ErrorKind::Decryption).unwrap();
 
     Ok(decrypted_message)
 }
@@ -1701,12 +1678,11 @@ pub fn process_epic_box_slate(wallet: &Wallet, keychain_mask: Option<EpicSecretK
                     //Post slate to the node
                     debug!("POSTING_TRANSACTION:::::{:?}", transaction[0]);
                     let tx_slate_id = transaction[0].tx_slate_id.unwrap().to_string();
-                    // let tx_post = tx_post(&wallet, &tx_slate_id)?;
                     match tx_post(&wallet, keychain_mask.clone(), &tx_slate_id) {
                         Ok(_) =>  {
-                            debug!("{}", "Slate posted");
+                            debug!("POSTING_SLATE {}", "Slate posted");
                         }, Err(e) => {
-                            debug!("TX_POST_ERROR{}", e.to_string());
+                            debug!("TX_POST_ERROR {}", e.to_string());
                         }
                     }
                     Ok(str_slate)
