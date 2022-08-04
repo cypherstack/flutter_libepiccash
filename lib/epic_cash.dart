@@ -35,10 +35,10 @@ typedef ScanOutPuts = Pointer<Utf8> Function(
 typedef ScanOutPutsFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
-typedef CreateTransaction = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
-typedef CreateTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
+typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>,
+    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
+    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 
 typedef GetTransactions = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
@@ -54,22 +54,22 @@ typedef GetChainHeight = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef GetChainHeightFFI = Pointer<Utf8> Function(Pointer<Utf8>);
 
 typedef AddressInfo = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 typedef AddressInfoFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 
 typedef ValidateAddress = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef ValidateAddressFFI = Pointer<Utf8> Function(Pointer<Utf8>);
 
 typedef PendingSlates = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 typedef PendingSlatesFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 
 typedef ProcessSlates = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
 typedef ProcessSlatesFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
 
 typedef TransactionFees = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
@@ -145,14 +145,15 @@ final CreateTransaction _createTransaction = epicCashNative
     .asFunction();
 
 Future<String> createTransaction(String config, String password, int amount,
-    String address, int secretKey) async {
+    String address, int secretKey, String epicboxConfig) async {
   return _createTransaction(
-    config.toNativeUtf8(),
-    password.toNativeUtf8(),
-    amount.toString().toNativeUtf8().cast<Int8>(),
-    address.toNativeUtf8(),
-    secretKey.toString().toNativeUtf8().cast<Int8>(),
-  ).toDartString();
+          config.toNativeUtf8(),
+          password.toNativeUtf8(),
+          amount.toString().toNativeUtf8().cast<Int8>(),
+          address.toNativeUtf8(),
+          secretKey.toString().toNativeUtf8().cast<Int8>(),
+          epicboxConfig.toNativeUtf8())
+      .toDartString();
 }
 
 final GetTransactions _getTransactions = epicCashNative
@@ -192,9 +193,13 @@ final AddressInfo _addressInfo = epicCashNative
     .lookup<NativeFunction<AddressInfoFFI>>("rust_get_wallet_address")
     .asFunction();
 
-String getAddressInfo(String config, String password, int index) {
-  return _addressInfo(config.toNativeUtf8(), password.toNativeUtf8(),
-          index.toString().toNativeUtf8().cast<Int8>())
+String getAddressInfo(
+    String config, String password, int index, String epicboxConfig) {
+  return _addressInfo(
+          config.toNativeUtf8(),
+          password.toNativeUtf8(),
+          index.toString().toNativeUtf8().cast<Int8>(),
+          epicboxConfig.toNativeUtf8())
       .toDartString();
 }
 
@@ -210,10 +215,13 @@ final PendingSlates _getPendingSlates = epicCashNative
     .lookup<NativeFunction<PendingSlatesFFI>>("rust_check_for_new_slates")
     .asFunction();
 
-Future<String> getPendingSlates(
-    String config, String password, int secretKeyIndex) async {
-  return _getPendingSlates(config.toNativeUtf8(), password.toNativeUtf8(),
-          secretKeyIndex.toString().toNativeUtf8().cast<Int8>())
+Future<String> getPendingSlates(String config, String password,
+    int secretKeyIndex, String epicboxConfig) async {
+  return _getPendingSlates(
+          config.toNativeUtf8(),
+          password.toNativeUtf8(),
+          secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
+          epicboxConfig.toNativeUtf8())
       .toDartString();
 }
 
@@ -221,13 +229,14 @@ final ProcessSlates _processSlates = epicCashNative
     .lookup<NativeFunction<ProcessSlatesFFI>>("rust_process_pending_slates")
     .asFunction();
 
-Future<String> processSlates(
-    String config, String password, int secretKeyIndex, String slates) async {
+Future<String> processSlates(String config, String password, int secretKeyIndex,
+    String slates, String epicboxConfig) async {
   return _processSlates(
           config.toNativeUtf8(),
           password.toNativeUtf8(),
           secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
-          slates.toNativeUtf8())
+          slates.toNativeUtf8(),
+          epicboxConfig.toNativeUtf8())
       .toDartString();
 }
 
