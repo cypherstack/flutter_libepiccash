@@ -31,9 +31,9 @@ typedef WalletPhrase = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 typedef WalletPhraseFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 
 typedef ScanOutPuts = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 typedef ScanOutPutsFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
 typedef CreateTransaction = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
@@ -131,10 +131,13 @@ final ScanOutPuts _scanOutPuts = epicCashNative
     .asFunction();
 
 Future<String> scanOutPuts(
-    String config, String password, int startHeight) async {
-  return _scanOutPuts(config.toNativeUtf8(), password.toNativeUtf8(),
-          startHeight.toString().toNativeUtf8().cast<Int8>())
-      .toDartString();
+    String config, String password, int startHeight, int numberOfBlocks) async {
+  return _scanOutPuts(
+    config.toNativeUtf8(),
+    password.toNativeUtf8(),
+    startHeight.toString().toNativeUtf8().cast<Int8>(),
+    numberOfBlocks.toString().toNativeUtf8().cast<Int8>(),
+  ).toDartString();
 }
 
 final CreateTransaction _createTransaction = epicCashNative

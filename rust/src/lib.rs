@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::os::raw::{c_char};
 use std::ffi::{CString, CStr};
 use std::sync::Arc;
@@ -403,6 +404,7 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
     config: *const c_char,
     password: *const c_char,
     start_height: *const c_char,
+    number_of_blocks: *const c_char,
 ) -> *const c_char {
     init_logger();
     debug!("{}", "Calling wallet scanner");
@@ -411,6 +413,7 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
         config,
         password,
         start_height,
+        number_of_blocks
     ) {
         Ok(scan) => {
             scan
@@ -429,13 +432,16 @@ fn _wallet_scan_outputs(
     config: *const c_char,
     password: *const c_char,
     start_height: *const c_char,
+    number_of_blocks: *const c_char
 ) -> Result<*const c_char, Error> {
 
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let c_start_height = unsafe { CStr::from_ptr(start_height) };
+    let c_number_of_blocks = unsafe { CStr::from_ptr(number_of_blocks) };
 
     let start_height: u64 = c_start_height.to_str().unwrap().to_string().parse().unwrap();
+    let blocks_to_scan: u64 = c_number_of_blocks.to_str().unwrap().to_string().parse().unwrap();
     let input_pass = c_password.to_str().unwrap();
     let input_conf = c_conf.to_str().unwrap();
 
@@ -452,9 +458,10 @@ fn _wallet_scan_outputs(
         }
     };
     let mut scan_result = String::from("");
-    match wallet_scan_outputs(&wallet.0, wallet.1, Some(start_height)) {
+    match wallet_scan_outputs(&wallet.0, wallet.1, Some(start_height), Some(blocks_to_scan)) {
         Ok(scan) => {
-            scan_result.push_str(&scan.to_string());
+            debug!("SCAN_RETURN_IS::: {:?}", scan.clone());
+            scan_result.push_str(&scan);
         },
         Err(e) => {
             debug!("WALLET_SCAN_ERROR::: {:?}", e.to_string());
@@ -1223,8 +1230,8 @@ pub fn wallet_scan_outputs(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
     start_height: Option<u64>,
+    number_of_blocks_to_scan: Option<u64>
 ) -> Result<String, Error> {
-
     let tip = {
         wallet_lock!(wallet, w);
         match w.w2n_client().get_chain_tip() {
@@ -1249,27 +1256,59 @@ pub fn wallet_scan_outputs(
         None => 1,
     };
 
+    let number_of_blocks_to_scan: u64 = match number_of_blocks_to_scan {
+        Some(h) => h,
+        None => 0,
+    };
+
+    debug!("NUMBER_OF_BLOCKS_TO_SCAN::::{}", number_of_blocks_to_scan);
+
+    let last_block = start_height + number_of_blocks_to_scan;
+
+    debug!("START_HEIGHT_IS::::{}", start_height.clone());
+    debug!("LAST_BLOC_IS::::{}", last_block.clone());
+
+    let end_height: u64 = match last_block.cmp(&tip) {
+        Ordering::Less => {
+            debug!("SCAN_END_HEIGHT :::::: {} IS LESS THAN {}", last_block, tip);
+            last_block
+        },
+        Ordering::Greater => {
+            debug!("SCAN_END_HEIGHT :::::: {} IS GREATER THAN {}", last_block, tip);
+            tip
+        },
+        Ordering::Equal => {
+            debug!("SCAN_END_HEIGHT :::::: {} IS EQUAL To {}", last_block, tip);
+            last_block
+        }
+    };
+
+    debug!("END_HEIGHT_IS::::{}", end_height);
+
+
     match scan(
         wallet.clone(),
         keychain_mask.as_ref(),
         false,
         start_height,
-        tip,
+        end_height,
         &None
     ) {
         Ok(info) => {
-            let result = info.last_pmmr_index;
+            let result = info.height;
+
             let parent_key_id = {
                 wallet_lock!(wallet, w);
                 w.parent_key_id().clone()
             };
 
-            wallet_lock!(wallet, w);
-            let mut batch = w.batch(None)?;
-            batch.save_last_confirmed_height(&parent_key_id, info.height)?;
-            batch.commit()?;
-
-
+            {
+                wallet_lock!(wallet, w);
+                let mut batch = w.batch(keychain_mask.as_ref())?;
+                batch.save_last_confirmed_height(&parent_key_id, info.height)?;
+                batch.commit()?;
+            };
+            debug!("THE_END_RESULT_IS::::{}", result.clone());
             Ok(serde_json::to_string(&result).unwrap())
         }, Err(e) => {
             debug!("SCAN_ERROR_IS::::{}", e.to_string());
