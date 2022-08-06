@@ -822,14 +822,21 @@ fn _check_for_new_slates(
             ))))
         }
     };
-
+    debug!("{}", "GETTING_DECRYPTED_SLATES");
     let mut pending_slates = "".to_string();
-    match get_pending_slates(key_pair, epicbox_conf) {
+    match get_pending_slates(key_pair.clone(), epicbox_conf) {
         Ok(slates) => {
-            pending_slates.push_str(&slates);
+            //Decrypt and return
+            let decrypted_slates = match decrypt_epicbox_slates(key_pair, &slates) {
+                Ok(decrypted) => {
+                    let str_slates = serde_json::to_string(&decrypted).unwrap();
+                    pending_slates.push_str(&str_slates);
+                }, Err(e) => {
+                    return Err(e);
+                }
+            };
         },Err(e) => {
-            let string_error = format!("Error {}", e.to_string());
-            pending_slates.push_str(&string_error);
+            return Err(e);
         }
     };
     let s = CString::new(pending_slates).unwrap();
@@ -918,13 +925,13 @@ fn _process_pending_slates(
     };
 
     let mut processed_slates = "".to_string();
-    match process_received_slates(&wallet.0, wallet.1, key_index, &pending_slates.clone(), epicbox_conf) {
-        Ok(slates) => {
-            processed_slates.push_str(&slates);
-        }, Err(e) => {
-            return  Err(e);
-        }
-    }
+    // match process_received_slates(&wallet.0, wallet.1, key_index, &pending_slates.clone(), epicbox_conf) {
+    //     Ok(slates) => {
+    //         processed_slates.push_str(&slates);
+    //     }, Err(e) => {
+    //         return  Err(e);
+    //     }
+    // }
     let s = CString::new(processed_slates).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
@@ -1640,35 +1647,58 @@ pub fn get_pending_slates(secret_pub_key_pair: (SecretKey, PublicKey), epicbox_c
     return unsafe { Ok(serde_json::to_string(&SLATES_VECTOR).unwrap()) }
 }
 
+pub fn decrypt_epicbox_slates(
+    secret_pub_key_pair: (SecretKey, PublicKey), encrypted_slates: &str
+) -> Result<Vec<String>, Error>{
+    let messages: Vec<String> = serde_json::from_str(&encrypted_slates).unwrap();
+    let mut decrypted_slates: Vec<String> = Vec::new();
+    for message in messages.into_iter() {
+        let parsed: serde_json::Value = serde_json::from_str(&message).expect("Can't parse to JSON");
+        let decrypted_message = match  decrypt_message(&secret_pub_key_pair.0, parsed.clone()) {
+            Ok(decrypted_msg) => {
+                decrypted_slates.push(decrypted_msg);
+            }, Err(e) => {
+                //Log and return error message
+                debug!("Error decrypting message :::: {}", e.to_string());
+                // return Err(e);
+                let error_msg = format!("Error : {}", e.to_string());
+                decrypted_slates.push(error_msg);
+            }
+        };
+    }
+    Ok(decrypted_slates)
+
+}
+
 pub fn process_received_slates(
     wallet: &Wallet, keychain_mask: Option<SecretKey>, secret_key_index: u32, messages: &str,
     epicbox_config: EpicBoxConfig
 ) -> Result<String, Error> {
     let key_pair = get_wallet_secret_key_pair(&wallet, keychain_mask.clone(), secret_key_index).unwrap();
     let messages: Vec<String> = serde_json::from_str(&messages).unwrap();
-    let mut decrypted_slates: Vec<String> = Vec::new();
+    // let mut decrypted_slates: Vec<String> = Vec::new();
 
     for message in messages.into_iter() {
 
         let parsed: serde_json::Value = serde_json::from_str(&message).expect("Can't parse to JSON");
-        debug!("RECEIVED_MESSAGE_IS {}", parsed.clone());
-        let decrypted_message = match  decrypt_message(&key_pair.0, parsed.clone()) {
-            Ok(decrypted_msg) => {
-                decrypted_msg
-            }, Err(e) => {
-                //Log and return error message
-                debug!("Error decrypting message :::: {}", e.to_string());
-                // return Err(e);
-                format!("Decrypt Error ::: {}", e.to_string())
-            }
-        };
-        debug!("DECRYPTED_MESSAGE_IS:::::{}", decrypted_message.clone());
-        if decrypted_message.clone().as_str().contains("has already been received")
-            ||  decrypted_message.clone().as_str().to_lowercase().contains("error")
+        // debug!("RECEIVED_MESSAGE_IS {}", parsed.clone());
+        // let decrypted_message = match  decrypt_message(&key_pair.0, parsed.clone()) {
+        //     Ok(decrypted_msg) => {
+        //         decrypted_msg
+        //     }, Err(e) => {
+        //         //Log and return error message
+        //         debug!("Error decrypting message :::: {}", e.to_string());
+        //         // return Err(e);
+        //         format!("Decrypt Error ::: {}", e.to_string())
+        //     }
+        // };
+        debug!("MESSAGE_TO_BE_PROCESSED_IS:::::{}", message.clone());
+        if message.clone().as_str().contains("has already been received")
+            ||  message.clone().as_str().to_lowercase().contains("error")
         {
-            debug!("SLATE_CANNOT_BE_PROCESSED{}", decrypted_message.clone());
+            debug!("SLATE_CANNOT_BE_PROCESSED{}", message.clone());
         } else {
-            let process = process_epic_box_slate(&wallet, keychain_mask.clone(),  &decrypted_message);
+            let process = process_epic_box_slate(&wallet, keychain_mask.clone(),  &message);
             match process {
                 Ok(slate) => {
                     let send_to = parsed.get("from").unwrap().as_str().unwrap();
@@ -1684,12 +1714,12 @@ pub fn process_received_slates(
                     return  Err(e);
                 }
             };
-            decrypted_slates.push(decrypted_message);
+            // decrypted_slates.push(decrypted_message);
         }
 
 
     }
-    Ok(serde_json::to_string(&decrypted_slates).unwrap())
+    Ok("".to_owned())
 }
 
 /*
