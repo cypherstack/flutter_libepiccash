@@ -18,9 +18,9 @@ typedef WalletInitFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 
 typedef WalletInfo = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 typedef WalletInfoFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
 typedef RecoverWallet = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
@@ -36,9 +36,15 @@ typedef ScanOutPutsFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
 typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>,
-    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
-typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
+typedef CreateTransactionFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>,
+    Pointer<Utf8>,
+    Pointer<Int8>,
+    Pointer<Utf8>,
+    Pointer<Int8>,
+    Pointer<Utf8>,
+    Pointer<Int8>);
 
 typedef GetTransactions = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
@@ -72,9 +78,9 @@ typedef ProcessSlatesFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
 
 typedef TransactionFees = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 typedef TransactionFeesFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
 final WalletMnemonic _walletMnemonic = epicCashNative
     .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
@@ -99,10 +105,13 @@ final WalletInfo _walletInfo = epicCashNative
     .lookup<NativeFunction<WalletInfoFFI>>("rust_wallet_balances")
     .asFunction();
 
-Future<String> getWalletInfo(
-    String config, String password, int refreshFromNode) async {
-  return _walletInfo(config.toNativeUtf8(), password.toNativeUtf8(),
-          refreshFromNode.toString().toNativeUtf8().cast<Int8>())
+Future<String> getWalletInfo(String config, String password,
+    int refreshFromNode, int min_confirmations) async {
+  return _walletInfo(
+          config.toNativeUtf8(),
+          password.toNativeUtf8(),
+          refreshFromNode.toString().toNativeUtf8().cast<Int8>(),
+          min_confirmations.toString().toNativeUtf8().cast<Int8>())
       .toDartString();
 }
 
@@ -144,16 +153,23 @@ final CreateTransaction _createTransaction = epicCashNative
     .lookup<NativeFunction<CreateTransactionFFI>>("rust_create_tx")
     .asFunction();
 
-Future<String> createTransaction(String config, String password, int amount,
-    String address, int secretKey, String epicboxConfig) async {
+Future<String> createTransaction(
+    String config,
+    String password,
+    int amount,
+    String address,
+    int secretKey,
+    String epicboxConfig,
+    int minimumConfirmations) async {
   return _createTransaction(
-          config.toNativeUtf8(),
-          password.toNativeUtf8(),
-          amount.toString().toNativeUtf8().cast<Int8>(),
-          address.toNativeUtf8(),
-          secretKey.toString().toNativeUtf8().cast<Int8>(),
-          epicboxConfig.toNativeUtf8())
-      .toDartString();
+    config.toNativeUtf8(),
+    password.toNativeUtf8(),
+    amount.toString().toNativeUtf8().cast<Int8>(),
+    address.toNativeUtf8(),
+    secretKey.toString().toNativeUtf8().cast<Int8>(),
+    epicboxConfig.toNativeUtf8(),
+    minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
+  ).toDartString();
 }
 
 final GetTransactions _getTransactions = epicCashNative
@@ -244,9 +260,12 @@ final TransactionFees _transactionFees = epicCashNative
     .lookup<NativeFunction<TransactionFeesFFI>>("rust_get_tx_fees")
     .asFunction();
 
-Future<String> getTransactionFees(
-    String config, String password, int amount) async {
-  return _transactionFees(config.toNativeUtf8(), password.toNativeUtf8(),
-          amount.toString().toNativeUtf8().cast<Int8>())
+Future<String> getTransactionFees(String config, String password, int amount,
+    int minimumConfirmations) async {
+  return _transactionFees(
+          config.toNativeUtf8(),
+          password.toNativeUtf8(),
+          amount.toString().toNativeUtf8().cast<Int8>(),
+          minimumConfirmations.toString().toNativeUtf8().cast<Int8>())
       .toDartString();
 }

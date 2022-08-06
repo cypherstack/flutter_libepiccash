@@ -268,12 +268,14 @@ pub unsafe extern "C"  fn rust_wallet_balances(
     config: *const c_char,
     password: *const c_char,
     refresh: *const c_char,
+    min_confirmations: *const c_char,
 ) -> *const c_char {
 
     let result = match _wallet_balances(
         config,
         password,
         refresh,
+        min_confirmations,
     ) {
         Ok(balances) => {
             balances
@@ -292,10 +294,14 @@ fn _wallet_balances(
     config: *const c_char,
     password: *const c_char,
     refresh: *const c_char,
+    min_confirmations: *const c_char,
 ) -> Result<*const c_char, Error> {
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let c_refresh = unsafe { CStr::from_ptr(refresh) };
+    let minimum_confirmations = unsafe { CStr::from_ptr(min_confirmations) };
+
+    let minimum_confirmations: u64 = minimum_confirmations.to_str().unwrap().to_string().parse().unwrap();
 
     let str_config = c_conf.to_str().unwrap();
     let str_password = c_password.to_str().unwrap();
@@ -318,7 +324,7 @@ fn _wallet_balances(
         }
     };
     let mut wallet_info = "".to_string();
-    match get_wallet_info(&wallet.0, wallet.1, refresh, 10) {
+    match get_wallet_info(&wallet.0, wallet.1, refresh, minimum_confirmations) {
         Ok(info) => {
             let str_wallet_info = serde_json::to_string(&info).unwrap();
             wallet_info.push_str(&str_wallet_info);
@@ -509,6 +515,7 @@ pub unsafe extern "C" fn rust_create_tx(
     to_address: *const c_char,
     secret_key_index: *const c_char,
     epicbox_config: *const c_char,
+    min_confirmations: *const c_char,
 ) -> *const c_char {
     init_logger();
     debug!("{}", "Calling transaction init");
@@ -520,6 +527,7 @@ pub unsafe extern "C" fn rust_create_tx(
         to_address,
         secret_key_index,
         epicbox_config,
+        min_confirmations,
     ) {
         Ok(slate) => {
             slate
@@ -542,9 +550,13 @@ fn _create_tx(
     amount: *const c_char,
     to_address: *const c_char,
     secret_key_index: *const c_char,
-    epicbox_config: *const c_char
+    epicbox_config: *const c_char,
+    min_confirmations: *const c_char,
 ) -> Result<*const c_char, Error> {
     init_logger();
+    let minimum_confirmations = unsafe { CStr::from_ptr(min_confirmations) };
+
+    let minimum_confirmations: u64 = minimum_confirmations.to_str().unwrap().to_string().parse().unwrap();
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let amount = unsafe { CStr::from_ptr(amount) };
@@ -584,7 +596,7 @@ fn _create_tx(
 
     let  mut message = String::from("");
     let keychain_mask = wallet.1;
-    match tx_create(&wallet.0, keychain_mask.clone(), amount, 10, false) {
+    match tx_create(&wallet.0, keychain_mask.clone(), amount, minimum_confirmations, false) {
         Ok(slate) => {
             debug!("TRANSACTION_CREATE_SUCCESS:::{}", "Transaction success");
             message.push_str(&slate);
@@ -1084,12 +1096,14 @@ pub unsafe extern "C" fn rust_get_tx_fees(
     c_config: *const c_char,
     c_password: *const c_char,
     c_amount: *const c_char,
+    min_confirmations: *const c_char,
 ) -> *const c_char {
 
     let result = match _get_tx_fees(
         c_config,
         c_password,
         c_amount,
+        min_confirmations,
     ) {
         Ok(fees) => {
             fees
@@ -1108,7 +1122,11 @@ fn _get_tx_fees(
     c_config: *const c_char,
     c_password: *const c_char,
     c_amount: *const c_char,
+    min_confirmations: *const c_char,
 ) -> Result<*const c_char, Error> {
+    let minimum_confirmations = unsafe { CStr::from_ptr(min_confirmations) };
+
+    let minimum_confirmations: u64 = minimum_confirmations.to_str().unwrap().to_string().parse().unwrap();
     let config = unsafe { CStr::from_ptr(c_config) };
     let password = unsafe { CStr::from_ptr(c_password) };
     let amount = unsafe { CStr::from_ptr(c_amount) };
@@ -1130,7 +1148,7 @@ fn _get_tx_fees(
     };
 
     let mut fees_data = "".to_string();
-    match tx_strategies(&wallet.0, wallet.1, amount, 10) {
+    match tx_strategies(&wallet.0, wallet.1, amount, minimum_confirmations) {
         Ok(fees) => {
             fees_data.push_str(&fees);
         }, Err(e) => {
@@ -1711,7 +1729,8 @@ pub fn process_received_slates(
                 },
                 Err(e) => {
                     debug!("ERROR_PROCESSING_SLATE {}", e.to_string());
-                    return  Err(e);
+                    decrypted_slates.push("ERROR_PROCESSING_SLATE {}".to_owned());
+                    continue;
                 }
             };
             // decrypted_slates.push(decrypted_message);
