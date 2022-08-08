@@ -68,9 +68,9 @@ typedef ValidateAddress = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef ValidateAddressFFI = Pointer<Utf8> Function(Pointer<Utf8>);
 
 typedef PendingSlates = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
 typedef PendingSlatesFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
 
 typedef ProcessSlates = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
@@ -232,12 +232,13 @@ final PendingSlates _getPendingSlates = epicCashNative
     .asFunction();
 
 Future<String> getPendingSlates(String config, String password,
-    int secretKeyIndex, String epicboxConfig) async {
+    int secretKeyIndex, String epicboxConfig, String slates) async {
   return _getPendingSlates(
           config.toNativeUtf8(),
           password.toNativeUtf8(),
           secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
-          epicboxConfig.toNativeUtf8())
+          epicboxConfig.toNativeUtf8(),
+          slates.toNativeUtf8())
       .toDartString();
 }
 

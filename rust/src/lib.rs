@@ -604,12 +604,13 @@ fn _create_tx(
             //Get Secret key at given Index, build epicbox request
             let key_pair = get_wallet_secret_key_pair(&wallet.0, keychain_mask, key_index).unwrap();
             let slate_msg = build_post_slate_request(address, key_pair, slate.clone(), epicbox_conf.clone());
-            debug!("{}", "POSTING SLATE TO EPICBOX");
+            debug!("{}", "EPICBOX_SLATE_POST_REQUEST");
             debug!("{}", slate_msg.clone());
-            post_slate_to_epic_box(&slate_msg, epicbox_conf.clone());
+            // post_slate_to_epic_box(&slate_msg, epicbox_conf.clone());
 
-            let create_response: (&str, &str) = (&slate, &slate_msg);
+            let create_response = (&slate, &slate_msg);
             let str_create_response = serde_json::to_string(&create_response).unwrap();
+            debug!("CREATE_TX_FOR_CONFIRMSEND_IS {}", str_create_response.clone());
             message.push_str(&str_create_response);
         },
         Err(e) => {
@@ -776,12 +777,14 @@ pub unsafe extern "C" fn rust_check_for_new_slates(
     password: *const c_char,
     secret_key_index: *const c_char,
     epicbox_config: *const c_char,
+    slates: *const c_char,
 ) -> *const c_char  {
     let result = match _check_for_new_slates(
         config,
         password,
         secret_key_index,
         epicbox_config,
+        slates,
     ) {
         Ok(pending_slates) => {
             pending_slates
@@ -802,16 +805,19 @@ fn _check_for_new_slates(
     password: *const c_char,
     secret_key_index: *const c_char,
     epicbox_config: *const c_char,
+    slates: *const c_char,
 ) -> Result<*const c_char, Error> {
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let key_index = unsafe { CStr::from_ptr(secret_key_index) };
     let epicbox_config = unsafe { CStr::from_ptr(epicbox_config) };
+    let slates = unsafe { CStr::from_ptr(slates) };
 
     let str_password = c_password.to_str().unwrap();
     let str_config = c_conf.to_str().unwrap();
     let epicbox_config = epicbox_config.to_str().unwrap();
     let key_index: u32 = key_index.to_str().unwrap().to_string().parse().unwrap();
+    let slates = slates.to_str().unwrap();
     let wallet = match open_wallet(str_config, str_password) {
         Ok((wallet, Some(secret_key))) => {
             (wallet, Some(secret_key))
@@ -838,23 +844,13 @@ fn _check_for_new_slates(
     };
     debug!("{}", "GETTING_DECRYPTED_SLATES");
     let mut pending_slates = "".to_string();
-    match get_pending_slates(key_pair.clone(), epicbox_conf) {
-        Ok(slates) => {
-            debug!("RECEIVED_SLATES {}", slates);
-
-            //Decrypt and return
-            let decrypted_slates = match decrypt_epicbox_slates(key_pair, &slates) {
-                Ok(decrypted) => {
-                    let str_slates = serde_json::to_string(&decrypted).unwrap();
-                    debug!("{}", "DECRYPTED_SLATES");
-                    debug!("{:?}", str_slates.clone());
-                    pending_slates.push_str(&str_slates);
-                }, Err(e) => {
-                    return Err(e);
-                }
-            };
-        },Err(e) => {
-            debug!("ERROR_GETTING_SLATES{}", e.to_string());
+    let decrypted_slates = match decrypt_epicbox_slates(key_pair, &slates) {
+        Ok(decrypted) => {
+            let str_slates = serde_json::to_string(&decrypted).unwrap();
+            debug!("{}", "DECRYPTED_SLATES");
+            debug!("{:?}", str_slates.clone());
+            pending_slates.push_str(&str_slates);
+        }, Err(e) => {
             return Err(e);
         }
     };
@@ -1419,7 +1415,7 @@ pub fn wallet_scan_outputs(
         &None
     ) {
         Ok(info) => {
-            let result = info.height;
+
 
             let parent_key_id = {
                 wallet_lock!(wallet, w);
@@ -1429,10 +1425,13 @@ pub fn wallet_scan_outputs(
             {
                 wallet_lock!(wallet, w);
                 let mut batch = w.batch(keychain_mask.as_ref())?;
-                batch.save_last_confirmed_height(&parent_key_id, info.height)?;
+                // batch.save_last_confirmed_height(&parent_key_id, info.height)?;
+                batch.save_last_scanned_block(info.clone())?;
                 batch.commit()?;
             };
-            debug!("THE_END_RESULT_IS::::{}", result.clone());
+
+            debug!("LAST_SCANNED_BLOCK_IS::::{:?}", info.clone());
+            let result = info.height;
             Ok(serde_json::to_string(&result).unwrap())
         }, Err(e) => {
             debug!("SCAN_ERROR_IS::::{}", e.to_string());
