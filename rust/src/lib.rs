@@ -1658,7 +1658,6 @@ fn post_slate_to_epic_box(slate_request: &str, epicbox_config: EpicBoxConfig) {
 */
 pub fn get_pending_slates(secret_pub_key_pair: (SecretKey, PublicKey), epicbox_config: EpicBoxConfig) -> Result<String, Error> {
     let subscribe_request = build_subscribe_request(
-        String::from("7WUDtkSaKyGRUnQ22rE3QUXChV8DmA6NnunDYP4vheTpc"),
         secret_pub_key_pair,
         epicbox_config.clone()
     );
@@ -1962,10 +1961,14 @@ pub fn build_post_slate_request(receiver_address: &str, secret_pub_key_pair: (Se
 }
 
 pub fn build_subscribe_request(
-    challenge: String, secret_pub_key_pair: (SecretKey, PublicKey)
+    secret_pub_key_pair: (SecretKey, PublicKey)
     , epicbox_config: EpicBoxConfig
 ) -> String {
     let address = get_epicbox_address(secret_pub_key_pair.1, &epicbox_config.domain, Some(epicbox_config.port));
+
+    // The signed message binds to the request type (subscription) and the intended address (with domain)
+    // WARNING: This request does not bind to _any_ other context, and could be vulnerable to replay
+    let challenge = String::from(format!("SubscribeRequest_{}", address.public_key));
 
     let signature = sign_challenge(&challenge, &secret_pub_key_pair.0).unwrap().to_hex();
     let subscribe_str = format!(r#"{{"type": "Subscribe", "address": "{}", "signature": "{}"}}"#, address.public_key, signature);
@@ -2131,14 +2134,5 @@ pub fn validate_address(address: &str) -> bool {
         _ => {
             false
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
     }
 }
