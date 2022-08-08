@@ -509,6 +509,92 @@ fn _wallet_scan_outputs(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn rust_encrypt_slate(
+    config: *const c_char,
+    password: *const c_char,
+    to_address: *const c_char,
+    secret_key_index: *const c_char,
+    epicbox_config: *const c_char,
+    slate: *const c_char,
+) -> *const c_char {
+    let result = match _encrypt_slate(
+        config,
+        password,
+        to_address,
+        secret_key_index,
+        epicbox_config,
+        slate
+    ) {
+        Ok(post_late_request) => {
+            post_late_request
+        }, Err(e ) => {
+            debug!("ERROR_CREATING_POST_SLATE_REQUEST:::{}",e.to_string() );
+            let error_msg = format!("Error {}", &e.to_string());
+            let error_msg_ptr = CString::new(error_msg).unwrap();
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            std::mem::forget(error_msg_ptr);
+            ptr
+        }
+    };
+    result
+}
+
+fn _encrypt_slate(
+    config: *const c_char,
+    password: *const c_char,
+    to_address: *const c_char,
+    secret_key_index: *const c_char,
+    epicbox_config: *const c_char,
+    slate: *const c_char,
+) -> Result<*const c_char, Error>{
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let c_password = unsafe { CStr::from_ptr(password) };
+    let c_address = unsafe { CStr::from_ptr(to_address) };
+    let key_index = unsafe { CStr::from_ptr(secret_key_index) };
+    let epicbox_config = unsafe { CStr::from_ptr(epicbox_config) };
+    let slate = unsafe { CStr::from_ptr(slate) };
+
+    let str_password = c_password.to_str().unwrap();
+    let str_config = c_conf.to_str().unwrap();
+    let address = c_address.to_str().unwrap();
+    let key_index: u32 = key_index.to_str().unwrap().to_string().parse().unwrap();
+    let epicbox_config = epicbox_config.to_str().unwrap();
+    let slate = slate.to_str().unwrap();
+
+    let wallet = match open_wallet(str_config, str_password) {
+        Ok((wallet, Some(secret_key))) => {
+            (wallet, Some(secret_key))
+        }, Ok((_, None)) => {
+            return  Err(Error::from(ErrorKind::GenericError(format!(
+                "{}",
+                "Unable to get wallet secret key"
+            ))));
+        }, Err(e) => {
+            return  Err(e);
+        }
+    };
+
+    let epicbox_conf = match EpicBoxConfig::from_str(&epicbox_config.to_string()) {
+        Ok(config) => {
+            config
+        }, Err(e) => {
+            return Err(Error::from(ErrorKind::GenericError(format!(
+                "{}",
+                "Unable to get epicbox config"
+            ))))
+        }
+    };
+
+    let key_pair = get_wallet_secret_key_pair(&wallet.0, wallet.1, key_index).unwrap();
+    let slate_msg = build_post_slate_request(address, key_pair, slate.to_string(), epicbox_conf);
+
+    let s = CString::new(slate_msg).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    Ok(p)
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn rust_create_tx(
     config: *const c_char,
     password: *const c_char,
@@ -1682,6 +1768,9 @@ pub fn decrypt_epicbox_slates(
         let decrypted_message = match  decrypt_message(&secret_pub_key_pair.0, parsed.clone()) {
             Ok(decrypted_msg) => {
                 debug!("DECRYPT_MESSAGE_SUCCESS :::: {}", decrypted_msg);
+                // let address = parsed.get("from").unwrap().as_str().unwrap();
+                // let return_data = (decrypted_msg, address);
+
                 decrypted_slates.push(decrypted_msg);
             }, Err(e) => {
                 //Log and return error message
@@ -1697,65 +1786,40 @@ pub fn decrypt_epicbox_slates(
 }
 
 pub fn process_received_slates(
-    wallet: &Wallet, keychain_mask: Option<SecretKey>, secret_key_index: u32, messages: &str,
+    wallet: &Wallet, keychain_mask: Option<SecretKey>, secret_key_index: u32, message: &str,
     epicbox_config: EpicBoxConfig
 ) -> Result<String, Error> {
-    let key_pair = get_wallet_secret_key_pair(&wallet, keychain_mask.clone(), secret_key_index).unwrap();
-    let messages: Vec<String> = serde_json::from_str(&messages).unwrap();
-    let mut repost_slates: Vec<String> = Vec::new();
-    let mut finalise_slates: Vec<String> = Vec::new();
-    let mut slate_map: HashMap<String, String> = HashMap::new();
 
-    for message in messages.into_iter() {
+    let mut process_result = "".to_string();
+    let process = process_epic_box_slate(&wallet, keychain_mask.clone(),  &message);
+    match process {
+        Ok(slate) => {
+            let msg_tuple: (String, String) =  serde_json::from_str(&message).unwrap();
+            let transaction: Vec<TxLogEntry> = serde_json::from_str(&msg_tuple.0).unwrap();
 
-        debug!("MESSAGE_TO_BE_PROCESSED_IS:::::{}", message.clone());
-        if message.clone().as_str().contains("has already been received")
-            ||  message.clone().as_str().to_lowercase().contains("error")
-        {
-            debug!("SLATE_CANNOT_BE_PROCESSED{}", message.clone());
-        } else {
-            let process = process_epic_box_slate(&wallet, keychain_mask.clone(),  &message);
-            match process {
-                Ok(slate) => {
-                    //Put the slate in hash map as either received or finalised
-                    let msg_tuple: (String, String) =  serde_json::from_str(&message).unwrap();
-                    let transaction: Vec<TxLogEntry> = serde_json::from_str(&msg_tuple.0).unwrap();
-                    //
-                    match transaction[0].tx_type {
-                        TxLogEntryType::TxSent => {
-                            debug!("DONE_PROCESSING_SLATE_RECEIVE {} ::::", "");
-                            //Push into receive array
-                            repost_slates.push(slate);
-                        },
-                        TxLogEntryType::TxReceived =>  {
-                            //Push into finalize array
-                            finalise_slates.push(slate);
-                        },
-                        _ => {}
-                    }
+            match transaction[0].tx_type {
+                TxLogEntryType::TxSent => {
+                    debug!("DONE_PROCESSING_SLATE_RECEIVE {} ::::", "");
+                    //Push into receive array
+                    let message_status = format!(r#"{{"status": "PendingProcessing"}}"#);
+                    let return_data = (message_status, slate);
+                    process_result.push_str(&serde_json::to_string(&return_data).unwrap());
                 },
-                Err(e) => {
-                    debug!("ERROR_PROCESSING_SLATE {}", e.to_string());
-                    continue;
-                }
-            };
+                TxLogEntryType::TxReceived =>  {
+                    debug!("DONE_PROCESSING_SLATE_Finalize {} ::::", "");
+                    let message_status = format!(r#"{{"status": "Finalised"}}"#);
+                    let return_data = (message_status, slate);
+                    process_result.push_str(&serde_json::to_string(&return_data).unwrap());
+                },
+                _ => {}
+            }
+        },
+        Err(e) => {
+            debug!("ERROR_PROCESSING_SLATE {}", e.to_string());
         }
-
-
-    }
-
-    let slates_to_repost = serde_json::to_string(&repost_slates).unwrap();
-    let slates_to_finalize = serde_json::to_string(&finalise_slates).unwrap();
-
-    slate_map.entry("received".to_string()).or_insert(slates_to_repost);
-    slate_map.entry("finalised".to_string()).or_insert(slates_to_finalize);
-    debug!("RETURNED_HASHMAP_IS {:?}", slate_map);
-    Ok("".to_owned())
+    };
+    Ok(process_result)
 }
-
-// pub fn post_slates_to_the_node(slates: &str) {
-//
-// }
 
 /*
     Cancel tx by id
@@ -1828,7 +1892,7 @@ pub fn tx_receive(wallet: &Wallet, keychain_mask: Option<SecretKey>, account: &s
                 Ok(slate_txs) => {
                     slate_txs
                 }, Err(e) => {
-                    debug!("TXS_ERROR {}", e.to_string());
+                    debug!("TX_RECEIVE_ERROR {}", e.to_string());
                     return  Err(e);
                 }
             };
