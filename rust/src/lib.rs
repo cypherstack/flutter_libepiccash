@@ -1425,8 +1425,7 @@ pub fn wallet_scan_outputs(
             {
                 wallet_lock!(wallet, w);
                 let mut batch = w.batch(keychain_mask.as_ref())?;
-                // batch.save_last_confirmed_height(&parent_key_id, info.height)?;
-                batch.save_last_scanned_block(info.clone())?;
+                batch.save_last_confirmed_height(&parent_key_id, info.height)?;
                 batch.commit()?;
             };
 
