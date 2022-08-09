@@ -72,6 +72,11 @@ typedef PendingSlates = Pointer<Utf8> Function(
 typedef PendingSlatesFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
 
+typedef SubscribeRequest = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+typedef SubscribeRequestFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+
 typedef ProcessSlates = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
 typedef ProcessSlatesFFI = Pointer<Utf8> Function(
@@ -239,6 +244,20 @@ Future<String> getPendingSlates(String config, String password,
           secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
           epicboxConfig.toNativeUtf8(),
           slates.toNativeUtf8())
+      .toDartString();
+}
+
+final SubscribeRequest _getSubscribeRequest = epicCashNative
+    .lookup<NativeFunction<SubscribeRequestFFI>>("subscribe_request")
+    .asFunction();
+
+Future<String> getSubscribeRequest(String config, String password,
+    int secretKeyIndex, String epicboxConfig) async {
+  return _getSubscribeRequest(
+          config.toNativeUtf8(),
+          password.toNativeUtf8(),
+          secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
+          epicboxConfig.toNativeUtf8())
       .toDartString();
 }
 

@@ -1739,23 +1739,85 @@ fn post_slate_to_epic_box(slate_request: &str, epicbox_config: EpicBoxConfig) {
     }).unwrap();
 }
 
-/*
-    Get pending slates
-*/
-pub fn get_pending_slates(secret_pub_key_pair: (SecretKey, PublicKey), epicbox_config: EpicBoxConfig) -> Result<String, Error> {
-    let subscribe_request = build_subscribe_request(
-        secret_pub_key_pair,
-        epicbox_config.clone()
-    );
-
-    let url = format!("ws://{}:{}", epicbox_config.domain, epicbox_config.port);
-    connect(url, |out| {
-        out.send(&*subscribe_request).unwrap();
-        Client { out: out }
-    }).unwrap();
-
-    return unsafe { Ok(serde_json::to_string(&SLATES_VECTOR).unwrap()) }
+#[no_mangle]
+pub unsafe extern "C" fn subscribe_request(
+    config: *const c_char,
+    password: *const c_char,
+    secret_key_index: *const c_char,
+    epicbox_config: *const c_char,
+) -> *const c_char  {
+    let result = match _subscribe_request(
+        config,
+        password,
+        secret_key_index,
+        epicbox_config,
+    ) {
+        Ok(subscribeRequest) => {
+            debug!("{}", "RECEIVED_SLATES");
+            subscribeRequest
+        }, Err(e ) => {
+            debug!("subscribe_request_ERROR{}", e.to_string());
+            let error_msg = format!("Error {}", &e.to_string());
+            let error_msg_ptr = CString::new(error_msg).unwrap();
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            std::mem::forget(error_msg_ptr);
+            ptr
+        }
+    };
+    result
 }
+
+fn _subscribe_request(
+    config: *const c_char,
+    password: *const c_char,
+    secret_key_index: *const c_char,
+    epicbox_config: *const c_char,
+) -> Result<*const c_char, Error> {
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let c_password = unsafe { CStr::from_ptr(password) };
+    let key_index = unsafe { CStr::from_ptr(secret_key_index) };
+    let epicbox_config = unsafe { CStr::from_ptr(epicbox_config) };
+
+    let str_password = c_password.to_str().unwrap();
+    let str_config = c_conf.to_str().unwrap();
+    let epicbox_config = epicbox_config.to_str().unwrap();
+    let key_index: u32 = key_index.to_str().unwrap().to_string().parse().unwrap();
+    let wallet = match open_wallet(str_config, str_password) {
+        Ok((wallet, Some(secret_key))) => {
+            (wallet, Some(secret_key))
+        }, Ok((_, None)) => {
+            return  Err(Error::from(ErrorKind::GenericError(format!(
+                "{}",
+                "Unable to get wallet secret key"
+            ))));
+        }, Err(e) => {
+            return  Err(e);
+        }
+    };
+
+    let key_pair = get_wallet_secret_key_pair(&wallet.0, wallet.1, key_index).unwrap();
+    let epicbox_conf = match EpicBoxConfig::from_str(&epicbox_config.to_string()) {
+        Ok(config) => {
+            config
+        }, Err(e) => {
+            return Err(Error::from(ErrorKind::GenericError(format!(
+                "{}",
+                "Unable to get epicbox config"
+            ))))
+        }
+    };
+
+    let subscribeRequest = _build_subscribe_request(
+        key_pair,
+        epicbox_conf.clone()
+    );
+    let s = CString::new(subscribeRequest).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    Ok(p)
+}
+
+
 
 pub fn decrypt_epicbox_slates(
     secret_pub_key_pair: (SecretKey, PublicKey), encrypted_slates: &str
@@ -2024,7 +2086,7 @@ pub fn build_post_slate_request(receiver_address: &str, secret_pub_key_pair: (Se
     json_request
 }
 
-pub fn build_subscribe_request(
+pub fn _build_subscribe_request(
     secret_pub_key_pair: (SecretKey, PublicKey)
     , epicbox_config: EpicBoxConfig
 ) -> String {
