@@ -1252,6 +1252,34 @@ fn _get_tx_fees(
     Ok(p)
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_post_slate_to_node(
+    config: *const c_char,
+    password: *const c_char,
+    secret_key_index: *const c_char,
+    tx_slate_id: *const c_char,
+) -> *const c_char {
+    init_logger();
+    let result = match _post_slate_to_node(
+        config,
+        password,
+        secret_key_index,
+        tx_slate_id,
+    ) {
+        Ok(posted) => {
+            posted
+        }, Err(e ) => {
+            debug!("ERROR_POSTING_TX_TO_NODE {}", e.to_string());
+            let error_msg = format!("Error {}", &e.to_string());
+            let error_msg_ptr = CString::new(error_msg).unwrap();
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            std::mem::forget(error_msg_ptr);
+            ptr
+        }
+    };
+    result
+}
+
 pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> Result<String, Error> {
     let wallet_pass = ZeroingString::from(password);
     let wallet_config = Config::from_str(&config).unwrap();
@@ -1817,6 +1845,50 @@ fn _subscribe_request(
     Ok(p)
 }
 
+fn _post_slate_to_node(
+    config: *const c_char,
+    password: *const c_char,
+    secret_key_index: *const c_char,
+    tx_slate_id: *const c_char,
+) -> Result<*const c_char, Error> {
+
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let c_password = unsafe { CStr::from_ptr(password) };
+    let key_index = unsafe { CStr::from_ptr(secret_key_index) };
+    let tx_slate_id = unsafe { CStr::from_ptr(tx_slate_id) };
+
+    let str_password = c_password.to_str().unwrap();
+    let str_config = c_conf.to_str().unwrap();
+    let key_index: u32 = key_index.to_str().unwrap().to_string().parse().unwrap();
+    let tx_slate_id = tx_slate_id.to_str().unwrap();
+
+    let wallet = match open_wallet(str_config, str_password) {
+        Ok((wallet, Some(secret_key))) => {
+            (wallet, Some(secret_key))
+        }, Ok((_, None)) => {
+            return  Err(Error::from(ErrorKind::GenericError(format!(
+                "{}",
+                "Unable to get wallet secret key"
+            ))));
+        }, Err(e) => {
+            return  Err(e);
+        }
+    };
+
+    let  mut tx_post_message = String::from("");
+    match tx_post(&wallet.0, wallet.1, tx_slate_id) {
+        Ok(posted) => {
+            tx_post_message.push_str(&posted);
+        }, Err(e) => {
+            tx_post_message.push_str(&e.to_string());
+        }
+    }
+    let s = CString::new(tx_post_message).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    Ok(p)
+}
+
 
 
 pub fn decrypt_epicbox_slates(
@@ -1829,10 +1901,11 @@ pub fn decrypt_epicbox_slates(
         let decrypted_message = match  decrypt_message(&secret_pub_key_pair.0, parsed.clone()) {
             Ok(decrypted_msg) => {
                 debug!("DECRYPT_MESSAGE_SUCCESS :::: {}", decrypted_msg);
-                // let address = parsed.get("from").unwrap().as_str().unwrap();
-                // let return_data = (decrypted_msg, address);
+                let sender_address = parsed.get("from").unwrap().as_str().unwrap();
+                debug!("ADDRESS_FOR_ORIGINAL_SENDER :::: {}", sender_address);
+                let return_data = (decrypted_msg, sender_address);
 
-                decrypted_slates.push(decrypted_msg);
+                decrypted_slates.push(serde_json::to_string(&return_data).unwrap());
             }, Err(e) => {
                 //Log and return error message
                 debug!("Error decrypting message :::: {}", e.to_string());
@@ -2002,43 +2075,37 @@ pub fn tx_finalize(wallet: &Wallet, keychain_mask: Option<SecretKey>, str_slate:
 /*
     Post transaction to the node after finalising
 */
-pub fn tx_post(wallet: &Wallet, keychain_mask: Option<SecretKey>, slate_uuid: &str) -> Result<String, Error> {
+pub fn tx_post(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id: &str) -> Result<String, Error> {
     init_logger();
-    debug!("POSTING TX {} TO THE NODE", slate_uuid);
+    debug!("POSTING_TX {} TO THE NODE", tx_slate_id);
     let owner_api = Owner::new(wallet.clone());
     let tx_uuid =
-        Uuid::parse_str(slate_uuid).map_err(|e| ErrorKind::GenericError(e.to_string()))?;
+        Uuid::parse_str(tx_slate_id).map_err(|e| ErrorKind::GenericError(e.to_string()))?;
     let (_, txs) = owner_api.retrieve_txs(keychain_mask.as_ref(), false, None, Some(tx_uuid.clone()))?;
     println!("TX IS ::: {:?}", txs[0]);
     if txs[0].confirmed {
         return Err(Error::from(ErrorKind::GenericError(format!(
             "Transaction with id {} is already confirmed. Not posting.",
-            slate_uuid
+            tx_slate_id
         ))));
     }
-    let response = owner_api.get_stored_tx(keychain_mask.as_ref(), &txs[0]);
-
-    match response {
-        Ok(Some(stored_tx)) => {
+    let stored_tx = owner_api.get_stored_tx(keychain_mask.as_ref(), &txs[0])?;
+    match stored_tx {
+        Some(stored_tx) => {
             let post_tx = owner_api.post_tx(keychain_mask.as_ref(), &stored_tx, true);
             match post_tx {
                 Ok(()) => {
-                    Ok("".to_owned())
+                    Ok("tx_posted_to_node".to_owned())
                 },
                 Err(err)=> {
                     return Err(err);
                 }
             }
         }
-        Ok(None) => {
-            Err(Error::from(ErrorKind::GenericError(format!(
-                "Transaction with id {} does not have transaction data. Not posting.",
-                slate_uuid
-            ))))
-        },
-        Err(e)=> {
-            Err(e)
-        }
+        None => Err(Error::from(ErrorKind::GenericError(format!(
+            "Transaction with id {} does not have transaction data. Not posting.",
+            tx_slate_id
+        )))),
     }
 }
 
@@ -2074,7 +2141,7 @@ pub fn build_post_slate_request(receiver_address: &str, secret_pub_key_pair: (Se
     let message_ser = serde_json::to_string(&message).unwrap();
 
     let to_address = format!("{}@{}", address_receiver.public_key, address_receiver.domain);
-    let from_address = format!("{}@{}", address_sender.public_key, address_sender.domain);
+    let from_address = format!("{}", address_sender.public_key);
     challenge.push_str(&message_ser);
     let signature = sign_challenge(&challenge, &secret_pub_key_pair.0).unwrap().to_hex();
     let json_request = format!(r#"{{"type": "PostSlate", "from": "{}", "to": "{}", "str": {}, "signature": "{}"}}"#,
@@ -2164,18 +2231,6 @@ pub fn process_epic_box_slate(wallet: &Wallet, keychain_mask: Option<SecretKey>,
             let finalize = tx_finalize(&wallet, keychain_mask.clone(), &msg_tuple.1);
             match finalize {
                 Ok(str_slate) => {
-                    // debug!("TX_FINALIZE_RESULT:::::{}", str_slate);
-
-                    //Post slate to the node
-                    // debug!("POSTING_TRANSACTION:::::{:?}", transaction[0]);
-                    // let tx_slate_id = transaction[0].tx_slate_id.unwrap().to_string();
-                    // match tx_post(&wallet, keychain_mask.clone(), &tx_slate_id) {
-                    //     Ok(_) =>  {
-                    //         debug!("POSTING_SLATE {}", "Slate posted");
-                    //     }, Err(e) => {
-                    //         debug!("TX_POST_ERROR {}", e.to_string());
-                    //     }
-                    // }
                     Ok(str_slate)
                 },
                 Err(e)=> {

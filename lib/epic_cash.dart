@@ -87,6 +87,16 @@ typedef TransactionFees = Pointer<Utf8> Function(
 typedef TransactionFeesFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
+typedef EncryptSlate = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>,
+    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
+typedef EncryptSlateFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>,
+    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
+
+typedef PostSlateToNode = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+typedef PostSlateToNodeFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+
 final WalletMnemonic _walletMnemonic = epicCashNative
     .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
     .asFunction();
@@ -130,15 +140,6 @@ String recoverWallet(
           mnemonic.toNativeUtf8(), name.toNativeUtf8())
       .toDartString();
 }
-
-// final WalletPhrase _walletRecoveryPhrase = epicCashNative
-//     .lookup<NativeFunction<WalletPhraseFFI>>("rust_wallet_phrase")
-//     .asFunction();
-//
-// String walletRecoveryPhrase(String config, String password) {
-//   return _walletRecoveryPhrase(config.toNativeUtf8(), password.toNativeUtf8())
-//       .toDartString();
-// }
 
 final ScanOutPuts _scanOutPuts = epicCashNative
     .lookup<NativeFunction<ScanOutPutsFFI>>("rust_wallet_scan_outputs")
@@ -287,5 +288,35 @@ Future<String> getTransactionFees(String config, String password, int amount,
           password.toNativeUtf8(),
           amount.toString().toNativeUtf8().cast<Int8>(),
           minimumConfirmations.toString().toNativeUtf8().cast<Int8>())
+      .toDartString();
+}
+
+final EncryptSlate _encryptSlate = epicCashNative
+    .lookup<NativeFunction<EncryptSlateFFI>>("rust_encrypt_slate")
+    .asFunction();
+
+Future<String> getEncryptedSlate(String config, String password, String address,
+    int secretKeyIndex, String epicboxConfig, String slate) async {
+  return _encryptSlate(
+          config.toNativeUtf8(),
+          password.toNativeUtf8(),
+          address.toNativeUtf8(),
+          secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
+          epicboxConfig.toNativeUtf8(),
+          slate.toNativeUtf8())
+      .toDartString();
+}
+
+final PostSlateToNode _postSlateToNode = epicCashNative
+    .lookup<NativeFunction<PostSlateToNodeFFI>>("rust_post_slate_to_node")
+    .asFunction();
+
+Future<String> postSlateToNode(String config, String password,
+    int secretKeyIndex, String txSlateId) async {
+  return _postSlateToNode(
+          config.toNativeUtf8(),
+          password.toNativeUtf8(),
+          secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
+          txSlateId.toNativeUtf8())
       .toDartString();
 }
