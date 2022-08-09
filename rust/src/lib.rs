@@ -930,6 +930,14 @@ fn _check_for_new_slates(
     };
     debug!("{}", "GETTING_DECRYPTED_SLATES");
     let mut pending_slates = "".to_string();
+    debug!("SLATES_IS {}", slates.clone());
+    let slates_to_lower = slates.to_lowercase();
+    if slates_to_lower.contains("error") || slates_to_lower.is_empty() {
+        return  Err(Error::from(ErrorKind::GenericError(format!(
+            "{}",
+            "Unable to format slates, please check data"
+        ))));
+    }
     let decrypted_slates = match decrypt_epicbox_slates(key_pair, &slates) {
         Ok(decrypted) => {
             let str_slates = serde_json::to_string(&decrypted).unwrap();
