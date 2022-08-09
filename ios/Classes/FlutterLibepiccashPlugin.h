@@ -32,6 +32,13 @@ const char *rust_wallet_scan_outputs(const char *config,
                                      const char *start_height,
                                      const char *number_of_blocks);
 
+const char *rust_encrypt_slate(const char *config,
+                               const char *password,
+                               const char *to_address,
+                               const char *secret_key_index,
+                               const char *epicbox_config,
+                               const char *slate);
+
 const char *rust_create_tx(const char *config,
                            const char *password,
                            const char *amount,
@@ -50,7 +57,8 @@ const char *rust_tx_cancel(const char *config, const char *password, const char 
 const char *rust_check_for_new_slates(const char *config,
                                       const char *password,
                                       const char *secret_key_index,
-                                      const char *epicbox_config);
+                                      const char *epicbox_config,
+                                      const char *slates);
 
 const char *rust_process_pending_slates(const char *config,
                                         const char *password,
@@ -71,3 +79,13 @@ const char *rust_get_tx_fees(const char *c_config,
                              const char *c_password,
                              const char *c_amount,
                              const char *min_confirmations);
+
+const char *rust_post_slate_to_node(const char *config,
+                                    const char *password,
+                                    const char *secret_key_index,
+                                    const char *tx_slate_id);
+
+const char *subscribe_request(const char *config,
+                              const char *password,
+                              const char *secret_key_index,
+                              const char *epicbox_config);
