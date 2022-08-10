@@ -3,7 +3,6 @@ import 'dart:io' as io;
 
 import 'package:ffi/ffi.dart';
 
-const base = 'greeter';
 final DynamicLibrary epicCashNative =
     io.Platform.isAndroid || io.Platform.isLinux
         ? DynamicLibrary.open("libepic_cash_wallet.so")

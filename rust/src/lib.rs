@@ -30,7 +30,7 @@ use stack_test_epic_wallet_util::stack_test_epic_core::global::ChainTypes;
 use stack_test_epic_util::file::get_first_line;
 use stack_test_epic_wallet_util::stack_test_epic_util::ZeroingString;
 use stack_test_epic_util::Mutex;
-use stack_test_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, WalletInfo, Error, ErrorKind, TxLogEntry, TxLogEntryType};
+use stack_test_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, WalletInfo, Error, ErrorKind, TxLogEntry, TxLogEntryType, WalletOutputBatch};
 
 use stack_test_epic_wallet_util::stack_test_epic_keychain::{Keychain, ExtKeychain};
 
@@ -241,10 +241,29 @@ fn _wallet_init(
     let password = unsafe { CStr::from_ptr(password) };
     let name = unsafe { CStr::from_ptr(name) };
 
-    let str_password = password.to_str().unwrap();
-    let str_config = config.to_str().unwrap();
-    let phrase = mnemonic.to_str().unwrap();
-    let str_name = name.to_str().unwrap();
+    let str_password = match password.to_str() {
+        Ok(str_pass) => {str_pass}, Err(e) => {return Err(
+            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+        )}
+    };
+
+    let str_config = match config.to_str() {
+        Ok(str_conf) => {str_conf}, Err(e) => {return Err(
+            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+        )}
+    };
+
+    let phrase = match mnemonic.to_str() {
+        Ok(str_phrase) => {str_phrase}, Err(e) => {return Err(
+            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+        )}
+    };
+
+    let str_name = match name.to_str() {
+        Ok(str_name) => {str_name}, Err(e) => {return Err(
+            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+        )}
+    };
 
     let mut create_msg = "".to_string();
     match create_wallet(str_config, phrase, str_password, str_name) {
@@ -1290,13 +1309,35 @@ pub unsafe extern "C" fn rust_post_slate_to_node(
 
 pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> Result<String, Error> {
     let wallet_pass = ZeroingString::from(password);
-    let wallet_config = Config::from_str(&config).unwrap();
+    let wallet_config = match Config::from_str(&config) {
+        Ok(config) => {
+            config
+        }, Err(e) => {
+            return  Err(Error::from(ErrorKind::GenericError(format!(
+                "Error getting wallet config: {}",
+                e.to_string()
+            ))));
+        }
+    };
 
-    let wallet = get_wallet(&wallet_config).unwrap();
+    let wallet = match get_wallet(&wallet_config) {
+        Ok(wllet) => {
+            wllet
+        }
+        Err(e) => {
+            return  Err(e);
+        }
+    };
     let mut wallet_lock = wallet.lock();
-    let lc = wallet_lock.lc_provider().unwrap();
+    let lc = match wallet_lock.lc_provider() {
+        Ok(wallet_lc) => {
+            wallet_lc
+        }
+        Err(e) => {
+            return  Err(e);
+        }
+    };
     let rec_phrase = ZeroingString::from(phrase.clone());
-
     let result = match lc.create_wallet(
         Some(name),
         Some(rec_phrase),
@@ -1371,24 +1412,52 @@ pub fn get_wallet_info(wallet: &Wallet, keychain_mask: Option<SecretKey>, refres
     Recover wallet from mnemonic
 */
 pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, name: &str) -> Result<(), Error> {
-    let wallet = get_wallet(&config)?;
+    let wallet = match get_wallet(&config) {
+        Ok(conf) => {
+            conf
+        }
+        Err(e) => {
+            return  Err(e);
+        }
+    };
     let mut w_lock = wallet.lock();
-    let lc = w_lock.lc_provider()?;
+    let lc = match w_lock.lc_provider() {
+        Ok(wallet_lc) => {
+            wallet_lc
+        }
+        Err(e) => {
+            return  Err(e);
+        }
+    };
 
     //First check if wallet seed directory exists, if not create
     if let Ok(exists_wallet_seed) = lc.wallet_exists(None) {
         if exists_wallet_seed {
-            println!("{}", "Wallet Exists");
-            lc.recover_from_mnemonic(ZeroingString::from(mnemonic), ZeroingString::from(password))?;
+            match lc.recover_from_mnemonic(
+                ZeroingString::from(mnemonic), ZeroingString::from(password)
+            ) {
+                Ok(_) => {
+                    return  Ok(());
+                }
+                Err(e) => {
+                    return  Err(e);
+                }
+            }
         } else {
-            println!("{}", "Does not exist");
-            lc.create_wallet(
+            match lc.create_wallet(
                 Some(&name),
                 Some(ZeroingString::from(mnemonic)),
                 32,
                 ZeroingString::from(password),
                 false,
-            )?
+            ) {
+                Ok(_) => {
+                    return  Ok(());
+                }
+                Err(e) => {
+                    return  Err(e);
+                }
+            }
         }
     }
     Ok(())
@@ -1399,7 +1468,13 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
 */
 pub fn mnemonic() -> Result<String, stack_test_epic_keychain::mnemonic::Error> {
     let seed = create_seed(32);
-    Ok(mnemonic::from_entropy(&seed).unwrap())
+    match mnemonic::from_entropy(&seed) {
+        Ok(mnemonic_str) => {
+            Ok(mnemonic_str)
+        }, Err(e) => {
+            return  Err(e);
+        }
+    }
 }
 
 fn create_seed(seed_length: u64) -> Vec<u8> {
@@ -1415,14 +1490,27 @@ fn create_seed(seed_length: u64) -> Vec<u8> {
     Get wallet that will be used for calls to epic wallet
 */
 fn get_wallet(config: &Config) -> Result<Wallet, Error> {
-    let wallet_config = create_wallet_config(config.clone())?;
+    let wallet_config = match create_wallet_config(config.clone()) {
+        Ok(conf) => {
+            conf
+        } Err(e) => {
+            return Err(e);
+        }
+    };
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
-    let wallet = inst_wallet::<
+    let wallet =  match inst_wallet::<
         DefaultLCProvider<HTTPNodeClient, ExtKeychain>,
         HTTPNodeClient,
         ExtKeychain,
-    >(wallet_config.clone(), node_client)?;
+    >(wallet_config.clone(), node_client) {
+        Ok(wallet_inst) => {
+            wallet_inst
+        }
+        Err(e) => {
+            return  Err(e);
+        }
+    };
     return Ok(wallet);
 }
 /*
@@ -1440,13 +1528,26 @@ fn inst_wallet<L, C, K>(
 {
     let mut wallet = Box::new(DefaultWalletImpl::<'static, C>::new(node_client.clone()).unwrap())
         as Box<dyn WalletInst<'static, L, C, K>>;
-    let lc = wallet.lc_provider().unwrap();
-    lc.set_top_level_directory(&config.data_file_dir)?;
+    let lc = match wallet.lc_provider() {
+        Ok(wallet_lc) => {
+            wallet_lc
+        }
+        Err(err) => {
+            return  Err(err);
+        }
+    };
+    match lc.set_top_level_directory(&config.data_file_dir) {
+        Ok(_) => {
+            ()
+        }
+        Err(err) => {
+            return  Err(err);
+        }
+    };
     Ok(Arc::new(Mutex::new(wallet)))
 }
 
 pub fn get_chain_height(config: &str) -> Result<u64, Error> {
-    debug!("CONFIG_STRING_IS :::: {}", config);
     let config = match Config::from_str(&config.to_string()) {
         Ok(config) => {
             config
@@ -1457,10 +1558,24 @@ pub fn get_chain_height(config: &str) -> Result<u64, Error> {
             ))))
         }
     };
-    let wallet_config = create_wallet_config(config.clone())?;
+    let wallet_config = match create_wallet_config(config.clone()) {
+        Ok(wallet_conf) => {
+            wallet_conf
+        }
+        Err(e) => {
+            return  Err(e);
+        }
+    };
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
-    let chain_tip = node_client.chain_height()?;
+    let chain_tip = match node_client.chain_height() {
+        Ok(tip) => {
+            tip
+        }
+        Err(err) => {
+            return  Err(err);
+        }
+    };
     Ok(chain_tip.0)
 }
 
@@ -1503,30 +1618,18 @@ pub fn wallet_scan_outputs(
         None => 0,
     };
 
-    debug!("NUMBER_OF_BLOCKS_TO_SCAN::::{}", number_of_blocks_to_scan);
-
     let last_block = start_height + number_of_blocks_to_scan;
-
-    debug!("START_HEIGHT_IS::::{}", start_height.clone());
-    debug!("LAST_BLOC_IS::::{}", last_block.clone());
-
     let end_height: u64 = match last_block.cmp(&tip) {
         Ordering::Less => {
-            debug!("SCAN_END_HEIGHT :::::: {} IS LESS THAN {}", last_block, tip);
             last_block
         },
         Ordering::Greater => {
-            debug!("SCAN_END_HEIGHT :::::: {} IS GREATER THAN {}", last_block, tip);
             tip
         },
         Ordering::Equal => {
-            debug!("SCAN_END_HEIGHT :::::: {} IS EQUAL To {}", last_block, tip);
             last_block
         }
     };
-
-    debug!("END_HEIGHT_IS::::{}", end_height);
-
 
     match scan(
         wallet.clone(),
@@ -1546,12 +1649,33 @@ pub fn wallet_scan_outputs(
 
             {
                 wallet_lock!(wallet, w);
-                let mut batch = w.batch(keychain_mask.as_ref())?;
-                batch.save_last_confirmed_height(&parent_key_id, info.height)?;
-                batch.commit()?;
+                let mut batch = match w.batch(keychain_mask.as_ref()) {
+                    Ok(wallet_output_batch) => {
+                        wallet_output_batch
+                    }
+                    Err(err) => {
+                        return Err(err);
+                    }
+                };
+                match batch.save_last_confirmed_height(&parent_key_id, info.height) {
+                    Ok(_) => {
+                        ()
+                    }
+                    Err(err) => {
+                        return  Err(err);
+                    }
+                };
+                match batch.commit() {
+                    Ok(_) => {
+                        ()
+                    }
+                    Err(err) => {
+                        return  Err(err);
+                    }
+                }
             };
 
-            debug!("LAST_SCANNED_BLOCK_IS::::{:?}", info.clone());
+
             let result = info.height;
             Ok(serde_json::to_string(&result).unwrap())
         }, Err(e) => {
@@ -1609,76 +1733,6 @@ pub fn tx_strategies(
         }
     }
     Ok(serde_json::to_string(&result).unwrap())
-}
-
-fn update_state<'a, L, C, K>(
-    wallet_inst: Arc<Mutex<Box<dyn WalletInst<'a, L, C, K>>>>,
-) -> Result<bool, Error>
-    where
-        L: WalletLCProvider<'a, C, K>,
-        C: NodeClient + 'a,
-        K: Keychain + 'a,
-{
-    let parent_key_id = {
-        wallet_lock!(wallet_inst, w);
-        w.parent_key_id().clone()
-    };
-    let mut client = {
-        wallet_lock!(wallet_inst, w);
-        w.w2n_client().clone()
-    };
-    let tip = client.get_chain_tip()?;
-
-    // Step 1: Update outputs and transactions purely based on UTXO state
-
-    {
-        if !match owner::update_wallet_state(wallet_inst.clone(), None, &None, true) {
-            Ok(_) => true,
-            Err(_) => false,
-        } {
-            // We are unable to contact the node
-            return Ok(false);
-        }
-    }
-
-    let mut txs = {
-        owner::retrieve_txs(wallet_inst.clone(), None, &None, true, None, None).unwrap()
-    };
-
-    for tx in txs.1.iter_mut() {
-        // Step 2: Cancel any transactions with an expired TTL
-        if let Some(e) = tx.ttl_cutoff_height {
-            if tip.0 >= e {
-                owner::cancel_tx(wallet_inst.clone(), None, &None, Some(tx.id), None).unwrap();
-                continue;
-            }
-        }
-        // Step 3: Update outstanding transactions with no change outputs by kernel
-        if tx.confirmed {
-            continue;
-        }
-        if tx.amount_debited != 0 && tx.amount_credited != 0 {
-            continue;
-        }
-        if let Some(e) = tx.kernel_excess {
-            let res = client.get_kernel(&e, tx.kernel_lookup_min_height, Some(tip.0));
-            let kernel = match res {
-                Ok(k) => k,
-                Err(_) => return Ok(false),
-            };
-            if let Some(k) = kernel {
-                debug!("Kernel Retrieved: {:?}", k);
-                wallet_lock!(wallet_inst, w);
-                let mut batch = w.batch(None)?;
-                tx.confirmed = true;
-                tx.update_confirmation_ts();
-                batch.save_tx_log_entry(tx.clone(), &parent_key_id)?;
-                batch.commit()?;
-            }
-        }
-    }
-
-    return Ok(true);
 }
 
 pub fn txs_get(
