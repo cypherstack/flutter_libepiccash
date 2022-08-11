@@ -180,7 +180,6 @@ pub unsafe extern "C" fn wallet_init(
     name: *const c_char
 ) -> *const c_char {
 
-
     let result = match _wallet_init(config, mnemonic, password, name) {
         Ok(created) => {
             created
@@ -435,8 +434,6 @@ fn init_logger() {
             .with_tag("libepiccash")
             .with_filter(FilterBuilder::new().parse("debug,epic-cash-wallet::crate=super").build()),
     );
-
-
 }
 
 #[no_mangle]
@@ -1905,11 +1902,11 @@ fn _subscribe_request(
         }
     };
 
-    let subscribeRequest = _build_subscribe_request(
+    let subscribe_request = _build_subscribe_request(
         key_pair,
         epicbox_conf.clone()
     );
-    let s = CString::new(subscribeRequest).unwrap();
+    let s = CString::new(subscribe_request).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     Ok(p)
