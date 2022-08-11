@@ -46,9 +46,9 @@ typedef CreateTransactionFFI = Pointer<Utf8> Function(
     Pointer<Int8>);
 
 typedef GetTransactions = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
 typedef GetTransactionsFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
 
 typedef CancelTransaction = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
@@ -67,9 +67,9 @@ typedef ValidateAddress = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef ValidateAddressFFI = Pointer<Utf8> Function(Pointer<Utf8>);
 
 typedef PendingSlates = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 typedef PendingSlatesFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 
 typedef SubscribeRequest = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
@@ -77,9 +77,9 @@ typedef SubscribeRequestFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 
 typedef ProcessSlates = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 typedef ProcessSlatesFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Utf8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 
 typedef TransactionFees = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
@@ -181,12 +181,9 @@ final GetTransactions _getTransactions = epicCashNative
     .lookup<NativeFunction<GetTransactionsFFI>>("rust_txs_get")
     .asFunction();
 
-Future<String> getTransactions(String config, String password,
-    int minimumConfirmatios, int refreshFromNode) async {
-  return _getTransactions(
-          config.toNativeUtf8(),
-          password.toNativeUtf8(),
-          minimumConfirmatios.toString().toNativeUtf8().cast<Int8>(),
+Future<String> getTransactions(
+    String config, String password, int refreshFromNode) async {
+  return _getTransactions(config.toNativeUtf8(), password.toNativeUtf8(),
           refreshFromNode.toString().toNativeUtf8().cast<Int8>())
       .toDartString();
 }
@@ -233,16 +230,15 @@ String validateSendAddress(String address) {
 }
 
 final PendingSlates _getPendingSlates = epicCashNative
-    .lookup<NativeFunction<PendingSlatesFFI>>("rust_check_for_new_slates")
+    .lookup<NativeFunction<PendingSlatesFFI>>("rust_decrypt_unprocessed_slates")
     .asFunction();
 
-Future<String> getPendingSlates(String config, String password,
-    int secretKeyIndex, String epicboxConfig, String slates) async {
+Future<String> getPendingSlates(
+    String config, String password, int secretKeyIndex, String slates) async {
   return _getPendingSlates(
           config.toNativeUtf8(),
           password.toNativeUtf8(),
           secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
-          epicboxConfig.toNativeUtf8(),
           slates.toNativeUtf8())
       .toDartString();
 }
@@ -265,14 +261,10 @@ final ProcessSlates _processSlates = epicCashNative
     .lookup<NativeFunction<ProcessSlatesFFI>>("rust_process_pending_slates")
     .asFunction();
 
-Future<String> processSlates(String config, String password, int secretKeyIndex,
-    String slates, String epicboxConfig) async {
+Future<String> processSlates(
+    String config, String password, String slates) async {
   return _processSlates(
-          config.toNativeUtf8(),
-          password.toNativeUtf8(),
-          secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
-          slates.toNativeUtf8(),
-          epicboxConfig.toNativeUtf8())
+          config.toNativeUtf8(), password.toNativeUtf8(), slates.toNativeUtf8())
       .toDartString();
 }
 

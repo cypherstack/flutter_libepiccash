@@ -54,17 +54,14 @@ const char *rust_txs_get(const char *config,
 
 const char *rust_tx_cancel(const char *config, const char *password, const char *tx_id);
 
-const char *rust_check_for_new_slates(const char *config,
+const char *rust_decrypt_unprocessed_slates(const char *config,
                                       const char *password,
                                       const char *secret_key_index,
-                                      const char *epicbox_config,
                                       const char *slates);
 
 const char *rust_process_pending_slates(const char *config,
                                         const char *password,
-                                        const char *secret_key_index,
-                                        const char *slates,
-                                        const char *epicbox_config);
+                                        const char *slates);
 
 const char *rust_get_chain_height(const char *config);
 
