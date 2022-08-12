@@ -17,4 +17,4 @@ mkdir ${inc}
 mkdir ${libs}
 
 cp libepic_cash_wallet.h ${inc}
-cp target/universal/release/libepic_cash_wallet.a ${libs}
+cp target/aarch64-apple-ios/release/libepic_cash_wallet.a ${libs}
