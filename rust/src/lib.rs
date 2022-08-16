@@ -313,6 +313,8 @@ fn _wallet_balances(
     refresh: *const c_char,
     min_confirmations: *const c_char,
 ) -> Result<*const c_char, Error> {
+    init_logger();
+    debug!("{}", "CALLING_GET_BALANCES");
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let c_refresh = unsafe { CStr::from_ptr(refresh) };
@@ -341,11 +343,18 @@ fn _wallet_balances(
         }
     };
     let mut wallet_info = "".to_string();
-    match get_wallet_info(&wallet.0, wallet.1, refresh, minimum_confirmations) {
+    match get_wallet_info(
+        &wallet.0,
+        wallet.1,
+        refresh,
+        minimum_confirmations
+    ) {
         Ok(info) => {
             let str_wallet_info = serde_json::to_string(&info).unwrap();
+            debug!("WALLET_INFO_RESPONSE :: {}", str_wallet_info.clone());
             wallet_info.push_str(&str_wallet_info);
         },Err(e) => {
+            debug!("WALLET_INFO_ERROR :: {}", e.to_string());
             return Err(e);
         }
     }
@@ -1387,7 +1396,12 @@ pub struct WalletInfoFormatted {
     Get wallet info
     This contains wallet balances
 */
-pub fn get_wallet_info(wallet: &Wallet, keychain_mask: Option<SecretKey>, refresh_from_node: bool, min_confirmations: u64) -> Result<WalletInfoFormatted, Error> {
+pub fn get_wallet_info(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    refresh_from_node: bool,
+    min_confirmations: u64
+) -> Result<WalletInfoFormatted, Error> {
     let api = Owner::new(wallet.clone());
 
     match api.retrieve_summary_info(keychain_mask.as_ref(), refresh_from_node, min_confirmations) {
