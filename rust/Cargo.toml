@@ -26,7 +26,6 @@ reqwest = { version = "0.11", features = ["blocking", "json"] }
 rustc-serialize = "0.3.24"
 android_logger = "0.11.0"
 chrono = "0.4.19"
-oslog = "0.2.0"
 
 stack_test_epic_keychain = "3.0.3"
 stack_test_epic_util = "3.0.3"

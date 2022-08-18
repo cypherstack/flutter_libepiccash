@@ -164,14 +164,11 @@ fn create_wallet_config(config: Config) -> Result<WalletConfig, Error> {
 
 #[macro_use] extern crate log;
 extern crate android_logger;
-extern crate oslog;
 extern crate simplelog;
 
 use log::Level;
 use android_logger::Config as AndroidConfig;
 use stack_test_epicboxlib::utils::crypto::{Hex, sign_challenge};
-use oslog::OsLogger;
-use simplelog::LevelFilter;
 
 /*
     Create a new wallet

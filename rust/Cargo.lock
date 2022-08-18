@@ -662,18 +662,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dashmap"
-version = "5.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3495912c9c1ccf2e18976439f4443f3fee0fd61f424ff99fde6a66b15ecb448f"
-dependencies = [
- "cfg-if 1.0.0",
- "hashbrown 0.12.3",
- "lock_api 0.4.7",
- "parking_lot_core 0.9.3",
-]
-
-[[package]]
 name = "data-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -849,7 +837,6 @@ dependencies = [
  "jni",
  "log 0.4.17",
  "openssl",
- "oslog",
  "prettytable-rs",
  "rand 0.6.5",
  "reqwest",
@@ -1229,12 +1216,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
 
 [[package]]
-name = "hashbrown"
-version = "0.12.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
-
-[[package]]
 name = "heck"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1471,7 +1452,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f647032dfaa1f8b6dc29bd3edb7bbef4861b8b8007ebb118d6db284fd59f6ee"
 dependencies = [
  "autocfg 1.1.0",
- "hashbrown 0.11.2",
+ "hashbrown",
 ]
 
 [[package]]
@@ -1664,16 +1645,6 @@ version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4da24a77a3d8a6d4862d95f72e6fdb9c09a643ecdb402d754004a557f2bec75"
 dependencies = [
- "scopeguard 1.1.0",
-]
-
-[[package]]
-name = "lock_api"
-version = "0.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "327fa5b6a6940e4699ec49a9beae1ea4845c6bab9314e4f84ac68742139d8c53"
-dependencies = [
- "autocfg 1.1.0",
  "scopeguard 1.1.0",
 ]
 
@@ -2205,17 +2176,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "oslog"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80d2043d1f61d77cb2f4b1f7b7b2295f40507f5f8e9d1c8bf10a1ca5f97a3969"
-dependencies = [
- "cc",
- "dashmap",
- "log 0.4.17",
-]
-
-[[package]]
 name = "owning_ref"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2264,7 +2224,7 @@ dependencies = [
  "libc",
  "rand 0.5.6",
  "rustc_version",
- "smallvec 0.6.14",
+ "smallvec",
  "winapi 0.3.9",
 ]
 
@@ -2279,21 +2239,8 @@ dependencies = [
  "libc",
  "redox_syscall 0.1.57",
  "rustc_version",
- "smallvec 0.6.14",
+ "smallvec",
  "winapi 0.3.9",
-]
-
-[[package]]
-name = "parking_lot_core"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09a279cbf25cb0757810394fbc1e359949b59e348145c643a939a525692e6929"
-dependencies = [
- "cfg-if 1.0.0",
- "libc",
- "redox_syscall 0.2.13",
- "smallvec 1.9.0",
- "windows-sys",
 ]
 
 [[package]]
@@ -3160,12 +3107,6 @@ checksum = "b97fcaeba89edba30f044a10c6a3cc39df9c3f17d7cd829dd1446cab35f890e0"
 dependencies = [
  "maybe-uninit",
 ]
-
-[[package]]
-name = "smallvec"
-version = "1.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fd0db749597d91ff862fd1d55ea87f7855a744a8425a64695b6fca237d1dad1"
 
 [[package]]
 name = "socket2"
