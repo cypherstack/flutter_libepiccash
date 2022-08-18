@@ -862,7 +862,8 @@ fn _tx_cancel(
 
     let config = config.to_str().unwrap();
     let password = password.to_str().unwrap();
-    let tx_id: u32 = tx_id.to_str().unwrap().to_string().parse().unwrap();
+    let tx_id = tx_id.to_str().unwrap();
+    let uuid = Uuid::parse_str(tx_id).map_err(|e| ErrorKind::GenericError(e.to_string())).unwrap();
     let wallet = match open_wallet(config, password) {
         Ok((wallet, Some(secret_key))) => {
             (wallet, Some(secret_key))
@@ -877,7 +878,7 @@ fn _tx_cancel(
     };
 
     let mut cancel_msg = "".to_string();
-    match  tx_cancel(&wallet.0, wallet.1, tx_id) {
+    match  tx_cancel(&wallet.0, wallet.1, uuid) {
         Ok(_) => {
             cancel_msg.push_str("");
         },Err(e) => {
@@ -2038,10 +2039,10 @@ pub fn process_received_slates(
 /*
     Cancel tx by id
 */
-pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, id: u32) -> Result<String, Error> {
+pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id: Uuid) -> Result<String, Error> {
     let api = Owner::new(wallet.clone());
     // let _cancel = api.cancel_tx(None, Some(id), None).unwrap();
-    match  api.cancel_tx(keychain_mask.as_ref(), Some(id), None) {
+    match  api.cancel_tx(keychain_mask.as_ref(), None, Some(tx_slate_id)) {
         Ok(_) => {
             Ok("cancelled".to_owned())
         },Err(e) => {
@@ -2277,7 +2278,7 @@ pub fn build_post_slate_request(
     ).map_err(|_| WsError::new(WsErrorKind::Protocol, "could not encrypt slate!")).unwrap();
     let message_ser = serde_json::to_string(&message).unwrap();
 
-    let to_address = format!("{}@{}", address_receiver.public_key, address_receiver.domain);
+    let to_address = format!("{}", address_receiver.public_key);
     let from_address = format!("{}", address_sender.public_key);
     challenge.push_str(&message_ser);
     let signature = sign_challenge(&challenge, &secret_pub_key_pair.0).unwrap().to_hex();
