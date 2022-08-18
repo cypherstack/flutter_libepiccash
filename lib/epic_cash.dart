@@ -51,9 +51,9 @@ typedef GetTransactionsFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
 
 typedef CancelTransaction = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 typedef CancelTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 
 typedef GetChainHeight = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef GetChainHeightFFI = Pointer<Utf8> Function(Pointer<Utf8>);
@@ -192,9 +192,9 @@ final CancelTransaction _cancelTransaction = epicCashNative
     .lookup<NativeFunction<CancelTransactionFFI>>("rust_tx_cancel")
     .asFunction();
 
-String cancelTransaction(String config, String password, int transactionId) {
+String cancelTransaction(String config, String password, String transactionId) {
   return _cancelTransaction(config.toNativeUtf8(), password.toNativeUtf8(),
-          transactionId.toString().toNativeUtf8().cast<Int8>())
+          transactionId.toNativeUtf8())
       .toDartString();
 }
 
