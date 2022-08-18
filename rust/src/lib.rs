@@ -39,6 +39,7 @@ use stack_test_epic_util::secp::{Secp256k1};
 
 use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
 use android_logger::FilterBuilder;
+use std::env;
 
 #[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
 pub struct Config {
@@ -163,10 +164,14 @@ fn create_wallet_config(config: Config) -> Result<WalletConfig, Error> {
 
 #[macro_use] extern crate log;
 extern crate android_logger;
+extern crate oslog;
+extern crate simplelog;
 
 use log::Level;
 use android_logger::Config as AndroidConfig;
 use stack_test_epicboxlib::utils::crypto::{Hex, sign_challenge};
+use oslog::OsLogger;
+use simplelog::LevelFilter;
 
 /*
     Create a new wallet
@@ -437,12 +442,24 @@ fn _recover_from_mnemonic(
 }
 
 fn init_logger() {
-    android_logger::init_once(
-        AndroidConfig::default()
-            .with_min_level(Level::Trace)
-            .with_tag("libepiccash")
-            .with_filter(FilterBuilder::new().parse("debug,epic-cash-wallet::crate=super").build()),
-    );
+    // if env::consts::OS == "android" {
+        android_logger::init_once(
+            AndroidConfig::default()
+                .with_min_level(Level::Trace)
+                .with_tag("libepiccash")
+                .with_filter(FilterBuilder::new().parse("debug,epic-cash-wallet::crate=super").build()),
+        );
+    // } else if env::consts::OS == "ios" {
+    //     // OsLogger::new("").level_filter(LevelFilter::Debug)
+    //     //     .category_level_filter("Settings", LevelFilter::Trace)
+    //     //     .init();
+    //     OsLogger::new("com.example.test")
+    //         .level_filter(LevelFilter::Debug)
+    //         .category_level_filter("Settings", LevelFilter::Trace)
+    //         .init()
+    //         .unwrap();
+    // }
+
 }
 
 #[no_mangle]

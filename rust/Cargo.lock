@@ -662,6 +662,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "5.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3495912c9c1ccf2e18976439f4443f3fee0fd61f424ff99fde6a66b15ecb448f"
+dependencies = [
+ "cfg-if 1.0.0",
+ "hashbrown 0.12.3",
+ "lock_api 0.4.7",
+ "parking_lot_core 0.9.3",
+]
+
+[[package]]
 name = "data-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -837,6 +849,7 @@ dependencies = [
  "jni",
  "log 0.4.17",
  "openssl",
+ "oslog",
  "prettytable-rs",
  "rand 0.6.5",
  "reqwest",
@@ -1216,6 +1229,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
 
 [[package]]
+name = "hashbrown"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+
+[[package]]
 name = "heck"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1452,7 +1471,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f647032dfaa1f8b6dc29bd3edb7bbef4861b8b8007ebb118d6db284fd59f6ee"
 dependencies = [
  "autocfg 1.1.0",
- "hashbrown",
+ "hashbrown 0.11.2",
 ]
 
 [[package]]
@@ -1645,6 +1664,16 @@ version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4da24a77a3d8a6d4862d95f72e6fdb9c09a643ecdb402d754004a557f2bec75"
 dependencies = [
+ "scopeguard 1.1.0",
+]
+
+[[package]]
+name = "lock_api"
+version = "0.4.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "327fa5b6a6940e4699ec49a9beae1ea4845c6bab9314e4f84ac68742139d8c53"
+dependencies = [
+ "autocfg 1.1.0",
  "scopeguard 1.1.0",
 ]
 
@@ -2176,6 +2205,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "oslog"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80d2043d1f61d77cb2f4b1f7b7b2295f40507f5f8e9d1c8bf10a1ca5f97a3969"
+dependencies = [
+ "cc",
+ "dashmap",
+ "log 0.4.17",
+]
+
+[[package]]
 name = "owning_ref"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2224,7 +2264,7 @@ dependencies = [
  "libc",
  "rand 0.5.6",
  "rustc_version",
- "smallvec",
+ "smallvec 0.6.14",
  "winapi 0.3.9",
 ]
 
@@ -2239,8 +2279,21 @@ dependencies = [
  "libc",
  "redox_syscall 0.1.57",
  "rustc_version",
- "smallvec",
+ "smallvec 0.6.14",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09a279cbf25cb0757810394fbc1e359949b59e348145c643a939a525692e6929"
+dependencies = [
+ "cfg-if 1.0.0",
+ "libc",
+ "redox_syscall 0.2.13",
+ "smallvec 1.9.0",
+ "windows-sys",
 ]
 
 [[package]]
@@ -3109,6 +3162,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "smallvec"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fd0db749597d91ff862fd1d55ea87f7855a744a8425a64695b6fca237d1dad1"
+
+[[package]]
 name = "socket2"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3126,9 +3185,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "stack_test_epic_api"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "570c2fce5f0961468eafcac2397e14185c1404daea46e714f6ec5418c7438de9"
+checksum = "29ca222f20a4c44b69d6311d48cc3b74b2ed119a6cf73fa942bb4491b7a8a2fb"
 dependencies = [
  "bigint",
  "easy-jsonrpc-mw",
@@ -3162,9 +3221,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_chain"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e37864ad6a6d4e13179edff08de346cd59fb0e0bdac9946b771f0a19fc4d1b22"
+checksum = "386e5801c0eb00b187d6e2b651a86eff6824c3bab921654c1c3e972ecf26185e"
 dependencies = [
  "bigint",
  "bit-vec",
@@ -3188,9 +3247,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_core"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7ca04fe9a3af42a957576d1d5cb2a22d53ec219bb044661d6896e6b93a8a890"
+checksum = "bce7dac7d84e10a79e7b23900d1866ab8e22b531923658c1e3be4a1de0120f84"
 dependencies = [
  "bigint",
  "blake2-rfc",
@@ -3221,9 +3280,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_keychain"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfaedcb1ec78e5b9e3fe7d1c425b253aa7d0e516925a7ab5814efc8f8065e90e"
+checksum = "fc057235f5054ad36ca811e10bd6f39468a2fa43a4122645187ed8816cb71057"
 dependencies = [
  "blake2-rfc",
  "byteorder",
@@ -3245,9 +3304,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_p2p"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54b6c083224ddb42646d46fda20286474a4bd96fa0dbe86df8f68d1362eee5b4"
+checksum = "e33b1c4ebe9b067151e61cdf3fa8daf6554f20b30c9c7506708201621c0a7285"
 dependencies = [
  "bitflags 1.3.2",
  "bytes 0.4.12",
@@ -3269,9 +3328,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_pool"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb5b9ae1abebf69a2fd41913f45134c5ea9e85e529fba04304b0b72c723fca48"
+checksum = "609cf7561c42a73916d5a22a64d42dc592cf0bf2ce9140fccd24dcb19aa2d9c9"
 dependencies = [
  "blake2-rfc",
  "chrono",
@@ -3289,9 +3348,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_store"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1025011f0835445df4f3acdcf1395aeb691684d500475025e272b903cf3c2019"
+checksum = "b38ea619acb73dc6c0899a50f51eb7a324df130246124b1c04fc418833b32f75"
 dependencies = [
  "byteorder",
  "croaring",
@@ -3311,9 +3370,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_util"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7aa89c5d0a2ddbbca58a18958c8cccafce15b0725c459ced89bbe38934eb2596"
+checksum = "26afb40d2a4a49f806218dc65b915eb78b34cfab6a7bef12d786316d35dbcc01"
 dependencies = [
  "backtrace",
  "base64 0.9.3",
@@ -3333,9 +3392,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_wallet_api"
-version = "3.0.1"
+version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e0630b9e3496806d534a193a44536f6d5c9ccd6aba9d9043a31eccb6abf22bb"
+checksum = "fd65a708bbb091585c979463b36dcd63acf5d7f9f62ed09c7ccb0bd782b9854a"
 dependencies = [
  "base64 0.9.3",
  "chrono",
@@ -3358,9 +3417,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_wallet_config"
-version = "3.0.1"
+version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cbf2e7993e499b874b255391acebf4969bab1036940245ed1ff9b307c9310c1"
+checksum = "651de2020a96a0f43a47cc0f7251851f5a68b2c8db7538a5457efb0370013eaa"
 dependencies = [
  "dirs 1.0.5",
  "rand 0.5.6",
@@ -3372,9 +3431,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_wallet_controller"
-version = "3.0.1"
+version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "533f79550234d41218323ffe7d076ec7b887d6f9b4e9f8e2aba7ad65df3d15e2"
+checksum = "dc5ae160165af4c53ba86a80a54200c324de11bb6b627bfc50073f8e00026bbd"
 dependencies = [
  "chrono",
  "easy-jsonrpc-mw",
@@ -3405,11 +3464,10 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_wallet_impls"
-version = "3.0.4"
+version = "3.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a58d218bf755e08e0cb84901e943675abda9cf397500693b1e2cd523f0e815a9"
+checksum = "9d6daacb6edd97ed55dea4e766e997d31d6fd123f13cae4b783423db01806682"
 dependencies = [
- "android_logger",
  "blake2-rfc",
  "byteorder",
  "chrono",
@@ -3445,9 +3503,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_wallet_libwallet"
-version = "3.0.1"
+version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb6ad230fcc375f60701b4d4dc3ce5a4ce415390387ed9f30f936158fbebe5c2"
+checksum = "a2a71c3c2c7914a285f80efbd8a1faba6d2cf4f7eafae017690d9aafacb26d69"
 dependencies = [
  "blake2-rfc",
  "byteorder",
@@ -3472,9 +3530,9 @@ dependencies = [
 
 [[package]]
 name = "stack_test_epic_wallet_util"
-version = "3.0.1"
+version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e2462d9eb40146b1d7c903c81e1ba4f3b07e11f988fa8971209be3108131625"
+checksum = "62b860dc8f731bd49c5fbbe526324b03fbdb8a9d70ae4be383e5aa769570348c"
 dependencies = [
  "dirs 1.0.5",
  "rand 0.5.6",
