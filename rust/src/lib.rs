@@ -21,8 +21,6 @@ use ws::{
     Result as WSResult, Sender, Handler
 };
 
-
-
 use stack_test_epic_keychain::mnemonic;
 use stack_test_epic_wallet_util::stack_test_epic_core::global::ChainTypes;
 use stack_test_epic_util::file::get_first_line;
@@ -43,12 +41,12 @@ use std::env;
 
 #[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
 pub struct Config {
-    pub wallet_dir: String,
-    pub check_node_api_http_addr: String,
-    pub chain: String,
-    pub account: Option<String>,
-    pub api_listen_port: u16,
-    pub api_listen_interface: String
+    wallet_dir: String,
+    check_node_api_http_addr: String,
+    chain: String,
+    account: Option<String>,
+    api_listen_port: u16,
+    api_listen_interface: String
 }
 
 #[derive(Clone)]
@@ -354,8 +352,10 @@ fn _wallet_balances(
         Ok(info) => {
             let str_wallet_info = serde_json::to_string(&info).unwrap();
             debug!("WALLET_INFO_RESPONSE :: {}", str_wallet_info.clone());
+            close_wallet(&wallet.0).unwrap();
             wallet_info.push_str(&str_wallet_info);
         },Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             debug!("WALLET_INFO_ERROR :: {}", e.to_string());
             return Err(e);
         }
@@ -439,24 +439,12 @@ fn _recover_from_mnemonic(
 }
 
 fn init_logger() {
-    // if env::consts::OS == "android" {
-        android_logger::init_once(
-            AndroidConfig::default()
-                .with_min_level(Level::Trace)
-                .with_tag("libepiccash")
-                .with_filter(FilterBuilder::new().parse("debug,epic-cash-wallet::crate=super").build()),
-        );
-    // } else if env::consts::OS == "ios" {
-    //     // OsLogger::new("").level_filter(LevelFilter::Debug)
-    //     //     .category_level_filter("Settings", LevelFilter::Trace)
-    //     //     .init();
-    //     OsLogger::new("com.example.test")
-    //         .level_filter(LevelFilter::Debug)
-    //         .category_level_filter("Settings", LevelFilter::Trace)
-    //         .init()
-    //         .unwrap();
-    // }
-
+    android_logger::init_once(
+        AndroidConfig::default()
+            .with_min_level(Level::Trace)
+            .with_tag("libepiccash")
+            .with_filter(FilterBuilder::new().parse("debug,epic-cash-wallet::crate=super").build()),
+    );
 }
 
 #[no_mangle]
@@ -494,7 +482,6 @@ fn _wallet_scan_outputs(
     start_height: *const c_char,
     number_of_blocks: *const c_char
 ) -> Result<*const c_char, Error> {
-
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let c_start_height = unsafe { CStr::from_ptr(start_height) };
@@ -534,10 +521,12 @@ fn _wallet_scan_outputs(
         Some(number_of_blocks)
     ) {
         Ok(scan) => {
+            close_wallet(&wallet.0).unwrap();
             debug!("SCAN_RETURN_IS::: {:?}", scan.clone());
             scan_result.push_str(&scan);
         },
         Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             debug!("WALLET_SCAN_ERROR::: {:?}", e.to_string());
             return Err(e);
         },
@@ -630,9 +619,11 @@ fn _encrypt_slate(
         &wallet.0, wallet.1, key_index
     ) {
         Ok(sec_pub_pair) => {
+            close_wallet(&wallet.0).unwrap();
             sec_pub_pair
         }
         Err(err) => {
+            close_wallet(&wallet.0).unwrap();
             return Err(err);
         }
     };
@@ -744,17 +735,16 @@ fn _create_tx(
             //Get Secret key at given Index, build epicbox request
             let key_pair = get_wallet_secret_key_pair(&wallet.0, keychain_mask, key_index).unwrap();
             let slate_msg = build_post_slate_request(address, key_pair, slate.clone(), epicbox_conf.clone());
-            debug!("{}", "EPICBOX_SLATE_POST_REQUEST");
-            debug!("{}", slate_msg.clone());
 
             let create_response = (&slate, &slate_msg);
             let str_create_response = serde_json::to_string(&create_response).unwrap();
-            debug!("CREATE_TX_FOR_CONFIRMSEND_IS {}", str_create_response.clone());
+            close_wallet(&wallet.0).unwrap();
             message.push_str(&str_create_response);
         },
         Err(e) => {
             debug!("CREATE_TX_FAIL:::{}", e.to_string());
             message.push_str(&e.to_string());
+            close_wallet(&wallet.0).unwrap();
             return Err(e);
         }
     }
@@ -827,9 +817,11 @@ fn _txs_get(
         refresh
     ) {
         Ok(txs) => {
+            close_wallet(&wallet.0).unwrap();
             txs_result.push_str(&txs);
         },
         Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             return Err(e);
         },
     }
@@ -894,8 +886,10 @@ fn _tx_cancel(
     let mut cancel_msg = "".to_string();
     match  tx_cancel(&wallet.0, wallet.1, uuid) {
         Ok(_) => {
+            close_wallet(&wallet.0).unwrap();
             cancel_msg.push_str("");
         },Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             return Err(e);
         }
     }
@@ -976,8 +970,10 @@ fn _decrypt_unprocessed_slates(
             let str_slates = serde_json::to_string(&decrypted).unwrap();
             debug!("{}", "DECRYPTED_SLATES");
             debug!("{:?}", str_slates.clone());
+            close_wallet(&wallet.0).unwrap();
             pending_slates.push_str(&str_slates);
         }, Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             return Err(e);
         }
     };
@@ -1052,8 +1048,10 @@ fn _process_pending_slates(
     ) {
         Ok(slates) => {
             debug!("{}", "PROCESS_SLATES_SUCCESS");
+            close_wallet(&wallet.0).unwrap();
             processed_slates.push_str(&slates);
         }, Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             debug!("PROCESS_SLATES_ERROR :::: {}", e.to_string());
             return  Err(e);
         }
@@ -1264,8 +1262,10 @@ fn _get_tx_fees(
     let mut fees_data = "".to_string();
     match tx_strategies(&wallet.0, wallet.1, amount, minimum_confirmations) {
         Ok(fees) => {
+            close_wallet(&wallet.0).unwrap();
             fees_data.push_str(&fees);
         }, Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             return Err(e);
         }
     }
@@ -1467,9 +1467,11 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
                 ZeroingString::from(mnemonic), ZeroingString::from(password)
             ) {
                 Ok(_) => {
+                    close_wallet(&wallet).unwrap();
                     return  Ok(());
                 }
                 Err(e) => {
+                    close_wallet(&wallet).unwrap();
                     return  Err(e);
                 }
             }
@@ -1974,8 +1976,10 @@ fn _post_slate_to_node(
     let  mut tx_post_message = String::from("");
     match tx_post(&wallet.0, wallet.1, tx_slate_id) {
         Ok(posted) => {
+            close_wallet(&wallet.0).unwrap();
             tx_post_message.push_str(&posted);
         }, Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             tx_post_message.push_str(&e.to_string());
         }
     }
