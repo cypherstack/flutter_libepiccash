@@ -41,12 +41,12 @@ use std::env;
 
 #[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
 pub struct Config {
-    wallet_dir: String,
-    check_node_api_http_addr: String,
-    chain: String,
-    account: Option<String>,
-    api_listen_port: u16,
-    api_listen_interface: String
+    pub wallet_dir: String,
+    pub check_node_api_http_addr: String,
+    pub chain: String,
+    pub account: Option<String>,
+    pub api_listen_port: u16,
+    pub api_listen_interface: String
 }
 
 #[derive(Clone)]
@@ -1098,6 +1098,68 @@ fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     Ok(p)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_delete_wallet(
+    config: *const c_char,
+    password: *const c_char,
+) -> *const c_char  {
+    debug!("{}", "RUST_DELETE_WALLET");
+    let result = match _delete_wallet(
+        config,
+        password
+    ) {
+        Ok(deleted) => {
+            deleted
+        }, Err(err ) => {
+            debug!("DELETE_WALLET_ERROR{}", err.to_string());
+            let error_msg = format!("Error {}", &err.to_string());
+            let error_msg_ptr = CString::new(error_msg).unwrap();
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            std::mem::forget(error_msg_ptr);
+            ptr
+        }
+    };
+    result
+}
+
+fn _delete_wallet(
+    config: *const c_char,
+    password: *const c_char,
+) -> Result<*const c_char, Error> {
+    let config = unsafe { CStr::from_ptr(config) };
+    let password = unsafe { CStr::from_ptr(password) };
+
+    let config = config.to_str().unwrap();
+    let password = password.to_str().unwrap();
+
+    let wallet = match open_wallet(config, password) {
+        Ok((wallet, Some(secret_key))) => {
+            (wallet, Some(secret_key))
+        }, Ok((_, None)) => {
+            return  Err(Error::from(ErrorKind::GenericError(format!(
+                "{}",
+                "Unable to get wallet secret key"
+            ))));
+        }, Err(e) => {
+            return  Err(e);
+        }
+    };
+    let mut delete_result = String::from("");
+    match delete_wallet(&wallet.0) {
+        Ok(deleted) => {
+            delete_result.push_str(&deleted);
+        },
+        Err(err) => {
+            return Err(err);
+        },
+    }
+    let s = CString::new(delete_result).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    Ok(p)
+
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -2510,5 +2572,37 @@ pub fn validate_address(address: &str) -> bool {
         _ => {
             false
         }
+    }
+}
+
+pub fn delete_wallet(wallet: &Wallet) -> Result<String, Error> {
+    //First close the wallet
+    let mut result = String::from("");
+    if let Ok(closed) = close_wallet(&wallet) {
+        let api = Owner::new(wallet.clone());
+        match api.delete_wallet(None) {
+            Ok(_) => {
+                result.push_str("deleted");
+            }
+            Err(err) => {
+                return  Err(err);
+            }
+        };
+    } else {
+        return  return Err(
+            Error::from(ErrorKind::GenericError(format!("{}", "Error closing wallet")))
+        );
+    }
+    Ok(result)
+}
+
+pub fn get_default_config() -> Config {
+    Config {
+        wallet_dir: String::from("default"),
+        check_node_api_http_addr: String::from("http://epiccash.stackwallet.com:3413"),
+        chain: String::from("mainnet"),
+        account: Some(String::from("default")),
+        api_listen_port: 3413,
+        api_listen_interface: "epiccash.stackwallet.com".to_string()
     }
 }

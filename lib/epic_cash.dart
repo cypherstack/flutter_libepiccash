@@ -96,6 +96,11 @@ typedef PostSlateToNode = Pointer<Utf8> Function(
 typedef PostSlateToNodeFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 
+typedef DeleteWallet = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>);
+typedef DeleteWalletFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>);
+
 final WalletMnemonic _walletMnemonic = epicCashNative
     .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
     .asFunction();
@@ -311,3 +316,16 @@ Future<String> postSlateToNode(String config, String password,
           txSlateId.toNativeUtf8())
       .toDartString();
 }
+
+final DeleteWallet _deleteWallet = epicCashNative
+    .lookup<NativeFunction<DeleteWalletFFI>>("rust_delete_wallet")
+    .asFunction();
+
+Future<String> deleteWallet(String config, String password) async {
+  return _deleteWallet(
+      config.toNativeUtf8(),
+      password.toNativeUtf8())
+      .toDartString();
+}
+
+
