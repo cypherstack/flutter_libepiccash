@@ -43,7 +43,6 @@ public class SwiftFlutterLibepiccashPlugin: NSObject, FlutterPlugin {
                            "const char *sender_key", "const char *epicbox_config", "const char *min_confirmations");
     rust_txs_get("const char *config",
                          "const char *password",
-                         "const char *minimum_confirmations",
                          "const char *refresh_from_node");
     rust_tx_cancel("const char *config", "const char *password", "const char *tx_id");
     rust_decrypt_unprocessed_slates("const char *config", "const char *password", "const char *secret_key_index", "const char *slates");
@@ -52,6 +51,7 @@ public class SwiftFlutterLibepiccashPlugin: NSObject, FlutterPlugin {
                                         "const char *slates");
 
     rust_get_chain_height("const char *config");
+    rust_delete_wallet("const char *config", "const char *password");
     rust_get_wallet_address("const char *config", "const char *password", "const char *index", "const char *epicbox_config");
     rust_validate_address("const char *address");
     rust_get_tx_fees("const char *c_config", "const char *c_password", "const char *c_amount", "const char *min_confirmations");
