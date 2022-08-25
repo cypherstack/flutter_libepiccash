@@ -21,8 +21,6 @@ use ws::{
     Result as WSResult, Sender, Handler
 };
 
-
-
 use stack_test_epic_keychain::mnemonic;
 use stack_test_epic_wallet_util::stack_test_epic_core::global::ChainTypes;
 use stack_test_epic_util::file::get_first_line;
@@ -39,6 +37,7 @@ use stack_test_epic_util::secp::{Secp256k1};
 
 use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
 use android_logger::FilterBuilder;
+use std::env;
 
 #[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
 pub struct Config {
@@ -163,6 +162,7 @@ fn create_wallet_config(config: Config) -> Result<WalletConfig, Error> {
 
 #[macro_use] extern crate log;
 extern crate android_logger;
+extern crate simplelog;
 
 use log::Level;
 use android_logger::Config as AndroidConfig;
@@ -313,6 +313,8 @@ fn _wallet_balances(
     refresh: *const c_char,
     min_confirmations: *const c_char,
 ) -> Result<*const c_char, Error> {
+    init_logger();
+    debug!("{}", "CALLING_GET_BALANCES");
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let c_refresh = unsafe { CStr::from_ptr(refresh) };
@@ -341,11 +343,20 @@ fn _wallet_balances(
         }
     };
     let mut wallet_info = "".to_string();
-    match get_wallet_info(&wallet.0, wallet.1, refresh, minimum_confirmations) {
+    match get_wallet_info(
+        &wallet.0,
+        wallet.1,
+        refresh,
+        minimum_confirmations
+    ) {
         Ok(info) => {
             let str_wallet_info = serde_json::to_string(&info).unwrap();
+            debug!("WALLET_INFO_RESPONSE :: {}", str_wallet_info.clone());
+            close_wallet(&wallet.0).unwrap();
             wallet_info.push_str(&str_wallet_info);
         },Err(e) => {
+            close_wallet(&wallet.0).unwrap();
+            debug!("WALLET_INFO_ERROR :: {}", e.to_string());
             return Err(e);
         }
     }
@@ -471,7 +482,6 @@ fn _wallet_scan_outputs(
     start_height: *const c_char,
     number_of_blocks: *const c_char
 ) -> Result<*const c_char, Error> {
-
     let c_conf = unsafe { CStr::from_ptr(config) };
     let c_password = unsafe { CStr::from_ptr(password) };
     let c_start_height = unsafe { CStr::from_ptr(start_height) };
@@ -511,10 +521,12 @@ fn _wallet_scan_outputs(
         Some(number_of_blocks)
     ) {
         Ok(scan) => {
+            close_wallet(&wallet.0).unwrap();
             debug!("SCAN_RETURN_IS::: {:?}", scan.clone());
             scan_result.push_str(&scan);
         },
         Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             debug!("WALLET_SCAN_ERROR::: {:?}", e.to_string());
             return Err(e);
         },
@@ -607,9 +619,11 @@ fn _encrypt_slate(
         &wallet.0, wallet.1, key_index
     ) {
         Ok(sec_pub_pair) => {
+            close_wallet(&wallet.0).unwrap();
             sec_pub_pair
         }
         Err(err) => {
+            close_wallet(&wallet.0).unwrap();
             return Err(err);
         }
     };
@@ -721,17 +735,16 @@ fn _create_tx(
             //Get Secret key at given Index, build epicbox request
             let key_pair = get_wallet_secret_key_pair(&wallet.0, keychain_mask, key_index).unwrap();
             let slate_msg = build_post_slate_request(address, key_pair, slate.clone(), epicbox_conf.clone());
-            debug!("{}", "EPICBOX_SLATE_POST_REQUEST");
-            debug!("{}", slate_msg.clone());
 
             let create_response = (&slate, &slate_msg);
             let str_create_response = serde_json::to_string(&create_response).unwrap();
-            debug!("CREATE_TX_FOR_CONFIRMSEND_IS {}", str_create_response.clone());
+            close_wallet(&wallet.0).unwrap();
             message.push_str(&str_create_response);
         },
         Err(e) => {
             debug!("CREATE_TX_FAIL:::{}", e.to_string());
             message.push_str(&e.to_string());
+            close_wallet(&wallet.0).unwrap();
             return Err(e);
         }
     }
@@ -804,9 +817,11 @@ fn _txs_get(
         refresh
     ) {
         Ok(txs) => {
+            close_wallet(&wallet.0).unwrap();
             txs_result.push_str(&txs);
         },
         Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             return Err(e);
         },
     }
@@ -853,7 +868,8 @@ fn _tx_cancel(
 
     let config = config.to_str().unwrap();
     let password = password.to_str().unwrap();
-    let tx_id: u32 = tx_id.to_str().unwrap().to_string().parse().unwrap();
+    let tx_id = tx_id.to_str().unwrap();
+    let uuid = Uuid::parse_str(tx_id).map_err(|e| ErrorKind::GenericError(e.to_string())).unwrap();
     let wallet = match open_wallet(config, password) {
         Ok((wallet, Some(secret_key))) => {
             (wallet, Some(secret_key))
@@ -868,10 +884,12 @@ fn _tx_cancel(
     };
 
     let mut cancel_msg = "".to_string();
-    match  tx_cancel(&wallet.0, wallet.1, tx_id) {
+    match  tx_cancel(&wallet.0, wallet.1, uuid) {
         Ok(_) => {
+            close_wallet(&wallet.0).unwrap();
             cancel_msg.push_str("");
         },Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             return Err(e);
         }
     }
@@ -952,8 +970,10 @@ fn _decrypt_unprocessed_slates(
             let str_slates = serde_json::to_string(&decrypted).unwrap();
             debug!("{}", "DECRYPTED_SLATES");
             debug!("{:?}", str_slates.clone());
+            close_wallet(&wallet.0).unwrap();
             pending_slates.push_str(&str_slates);
         }, Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             return Err(e);
         }
     };
@@ -1028,8 +1048,10 @@ fn _process_pending_slates(
     ) {
         Ok(slates) => {
             debug!("{}", "PROCESS_SLATES_SUCCESS");
+            close_wallet(&wallet.0).unwrap();
             processed_slates.push_str(&slates);
         }, Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             debug!("PROCESS_SLATES_ERROR :::: {}", e.to_string());
             return  Err(e);
         }
@@ -1076,6 +1098,68 @@ fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     Ok(p)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_delete_wallet(
+    config: *const c_char,
+    password: *const c_char,
+) -> *const c_char  {
+    debug!("{}", "RUST_DELETE_WALLET");
+    let result = match _delete_wallet(
+        config,
+        password
+    ) {
+        Ok(deleted) => {
+            deleted
+        }, Err(err ) => {
+            debug!("DELETE_WALLET_ERROR{}", err.to_string());
+            let error_msg = format!("Error {}", &err.to_string());
+            let error_msg_ptr = CString::new(error_msg).unwrap();
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            std::mem::forget(error_msg_ptr);
+            ptr
+        }
+    };
+    result
+}
+
+fn _delete_wallet(
+    config: *const c_char,
+    password: *const c_char,
+) -> Result<*const c_char, Error> {
+    let config = unsafe { CStr::from_ptr(config) };
+    let password = unsafe { CStr::from_ptr(password) };
+
+    let config = config.to_str().unwrap();
+    let password = password.to_str().unwrap();
+
+    let wallet = match open_wallet(config, password) {
+        Ok((wallet, Some(secret_key))) => {
+            (wallet, Some(secret_key))
+        }, Ok((_, None)) => {
+            return  Err(Error::from(ErrorKind::GenericError(format!(
+                "{}",
+                "Unable to get wallet secret key"
+            ))));
+        }, Err(e) => {
+            return  Err(e);
+        }
+    };
+    let mut delete_result = String::from("");
+    match delete_wallet(&wallet.0) {
+        Ok(deleted) => {
+            delete_result.push_str(&deleted);
+        },
+        Err(err) => {
+            return Err(err);
+        },
+    }
+    let s = CString::new(delete_result).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    Ok(p)
+
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -1240,8 +1324,10 @@ fn _get_tx_fees(
     let mut fees_data = "".to_string();
     match tx_strategies(&wallet.0, wallet.1, amount, minimum_confirmations) {
         Ok(fees) => {
+            close_wallet(&wallet.0).unwrap();
             fees_data.push_str(&fees);
         }, Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             return Err(e);
         }
     }
@@ -1387,7 +1473,12 @@ pub struct WalletInfoFormatted {
     Get wallet info
     This contains wallet balances
 */
-pub fn get_wallet_info(wallet: &Wallet, keychain_mask: Option<SecretKey>, refresh_from_node: bool, min_confirmations: u64) -> Result<WalletInfoFormatted, Error> {
+pub fn get_wallet_info(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    refresh_from_node: bool,
+    min_confirmations: u64
+) -> Result<WalletInfoFormatted, Error> {
     let api = Owner::new(wallet.clone());
 
     match api.retrieve_summary_info(keychain_mask.as_ref(), refresh_from_node, min_confirmations) {
@@ -1438,9 +1529,11 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
                 ZeroingString::from(mnemonic), ZeroingString::from(password)
             ) {
                 Ok(_) => {
+                    close_wallet(&wallet).unwrap();
                     return  Ok(());
                 }
                 Err(e) => {
+                    close_wallet(&wallet).unwrap();
                     return  Err(e);
                 }
             }
@@ -1945,8 +2038,10 @@ fn _post_slate_to_node(
     let  mut tx_post_message = String::from("");
     match tx_post(&wallet.0, wallet.1, tx_slate_id) {
         Ok(posted) => {
+            close_wallet(&wallet.0).unwrap();
             tx_post_message.push_str(&posted);
         }, Err(e) => {
+            close_wallet(&wallet.0).unwrap();
             tx_post_message.push_str(&e.to_string());
         }
     }
@@ -2024,10 +2119,10 @@ pub fn process_received_slates(
 /*
     Cancel tx by id
 */
-pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, id: u32) -> Result<String, Error> {
+pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id: Uuid) -> Result<String, Error> {
     let api = Owner::new(wallet.clone());
     // let _cancel = api.cancel_tx(None, Some(id), None).unwrap();
-    match  api.cancel_tx(keychain_mask.as_ref(), Some(id), None) {
+    match  api.cancel_tx(keychain_mask.as_ref(), None, Some(tx_slate_id)) {
         Ok(_) => {
             Ok("cancelled".to_owned())
         },Err(e) => {
@@ -2263,7 +2358,7 @@ pub fn build_post_slate_request(
     ).map_err(|_| WsError::new(WsErrorKind::Protocol, "could not encrypt slate!")).unwrap();
     let message_ser = serde_json::to_string(&message).unwrap();
 
-    let to_address = format!("{}@{}", address_receiver.public_key, address_receiver.domain);
+    let to_address = format!("{}", address_receiver.public_key);
     let from_address = format!("{}", address_sender.public_key);
     challenge.push_str(&message_ser);
     let signature = sign_challenge(&challenge, &secret_pub_key_pair.0).unwrap().to_hex();
@@ -2477,5 +2572,37 @@ pub fn validate_address(address: &str) -> bool {
         _ => {
             false
         }
+    }
+}
+
+pub fn delete_wallet(wallet: &Wallet) -> Result<String, Error> {
+    //First close the wallet
+    let mut result = String::from("");
+    if let Ok(closed) = close_wallet(&wallet) {
+        let api = Owner::new(wallet.clone());
+        match api.delete_wallet(None) {
+            Ok(_) => {
+                result.push_str("deleted");
+            }
+            Err(err) => {
+                return  Err(err);
+            }
+        };
+    } else {
+        return  return Err(
+            Error::from(ErrorKind::GenericError(format!("{}", "Error closing wallet")))
+        );
+    }
+    Ok(result)
+}
+
+pub fn get_default_config() -> Config {
+    Config {
+        wallet_dir: String::from("default"),
+        check_node_api_http_addr: String::from("http://epiccash.stackwallet.com:3413"),
+        chain: String::from("mainnet"),
+        account: Some(String::from("default")),
+        api_listen_port: 3413,
+        api_listen_interface: "epiccash.stackwallet.com".to_string()
     }
 }

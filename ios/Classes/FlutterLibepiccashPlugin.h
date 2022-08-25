@@ -47,23 +47,22 @@ const char *rust_create_tx(const char *config,
                            const char *epicbox_config,
                            const char *min_confirmations);
 
-const char *rust_txs_get(const char *config,
-                         const char *password,
-                         const char *minimum_confirmations,
-                         const char *refresh_from_node);
+const char *rust_txs_get(const char *config, const char *password, const char *refresh_from_node);
 
 const char *rust_tx_cancel(const char *config, const char *password, const char *tx_id);
 
 const char *rust_decrypt_unprocessed_slates(const char *config,
-                                      const char *password,
-                                      const char *secret_key_index,
-                                      const char *slates);
+                                            const char *password,
+                                            const char *secret_key_index,
+                                            const char *slates);
 
 const char *rust_process_pending_slates(const char *config,
                                         const char *password,
                                         const char *slates);
 
 const char *rust_get_chain_height(const char *config);
+
+const char *rust_delete_wallet(const char *config, const char *password);
 
 const char *rust_get_wallet_address(const char *config,
                                     const char *password,

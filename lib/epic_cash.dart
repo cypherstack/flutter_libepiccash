@@ -51,9 +51,9 @@ typedef GetTransactionsFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
 
 typedef CancelTransaction = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 typedef CancelTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 
 typedef GetChainHeight = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef GetChainHeightFFI = Pointer<Utf8> Function(Pointer<Utf8>);
@@ -95,6 +95,11 @@ typedef PostSlateToNode = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 typedef PostSlateToNodeFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+
+typedef DeleteWallet = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>);
+typedef DeleteWalletFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Utf8>);
 
 final WalletMnemonic _walletMnemonic = epicCashNative
     .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
@@ -192,9 +197,9 @@ final CancelTransaction _cancelTransaction = epicCashNative
     .lookup<NativeFunction<CancelTransactionFFI>>("rust_tx_cancel")
     .asFunction();
 
-String cancelTransaction(String config, String password, int transactionId) {
+String cancelTransaction(String config, String password, String transactionId) {
   return _cancelTransaction(config.toNativeUtf8(), password.toNativeUtf8(),
-          transactionId.toString().toNativeUtf8().cast<Int8>())
+          transactionId.toNativeUtf8())
       .toDartString();
 }
 
@@ -311,3 +316,16 @@ Future<String> postSlateToNode(String config, String password,
           txSlateId.toNativeUtf8())
       .toDartString();
 }
+
+final DeleteWallet _deleteWallet = epicCashNative
+    .lookup<NativeFunction<DeleteWalletFFI>>("rust_delete_wallet")
+    .asFunction();
+
+Future<String> deleteWallet(String config, String password) async {
+  return _deleteWallet(
+      config.toNativeUtf8(),
+      password.toNativeUtf8())
+      .toDartString();
+}
+
+
