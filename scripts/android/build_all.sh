@@ -2,6 +2,7 @@
 
 
 . ./config.sh
+printf $(git log -1 --pretty=format:"%h %ad") >> build/git_commit_version.txt
 cp -r ../../rust build/rust
 cd build/rust
 rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 mkdir build
+printf $(git log -1 --pretty=format:"%h %ad") >> build/git_commit_version.txt
 cp -r ../../rust build/rust
 cd build/rust
 
