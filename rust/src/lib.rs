@@ -1051,7 +1051,6 @@ pub unsafe extern "C" fn rust_delete_wallet(
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
     ensure_wallet!(wlt, wallet);
-
     let result = match _delete_wallet(
         wallet
     ) {
@@ -1101,7 +1100,6 @@ pub unsafe extern "C" fn rust_get_wallet_address(
     index: *const c_char,
     epicbox_config: *const c_char,
 ) -> *const c_char {
-
     let wallet_ptr = CStr::from_ptr(wallet);
     let index = CStr::from_ptr(index);
     let epicbox_config = CStr::from_ptr(epicbox_config);
@@ -1967,7 +1965,6 @@ pub fn process_received_slates(
             }
         },
         Err(err) => {
-            debug!("SLATE_PROCESS_ERROR {}", err.to_string());
             return  Err(err);
         }
     };

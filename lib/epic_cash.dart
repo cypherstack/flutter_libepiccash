@@ -129,9 +129,9 @@ final WalletInfo _walletInfo = epicCashNative
 Future<String> getWalletInfo(String wallet,
     int refreshFromNode, int min_confirmations) async {
   return _walletInfo(
-      wallet.toNativeUtf8(),
-      refreshFromNode.toString().toNativeUtf8().cast<Int8>(),
-      min_confirmations.toString().toNativeUtf8().cast<Int8>())
+          wallet.toNativeUtf8(),
+          refreshFromNode.toString().toNativeUtf8().cast<Int8>(),
+          min_confirmations.toString().toNativeUtf8().cast<Int8>())
       .toDartString();
 }
 
@@ -187,7 +187,7 @@ final GetTransactions _getTransactions = epicCashNative
 Future<String> getTransactions(
     String wallet, int refreshFromNode) async {
   return _getTransactions(wallet.toNativeUtf8(),
-      refreshFromNode.toString().toNativeUtf8().cast<Int8>())
+          refreshFromNode.toString().toNativeUtf8().cast<Int8>())
       .toDartString();
 }
 
@@ -197,7 +197,7 @@ final CancelTransaction _cancelTransaction = epicCashNative
 
 String cancelTransaction(String wallet, String transactionId) {
   return _cancelTransaction(wallet.toNativeUtf8(),
-      transactionId.toNativeUtf8())
+          transactionId.toNativeUtf8())
       .toDartString();
 }
 
@@ -217,9 +217,9 @@ final AddressInfo _addressInfo = epicCashNative
 String getAddressInfo(
     String wallet, int index, String epicboxConfig) {
   return _addressInfo(
-      wallet.toNativeUtf8(),
-      index.toString().toNativeUtf8().cast<Int8>(),
-      epicboxConfig.toNativeUtf8())
+          wallet.toNativeUtf8(),
+          index.toString().toNativeUtf8().cast<Int8>(),
+          epicboxConfig.toNativeUtf8())
       .toDartString();
 }
 
@@ -238,9 +238,9 @@ final PendingSlates _getPendingSlates = epicCashNative
 Future<String> getPendingSlates(
     String wallet, int secretKeyIndex, String slates) async {
   return _getPendingSlates(
-      wallet.toNativeUtf8(),
-      secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
-      slates.toNativeUtf8())
+          wallet.toNativeUtf8(),
+          secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
+          slates.toNativeUtf8())
       .toDartString();
 }
 
@@ -251,9 +251,9 @@ final SubscribeRequest _getSubscribeRequest = epicCashNative
 Future<String> getSubscribeRequest(String wallet,
     int secretKeyIndex, String epicboxConfig) async {
   return _getSubscribeRequest(
-      wallet.toNativeUtf8(),
-      secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
-      epicboxConfig.toNativeUtf8())
+          wallet.toNativeUtf8(),
+          secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
+          epicboxConfig.toNativeUtf8())
       .toDartString();
 }
 
@@ -264,7 +264,7 @@ final ProcessSlates _processSlates = epicCashNative
 Future<String> processSlates(
     String wallet, String slates) async {
   return _processSlates(
-      wallet.toNativeUtf8(), slates.toNativeUtf8())
+          wallet.toNativeUtf8(), slates.toNativeUtf8())
       .toDartString();
 }
 
@@ -275,9 +275,9 @@ final TransactionFees _transactionFees = epicCashNative
 Future<String> getTransactionFees(String wallet, int amount,
     int minimumConfirmations) async {
   return _transactionFees(
-      wallet.toNativeUtf8(),
-      amount.toString().toNativeUtf8().cast<Int8>(),
-      minimumConfirmations.toString().toNativeUtf8().cast<Int8>())
+          wallet.toNativeUtf8(),
+          amount.toString().toNativeUtf8().cast<Int8>(),
+          minimumConfirmations.toString().toNativeUtf8().cast<Int8>())
       .toDartString();
 }
 
@@ -288,11 +288,11 @@ final EncryptSlate _encryptSlate = epicCashNative
 Future<String> getEncryptedSlate(String wallet, String address,
     int secretKeyIndex, String epicboxConfig, String slate) async {
   return _encryptSlate(
-      wallet.toNativeUtf8(),
-      address.toNativeUtf8(),
-      secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
-      epicboxConfig.toNativeUtf8(),
-      slate.toNativeUtf8())
+          wallet.toNativeUtf8(),
+          address.toNativeUtf8(),
+          secretKeyIndex.toString().toNativeUtf8().cast<Int8>(),
+          epicboxConfig.toNativeUtf8(),
+          slate.toNativeUtf8())
       .toDartString();
 }
 
@@ -302,8 +302,8 @@ final PostSlateToNode _postSlateToNode = epicCashNative
 
 Future<String> postSlateToNode(String wallet, String txSlateId) async {
   return _postSlateToNode(
-      wallet.toNativeUtf8(),
-      txSlateId.toNativeUtf8())
+          wallet.toNativeUtf8(),
+          txSlateId.toNativeUtf8())
       .toDartString();
 }
 
