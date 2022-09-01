@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use stack_test_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
 use stack_test_epic_wallet_config::{WalletConfig};
-use stack_test_epic_wallet_libwallet::api_impl::types::InitTxArgs;
+use stack_test_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
 use stack_test_epic_wallet_libwallet::api_impl::owner;
 use stack_test_epic_wallet_impls::{
     DefaultLCProvider, DefaultWalletImpl, HTTPNodeClient,
@@ -1085,6 +1085,91 @@ fn _delete_wallet(
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     Ok(p)
 
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_tx_send_http(
+    wallet: *const c_char,
+    selection_strategy_is_use_all: *const c_char,
+    minimum_confirmations: *const c_char,
+    message: *const c_char,
+    amount: *const c_char,
+    address: *const c_char,
+) -> *const c_char  {
+    let c_wallet = CStr::from_ptr(wallet);
+    let c_strategy_is_use_all = CStr::from_ptr(selection_strategy_is_use_all);
+    let strategy_is_use_all: u64 = c_strategy_is_use_all.to_str().unwrap().to_string().parse().unwrap();
+    let strategy_use_all = match strategy_is_use_all {
+        0 => false,
+        _=> true
+    };
+    let c_minimum_confirmations = CStr::from_ptr(minimum_confirmations);
+    let minimum_confirmations: u64 = c_minimum_confirmations.to_str().unwrap().to_string().parse().unwrap();
+    let c_message = CStr::from_ptr(message);
+    let str_message = c_message.to_str().unwrap();
+    let c_amount = CStr::from_ptr(amount);
+    let amount: u64 = c_amount.to_str().unwrap().to_string().parse().unwrap();
+    let c_address = CStr::from_ptr(address);
+    let str_address = c_address.to_str().unwrap();
+
+    let wallet_data = c_wallet.to_str().unwrap();
+    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+    let wlt = tuple_wallet_data.0;
+    let sek_key = tuple_wallet_data.1;
+    ensure_wallet!(wlt, wallet);
+
+    let result = match _tx_send_http(
+        wallet,
+        sek_key,
+        strategy_use_all,
+        minimum_confirmations,
+        str_message,
+        amount,
+        str_address
+    ) {
+        Ok(tx_data) => {
+            tx_data
+        }, Err(err ) => {
+            let error_msg = format!("Error {}", &err.to_string());
+            let error_msg_ptr = CString::new(error_msg).unwrap();
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            std::mem::forget(error_msg_ptr);
+            ptr
+        }
+    };
+    result
+}
+
+fn _tx_send_http(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    selection_strategy_is_use_all: bool,
+    minimum_confirmations: u64,
+    message: &str,
+    amount: u64,
+    address: &str
+) -> Result<*const c_char, Error> {
+    let mut send_result = String::from("");
+    match tx_send_http(
+        wallet,
+        keychain_mask,
+        selection_strategy_is_use_all,
+        minimum_confirmations,
+        message,
+        amount,
+        address
+    ) {
+        Ok(sent) => {
+            send_result.push_str(&sent);
+        },
+        Err(err) => {
+            return Err(err);
+        },
+    }
+    let s = CString::new(send_result).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    Ok(p)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -2435,4 +2520,64 @@ pub fn delete_wallet(wallet: &Wallet) -> Result<String, Error> {
         );
     }
     Ok(result)
+}
+
+pub fn tx_send_http(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    selection_strategy_is_use_all: bool,
+    minimum_confirmations: u64,
+    message: &str,
+    amount: u64,
+    address: &str,
+) -> Result<String, Error>{
+    let api = Owner::new(wallet.clone());
+    let initSendArgs = InitTxSendArgs {
+        method: "http".to_string(),
+        dest: address.to_string(),
+        finalize: true,
+        post_tx: true,
+        fluff: true
+    };
+
+    let args = InitTxArgs {
+        src_acct_name: Some("default".to_string()),
+        amount,
+        minimum_confirmations,
+        max_outputs: 500,
+        num_change_outputs: 1,
+        selection_strategy_is_use_all,
+        message: Some(message.to_string()),
+        send_args: Some(initSendArgs),
+        ..Default::default()
+    };
+
+    match api.init_send_tx(keychain_mask.as_ref(), args) {
+        Ok(slate) => {
+            println!("{}", "CREATE_TX_SUCCESS");
+            //Get transaction for slate, for UI display
+            let txs = match api.retrieve_txs(
+                keychain_mask.as_ref(),
+                false,
+                None,
+                Some(slate.id)
+            ) {
+                Ok(txs_result) => {
+                    txs_result
+                }, Err(e) => {
+                    return Err(e);
+                }
+            };
+
+            let tx_data = (
+                serde_json::to_string(&txs.1).unwrap(),
+                serde_json::to_string(&slate).unwrap()
+            );
+            let str_tx_data = serde_json::to_string(&tx_data).unwrap();
+            Ok(str_tx_data)
+        } Err(err) => {
+            println!("CREATE_TX_ERROR_IN_HTTP_SEND {}", err.to_string());
+            return  Err(err);
+        }
+    }
 }
