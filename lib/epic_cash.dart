@@ -103,6 +103,14 @@ typedef OpenWallet = Pointer<Utf8> Function(
 typedef OpenWalletFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>);
 
+
+typedef TxHttpSend = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>,
+    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+typedef TxHttpSendFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>,
+    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+
 final WalletMnemonic _walletMnemonic = epicCashNative
     .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
     .asFunction();
@@ -325,6 +333,28 @@ String openWallet(
     String config, String password) {
   return _openWallet(config.toNativeUtf8(),
       password.toNativeUtf8())
+      .toDartString();
+}
+
+final TxHttpSend _txHttpSend = epicCashNative
+    .lookup<NativeFunction<TxHttpSendFFI>>("rust_tx_send_http")
+    .asFunction();
+
+Future<String> txHttpSend(
+    String wallet,
+    int selectionStrategyIsAll,
+    int minimumConfirmations,
+    String message,
+    int amount,
+    String address
+    ) async {
+  return _txHttpSend(
+      wallet.toNativeUtf8(),
+      selectionStrategyIsAll.toString().toNativeUtf8().cast<Int8>(),
+      minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
+      message.toNativeUtf8(),
+      amount.toString().toNativeUtf8().cast<Int8>(),
+      address.toNativeUtf8())
       .toDartString();
 }
 
