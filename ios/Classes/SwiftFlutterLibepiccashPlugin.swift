@@ -55,6 +55,11 @@ public class SwiftFlutterLibepiccashPlugin: NSObject, FlutterPlugin {
     subscribe_request("const char *wallet",
                                  " const char *secret_key_index",
                                   "const char *epicbox_config");
+
+    rust_tx_send_http("const char *wallet", "const char *selection_strategy_is_use_all","const char *minimum_confirmations",
+                                  "const char *message",
+                                  "const char *amount",
+                                  "const char *address")
       // ...
       // This code will force the bundler to use these functions, but will never be called
     }

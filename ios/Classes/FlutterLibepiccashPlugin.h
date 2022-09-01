@@ -77,3 +77,10 @@ const char *rust_post_slate_to_node(const char *wallet,
 const char *subscribe_request(const char *wallet,
                               const char *secret_key_index,
                               const char *epicbox_config);
+
+const char *rust_tx_send_http(const char *wallet,
+                              const char *selection_strategy_is_use_all,
+                              const char *minimum_confirmations,
+                              const char *message,
+                              const char *amount,
+                              const char *address);
