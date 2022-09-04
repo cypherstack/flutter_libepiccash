@@ -19,6 +19,8 @@ public class SwiftFlutterLibepiccashPlugin: NSObject, FlutterPlugin {
                         "const char *password",
                         "const char *name");
     get_mnemonic();
+    rust_open_wallet("const char *config",
+                    "const char *password");
     rust_wallet_balances("const char *wallet", "const char *refresh", "const char *min_confirmations");
     rust_recover_from_mnemonic("const char *config",
                                        "const char *password",
