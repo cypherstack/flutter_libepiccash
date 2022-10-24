@@ -1,5 +1,7 @@
 # !/bin/pwsh
 
+rustup target add x86_64-pc-windows-gnu
+
 New-Item -ItemType Directory -Force -Path build
 $env:COMMIT = $(git log -1 --pretty=format:"%H")
 $env:VERSIONS_FILE = "..\..\lib\git_versions.dart"
@@ -10,14 +12,15 @@ $env:OS = "WINDOWS"
 Copy-Item "..\..\rust\*" -Destination "build\rust" -Force -Recurse
 cd build\rust
 if (Test-Path 'env:IS_ARM ') {
-    echo "Building arm version"
-    cargo build --target aarch64-unknown-linux-gnu --release --lib
+    Write-Output "Building arm version"
+    cargo build --target aarch64-pc-windows-gnu --release --lib
 
-    New-Item -ItemType Directory -Force -Path target\x86_64-unknown-windows\release
-    Copy-Item "target\aarch64-unknown-linux-gnu\release\libepic_cash_wallet.so" -Destination "target\x86_64-unknown-linux-gnu\release\" -Force
+    New-Item -ItemType Directory -Force -Path target\aarch64-pc-windows-gnu\release
+    Copy-Item "target\aarch64-pc-windows-gnu\release\libepic_cash_wallet.so" -Destination "target\aarch64-pc-windows-gnu\release\" -Force
 } else {
-    echo "Building x86_64 version"
-    cargo build --target x86_64-unknown-linux-gnu --release --lib
+    Write-Output "Building x86_64 version"
+    New-Item -ItemType Directory -Force -Path target\x86_64-pc-windows-gnu\release
+    cargo build --target x86_64-pc-windows-gnu --release --lib
 }
 
 # Return to /scripts/windows
