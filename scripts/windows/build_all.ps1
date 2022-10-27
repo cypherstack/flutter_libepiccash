@@ -1,5 +1,7 @@
 # !/bin/pwsh
 
+Write-Output "WARNING: building from Windows not confirmed working."
+
 rustup target add x86_64-pc-windows-msvc
 
 git clone https://github.com/Microsoft/vcpkg.git
