@@ -24,3 +24,5 @@ else
     echo "Building x86_64 version"
     cargo build --target x86_64-pc-windows-gnu --release --lib
 fi
+
+cp target/x86_64-pc-windows-gnu/release/epic_cash_wallet.dll ../libepic_cash_wallet.dll
