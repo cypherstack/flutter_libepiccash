@@ -3,10 +3,14 @@ import 'dart:io' as io;
 
 import 'package:ffi/ffi.dart';
 
-final DynamicLibrary epicCashNative =
-    io.Platform.isAndroid || io.Platform.isLinux
-        ? DynamicLibrary.open("libepic_cash_wallet.so")
-        : DynamicLibrary.process();
+final DynamicLibrary epicCashNative = io.Platform.isWindows
+    ? DynamicLibrary.open("libepic_cash_wallet.dll")
+    : io.Platform.environment.containsKey('FLUTTER_TEST')
+        ? DynamicLibrary.open(
+            'crypto_plugins/flutter_liblelantus/scripts/linux/build/libepic_cash_wallet.so')
+        : io.Platform.isAndroid || io.Platform.isLinux
+            ? DynamicLibrary.open('libepic_cash_wallet.so')
+            : DynamicLibrary.process();
 
 typedef WalletMnemonic = Pointer<Utf8> Function();
 typedef WalletMnemonicFFI = Pointer<Utf8> Function();
