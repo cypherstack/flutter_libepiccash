@@ -8,7 +8,7 @@ Install Rust: https://www.rust-lang.org/tools/install
 
 Install cargo ndk: `cargo install cargo-ndk`
 
-### Build for Android
+### Android
 ```
 rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android
 
@@ -23,7 +23,7 @@ cd scripts/android
 ./build_all.sh
 ```
 
-### Build for iOS:
+### iOS:
 
 ```
 rustup target add aarch64-apple-ios x86_64-apple-ios aarch64-apple-ios-sim
@@ -34,6 +34,9 @@ cargo install cbindgen
 cd scripts/ios
 ./build_all
 ```
+
+## Test
+Run `flutter test`
 
 ## Usage
 See [Stack Wallet](https://github.com/cypherstack/stack_wallet) and [Epic Pay](https://github.com/cypherstack/epic-mobile)
