@@ -8,11 +8,11 @@ use serde::{Deserialize, Serialize};
 use rustc_serialize::json;
 use uuid::Uuid;
 
-use stack_test_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
-use stack_test_epic_wallet_config::{WalletConfig};
-use stack_test_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
-use stack_test_epic_wallet_libwallet::api_impl::owner;
-use stack_test_epic_wallet_impls::{
+use stack_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
+use stack_epic_wallet_config::{WalletConfig};
+use stack_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
+use stack_epic_wallet_libwallet::api_impl::owner;
+use stack_epic_wallet_impls::{
     DefaultLCProvider, DefaultWalletImpl, HTTPNodeClient,
 };
 
@@ -21,19 +21,19 @@ use ws::{
     Result as WSResult, Sender, Handler
 };
 
-use stack_test_epic_keychain::mnemonic;
-use stack_test_epic_wallet_util::stack_test_epic_core::global::ChainTypes;
-use stack_test_epic_util::file::get_first_line;
-use stack_test_epic_wallet_util::stack_test_epic_util::ZeroingString;
-use stack_test_epic_util::Mutex;
-use stack_test_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, Error, ErrorKind, TxLogEntry, TxLogEntryType};
+use stack_epic_keychain::mnemonic;
+use stack_epic_wallet_util::stack_epic_core::global::ChainTypes;
+use stack_epic_util::file::get_first_line;
+use stack_epic_wallet_util::stack_epic_util::ZeroingString;
+use stack_epic_util::Mutex;
+use stack_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, Error, ErrorKind, TxLogEntry, TxLogEntryType};
 
-use stack_test_epic_wallet_util::stack_test_epic_keychain::{Keychain, ExtKeychain};
+use stack_epic_wallet_util::stack_epic_keychain::{Keychain, ExtKeychain};
 
-use stack_test_epic_util::secp::rand::Rng;
+use stack_epic_util::secp::rand::Rng;
 
-use stack_test_epic_util::secp::key::{SecretKey, PublicKey};
-use stack_test_epic_util::secp::{Secp256k1};
+use stack_epic_util::secp::key::{SecretKey, PublicKey};
+use stack_epic_util::secp::{Secp256k1};
 
 use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
 use android_logger::FilterBuilder;
@@ -183,6 +183,7 @@ extern crate simplelog;
 
 use log::Level;
 use android_logger::Config as AndroidConfig;
+use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
 use stack_test_epicboxlib::utils::crypto::{Hex, sign_challenge};
 
 /*
@@ -228,7 +229,7 @@ pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
 }
 
 
-fn _get_mnemonic() -> Result<*const c_char, stack_test_epic_keychain::mnemonic::Error> {
+fn _get_mnemonic() -> Result<*const c_char, stack_epic_keychain::mnemonic::Error> {
     let mut wallet_phrase = "".to_string();
     match mnemonic() {
         Ok(phrase) => {
@@ -1236,8 +1237,13 @@ fn _get_wallet_address(
         }
     };
 
-    let key_pair = get_wallet_secret_key_pair(wallet, keychain_mask, index).unwrap();
-    let wallet_address = get_epicbox_address(key_pair.1, &epicbox_conf.domain, Some(epicbox_conf.port)).public_key;
+    // let key_pair = get_wallet_secret_key_pair(wallet, keychain_mask, index).unwrap();
+
+    //TODO - Refactor get_epicbox_address once we remove building the slate
+    let api = Owner::new(wallet.clone());
+    let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
+    // let wallet_address = get_epicbox_address(key_pair.1, &epicbox_conf.domain, Some(epicbox_conf.port)).public_key;
+    let wallet_address = address.public_key;
     let s = CString::new(wallet_address).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
@@ -1549,7 +1555,7 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
 /*
     Create a new wallet seed
 */
-pub fn mnemonic() -> Result<String, stack_test_epic_keychain::mnemonic::Error> {
+pub fn mnemonic() -> Result<String, stack_epic_keychain::mnemonic::Error> {
     let seed = create_seed(32);
     match mnemonic::from_entropy(&seed) {
         Ok(mnemonic_str) => {
@@ -2104,10 +2110,14 @@ fn check_middleware(
                     && s.version_info.block_header_version
                     < slate_versions::EPIC_BLOCK_HEADER_VERSION
                 {
-                    Err(ErrorKind::Compatibility(
-                        "Incoming Slate is not compatible with this wallet. Please upgrade the node or use a different one."
-                            .into(),
+                    Err(stack_epic_wallet_libwallet::ErrorKind::Compatibility(
+                        "Incoming Slate is not compatible with this wallet. \
+						 Please upgrade the node or use a different one."
+                            .to_string(),
                     ))?;
+
+                    // Err(ErrorKind::Compatibility("Incoming Slate is not compatible with this wallet. \
+                    // Please upgrade the node or use a different one.".to_string())).unwrap().expect("TODO: panic message");
                 }
             }
             Ok(())
