@@ -9,7 +9,7 @@ use rustc_serialize::json;
 use uuid::Uuid;
 
 use stack_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
-use stack_epic_wallet_config::{WalletConfig};
+use stack_epic_wallet_config::{WalletConfig, EpicboxConfig};
 use stack_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
 use stack_epic_wallet_libwallet::api_impl::owner;
 use stack_epic_wallet_impls::{
@@ -53,25 +53,6 @@ pub struct Config {
 #[derive(Clone)]
 struct Client {
     out: Sender,
-}
-
-#[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
-pub struct EpicBoxConfig {
-    domain: String,
-    port: u16
-}
-
-impl EpicBoxConfig {
-    fn from_str(json: &str) -> Result<Self, serde_json::error::Error> {
-        let result = match  serde_json::from_str::<EpicBoxConfig>(json) {
-            Ok(config) => {
-                config
-            }, Err(err) => {
-                return  Err(err);
-            }
-        };
-        Ok(result)
-    }
 }
 
 type Wallet = Arc<
@@ -613,16 +594,7 @@ fn _encrypt_slate(
     epicbox_config: &str,
     slate: &str,
 ) -> Result<*const c_char, Error>{
-    let epicbox_conf = match EpicBoxConfig::from_str(&epicbox_config.to_string()) {
-        Ok(config) => {
-            config
-        }, Err(err) => {
-            return Err(Error::from(ErrorKind::GenericError(format!(
-                "epicbox config error {}",
-                err.to_string()
-            ))))
-        }
-    };
+    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
 
     let key_pair = match get_wallet_secret_key_pair(
         wallet, keychain_mask, secret_key_index
@@ -707,36 +679,18 @@ fn _create_tx(
     epicbox_config: &str,
     minimum_confirmations: u64,
 ) -> Result<*const c_char, Error> {
-    let epicbox_conf = match EpicBoxConfig::from_str(&epicbox_config.to_string()) {
-        Ok(config) => {
-            config
-        }, Err(err) => {
-            return Err(Error::from(ErrorKind::GenericError(format!(
-                "EPICBOX_CONFIG_ERROR {}",
-                err.to_string()
-            ))))
-        }
-    };
-
     let  mut message = String::from("");
     match tx_create(
         &wallet,
         keychain_mask.clone(),
         amount,
         minimum_confirmations,
-        false) {
+        false,
+        epicbox_config,
+        address) {
         Ok(slate) => {
-            //Get Secret key at given Index, build epicbox request
-            let key_pair = get_wallet_secret_key_pair(
-                &wallet, keychain_mask, secret_key_index
-            ).unwrap();
-            let slate_msg = build_post_slate_request(
-                address,
-                key_pair,
-                slate.clone(),
-                epicbox_conf.clone());
-
-            let create_response = (&slate, &slate_msg);
+            let empty_json = format!(r#"{{"slate_msg": ""}}"#);
+            let create_response = (&slate, &empty_json);
             let str_create_response = serde_json::to_string(&create_response).unwrap();
             message.push_str(&str_create_response);
         },
@@ -1226,23 +1180,9 @@ fn _get_wallet_address(
     index: u32,
     epicbox_config: &str
 ) -> Result<*const c_char, Error> {
-    let epicbox_conf = match EpicBoxConfig::from_str(&epicbox_config.to_string()) {
-        Ok(config) => {
-            config
-        }, Err(e) => {
-            return Err(Error::from(ErrorKind::GenericError(format!(
-                "{}",
-                "Unable to get epicbox config"
-            ))))
-        }
-    };
 
-    // let key_pair = get_wallet_secret_key_pair(wallet, keychain_mask, index).unwrap();
-
-    //TODO - Refactor get_epicbox_address once we remove building the slate
     let api = Owner::new(wallet.clone());
     let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
-    // let wallet_address = get_epicbox_address(key_pair.1, &epicbox_conf.domain, Some(epicbox_conf.port)).public_key;
     let wallet_address = address.public_key;
     let s = CString::new(wallet_address).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
@@ -1855,8 +1795,12 @@ pub fn tx_create(
     amount: u64,
     minimum_confirmations: u64,
     selection_strategy_is_use_all: bool,
+    epicbox_config: &str,
+    address: &str
 ) -> Result<String, Error> {
     let owner_api = Owner::new(wallet.clone());
+    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
+    owner_api.set_epicbox_config(Some(epicbox_conf));
     let accounts = match  owner_api.accounts(keychain_mask.as_ref()) {
         Ok(accounts_list) => {
             accounts_list
@@ -1865,6 +1809,13 @@ pub fn tx_create(
         }
     };
     let account = &accounts[0].label;
+    let init_send_args = InitTxSendArgs {
+        method: "epicbox".to_string(),
+        dest: address.to_string(),
+        finalize: false,
+        post_tx: false,
+        fluff: false
+    };
 
     let args = InitTxArgs {
         src_acct_name: Some(account.clone()),
@@ -1874,24 +1825,12 @@ pub fn tx_create(
         num_change_outputs: 1,
         selection_strategy_is_use_all,
         message: None,
+        send_args: Some(init_send_args),
         ..Default::default()
     };
 
     match owner_api.init_send_tx(keychain_mask.as_ref(), args) {
         Ok(slate)=> {
-            //Lock slate uptputs
-            match owner_api.tx_lock_outputs(
-                keychain_mask.as_ref(),
-                &slate,
-                0
-            ) {
-                Ok(_) => {
-                    ()
-                }
-                Err(err) => {
-                    return  Err(err);
-                }
-            };
             //Get transaction for the slate, we will use type to determing if we should finalize or receive tx
             let txs = match owner_api.retrieve_txs(
                 keychain_mask.as_ref(),
@@ -1966,16 +1905,18 @@ fn _subscribe_request(
     let key_pair = get_wallet_secret_key_pair(
         wallet, keychain_mask, secret_key_index
     ).unwrap();
-    let epicbox_conf = match EpicBoxConfig::from_str(&epicbox_config.to_string()) {
-        Ok(config) => {
-            config
-        }, Err(e) => {
-            return Err(Error::from(ErrorKind::GenericError(format!(
-                "{}",
-                "Unable to get epicbox config"
-            ))))
-        }
-    };
+
+    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
+    // let epicbox_conf = match EpicBoxConfig::from_str(&epicbox_config.to_string()) {
+    //     Ok(config) => {
+    //         config
+    //     }, Err(e) => {
+    //         return Err(Error::from(ErrorKind::GenericError(format!(
+    //             "{}",
+    //             "Unable to get epicbox config"
+    //         ))))
+    //     }
+    // };
 
     let subscribe_request = _build_subscribe_request(
         key_pair,
@@ -2282,18 +2223,18 @@ pub fn build_post_slate_request(
     receiver_address: &str,
     secret_pub_key_pair: (SecretKey, PublicKey),
     tx: String,
-    epicbox_config: EpicBoxConfig
+    epicbox_config: EpicboxConfig
 ) -> String {
     let address_sender = get_epicbox_address(
         secret_pub_key_pair.1,
-        &epicbox_config.domain,
-        Some(epicbox_config.port)
+        &epicbox_config.epicbox_domain,
+        epicbox_config.epicbox_port
     );
 
     let address_receiver = EpicboxAddress::from_str(receiver_address).unwrap();
     let pub_key_receiver = address_receiver.public_key().unwrap();
     let address_receiver = get_epicbox_address(
-        pub_key_receiver, &epicbox_config.domain, Some(epicbox_config.port));
+        pub_key_receiver, &epicbox_config.epicbox_domain, epicbox_config.epicbox_port);
 
     let mut challenge = String::new();
     let message = EpicboxMessage::new(
@@ -2319,9 +2260,9 @@ pub fn build_post_slate_request(
 
 pub fn _build_subscribe_request(
     secret_pub_key_pair: (SecretKey, PublicKey)
-    , epicbox_config: EpicBoxConfig
+    , epicbox_config: EpicboxConfig
 ) -> String {
-    let address = get_epicbox_address(secret_pub_key_pair.1, &epicbox_config.domain, Some(epicbox_config.port));
+    let address = get_epicbox_address(secret_pub_key_pair.1, &epicbox_config.epicbox_domain, epicbox_config.epicbox_port);
 
     // The signed message binds to the request type (subscription) and the intended address (with domain)
     // WARNING: This request does not bind to _any_ other context, and could be vulnerable to replay
