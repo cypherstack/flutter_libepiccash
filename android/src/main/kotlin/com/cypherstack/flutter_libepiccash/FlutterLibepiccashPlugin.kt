@@ -1,4 +1,4 @@
-package com.example.flutter_libepiccash
+package com.cypherstack.flutter_libepiccash
 
 import androidx.annotation.NonNull
 

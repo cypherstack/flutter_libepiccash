@@ -1,4 +1,4 @@
-package com.example.flutter_libepiccash_example
+package com.cypherstack.flutter_libepiccash_example
 
 import io.flutter.embedding.android.FlutterActivity
 

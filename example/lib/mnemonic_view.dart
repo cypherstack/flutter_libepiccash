@@ -122,7 +122,7 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
       print("wallet dir ${config["wallet_dir"]}");
     } else {
       config["wallet_dir"] =
-          "/data/user/0/com.example.flutter_libepiccash_example/app_flutter/$name/";
+          "/data/user/0/com.cypherstack.flutter_libepiccash_example/app_flutter/$name/";
     }
     config["check_node_api_http_addr"] = "http://95.216.215.107:3413";
     config["chain"] = "mainnet";

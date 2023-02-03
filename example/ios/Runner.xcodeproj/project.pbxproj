@@ -369,7 +369,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../ios/libs/";
 				ONLY_ACTIVE_ARCH = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.flutterLibepiccashExample;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cypherstack.flutterLibepiccashExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRIP_INSTALLED_PRODUCT = NO;
 				STRIP_STYLE = "non-global";
@@ -503,7 +503,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../ios/libs/";
 				ONLY_ACTIVE_ARCH = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.flutterLibepiccashExample;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cypherstack.flutterLibepiccashExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRIP_INSTALLED_PRODUCT = NO;
 				STRIP_STYLE = "non-global";
@@ -531,7 +531,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../../ios/libs/";
 				ONLY_ACTIVE_ARCH = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.flutterLibepiccashExample;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cypherstack.flutterLibepiccashExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRIP_INSTALLED_PRODUCT = NO;
 				STRIP_STYLE = "non-global";

@@ -100,7 +100,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     var config = {};
     config["wallet_dir"] =
-        "/data/user/0/com.example.flutter_libepiccash_example/app_flutter/test/";
+        "/data/user/0/com.cypherstack.flutter_libepiccash_example/app_flutter/test/";
     config["check_node_api_http_addr"] = "http://95.216.215.107:3413";
     config["chain"] = "mainnet";
     config["account"] = "default";

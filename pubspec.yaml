@@ -37,7 +37,7 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.example.flutter_libepiccash
+        package: com.cypherstack.flutter_libepiccash
         pluginClass: FlutterLibepiccashPlugin
       ios:
         pluginClass: FlutterLibepiccashPlugin
