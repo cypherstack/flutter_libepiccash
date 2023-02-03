@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 
-@interface FlutterLibepiccashPlugin : NSObject<FlutterPlugin>
+@interface FlutterLibepiccashPlugin : NSObject <FlutterPlugin>
 @end
 
 // NOTE: put the lines from the include here whenever new api functions are added.
@@ -18,7 +18,7 @@ const char *wallet_init(const char *config,
 const char *get_mnemonic(void);
 
 const char *rust_open_wallet(const char *config,
-                const char *password);
+                             const char *password);
 
 const char *rust_wallet_balances(const char *wallet,
                                  const char *refresh,
