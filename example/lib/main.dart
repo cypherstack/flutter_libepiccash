@@ -68,15 +68,15 @@ class _MyHomePageState extends State<MyHomePage> {
   final greeting = "";
 
   Future<String> createFolder(String folderName) async {
-    Directory appDocDir = (await getApplicationDocumentsDirectory());
-    if (Platform.isIOS) {
+    io.Directory appDocDir = (await getApplicationDocumentsDirectory());
+    if (io.Platform.isIOS) {
       appDocDir = (await getLibraryDirectory());
     }
     String appDocPath = appDocDir.path;
     print(appDocPath);
 
-    Directory _appDocDir = (await getApplicationDocumentsDirectory());
-    if (Platform.isIOS) {
+    io.Directory _appDocDir = (await getApplicationDocumentsDirectory());
+    if (io.Platform.isIOS) {
       _appDocDir = (await getLibraryDirectory());
     }
     final io.Directory _appDocDirFolder =
