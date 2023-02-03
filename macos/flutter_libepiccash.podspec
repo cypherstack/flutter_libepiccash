@@ -4,8 +4,8 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_libepiccash'
-  s.version          = '0.0.1'
-  s.summary          = 'A new Flutter plugin project.'
+  s.version          = '0.0.2'
+  s.summary          = 'An Epic Cash plugin in Dart for Flutter'
   s.description      = <<-DESC
 A new Flutter plugin project.
                        DESC
