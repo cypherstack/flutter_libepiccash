@@ -28,12 +28,12 @@ migrate_working_dir/
 .dart_tool/
 .packages
 build/
+rust/libepic_cash_wallet.h
+rust/default/
 rust/src/bin
 android/src/main/jniLibs/
-rust/default/
 ios/include/
 ios/libs/
-rust/libepic_cash_wallet.h
 lib/git_versions.dart
 
 scripts/windows/vcpkg/
