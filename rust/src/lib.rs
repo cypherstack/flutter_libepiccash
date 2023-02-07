@@ -12,9 +12,7 @@ use stack_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
 use stack_epic_wallet_config::{WalletConfig, EpicboxConfig};
 use stack_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
 use stack_epic_wallet_libwallet::api_impl::owner;
-use stack_epic_wallet_impls::{
-    DefaultLCProvider, DefaultWalletImpl, HTTPNodeClient,
-};
+use stack_epic_wallet_impls::{DefaultLCProvider, DefaultWalletImpl, EpicboxListenChannel, HTTPNodeClient};
 
 use ws::{
     CloseCode, Message, Error as WsError, ErrorKind as WsErrorKind,
@@ -35,10 +33,11 @@ use stack_epic_util::secp::rand::Rng;
 use stack_epic_util::secp::key::{SecretKey, PublicKey};
 use stack_epic_util::secp::{Secp256k1};
 
+use stack_epic_wallet_controller::command;
+
 use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
 use android_logger::FilterBuilder;
 use std::env;
-// mod main;
 
 #[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
 pub struct Config {
@@ -539,86 +538,6 @@ fn _wallet_scan_outputs(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_encrypt_slate(
-    wallet: *const c_char,
-    to_address: *const c_char,
-    secret_key_index: *const c_char,
-    epicbox_config: *const c_char,
-    slate: *const c_char,
-) -> *const c_char {
-
-    let wallet_ptr = CStr::from_ptr(wallet);
-    let c_address = CStr::from_ptr(to_address);
-    let key_index = CStr::from_ptr(secret_key_index);
-    let epicbox_config = CStr::from_ptr(epicbox_config);
-    let slate = CStr::from_ptr(slate);
-
-    let address = c_address.to_str().unwrap();
-    let key_index: u32 = key_index.to_str().unwrap().to_string().parse().unwrap();
-    let epicbox_config = epicbox_config.to_str().unwrap();
-    let slate = slate.to_str().unwrap();
-
-    let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
-
-    ensure_wallet!(wlt, wallet);
-
-    let result = match _encrypt_slate(
-        &wallet,
-        sek_key,
-        address,
-        key_index,
-        epicbox_config,
-        slate
-    ) {
-        Ok(post_late_request) => {
-            post_late_request
-        }, Err(e ) => {
-            let error_msg = format!("Error {}", &e.to_string());
-            let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(error_msg_ptr);
-            ptr
-        }
-    };
-    result
-}
-
-fn _encrypt_slate(
-    wallet: &Wallet,
-    keychain_mask: Option<SecretKey>,
-    address: &str,
-    secret_key_index: u32,
-    epicbox_config: &str,
-    slate: &str,
-) -> Result<*const c_char, Error>{
-    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
-
-    let key_pair = match get_wallet_secret_key_pair(
-        wallet, keychain_mask, secret_key_index
-    ) {
-        Ok(sec_pub_pair) => {
-            sec_pub_pair
-        }
-        Err(err) => {
-            return Err(err);
-        }
-    };
-    let slate_msg = build_post_slate_request(
-        address,
-        key_pair,
-        slate.to_string(),
-        epicbox_conf);
-
-    let s = CString::new(slate_msg).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn rust_create_tx(
     wallet: *const c_char,
     amount: *const c_char,
@@ -821,135 +740,6 @@ fn _tx_cancel(
         }
     }
     let s = CString::new(cancel_msg).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_decrypt_unprocessed_slates(
-    wallet: *const c_char,
-    secret_key_index: *const c_char,
-    slate: *const c_char,
-) -> *const c_char  {
-    let wallet_ptr = CStr::from_ptr(wallet);
-    let key_index = CStr::from_ptr(secret_key_index);
-    let slate = CStr::from_ptr(slate);
-
-    let key_index: u32 = key_index.to_str().unwrap().to_string().parse().unwrap();
-    let slate = slate.to_str().unwrap();
-    let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
-
-    ensure_wallet!(wlt, wallet);
-
-    let result = match _decrypt_unprocessed_slates(
-        wallet,
-        sek_key,
-        key_index,
-        slate,
-    ) {
-        Ok(pending_slates) => {
-            pending_slates
-        }, Err(e ) => {
-            let error_msg = format!("Error {}", &e.to_string());
-            let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(error_msg_ptr);
-            ptr
-        }
-    };
-    result
-}
-
-fn _decrypt_unprocessed_slates(
-    wallet: &Wallet,
-    keychain_mask: Option<SecretKey>,
-    secret_key_index: u32,
-    slates: &str
-) -> Result<*const c_char, Error> {
-
-    let key_pair = get_wallet_secret_key_pair(
-        wallet, keychain_mask, secret_key_index
-    ).unwrap();
-    let mut pending_slates = "".to_string();
-    let slates_to_lower = slates.to_lowercase();
-    if slates_to_lower.contains("error") || slates_to_lower.is_empty() {
-        return  Err(Error::from(ErrorKind::GenericError(format!(
-            "{}",
-            "Unable to format slates, please check data"
-        ))));
-    }
-    match decrypt_epicbox_slates(key_pair, &slates) {
-        Ok(decrypted) => {
-            let str_slates = serde_json::to_string(&decrypted).unwrap();
-            pending_slates.push_str(&str_slates);
-        }, Err(e) => {
-            return Err(e);
-        }
-    };
-    let s = CString::new(pending_slates).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
-}
-
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_process_pending_slates(
-    wallet: *const c_char,
-    slates: *const c_char,
-) -> *const c_char  {
-    let wallet_ptr = CStr::from_ptr(wallet);
-    let slates = CStr::from_ptr(slates);
-    let pending_slates = slates.to_str().unwrap();
-
-    let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
-
-    ensure_wallet!(wlt, wallet);
-
-    let result = match _process_pending_slates(
-        wallet,
-        sek_key,
-        pending_slates
-    ) {
-        Ok(processed_slates) => {
-            processed_slates
-        }, Err(e ) => {
-            let error_msg = format!("Error {}", &e.to_string());
-            let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(error_msg_ptr);
-            ptr
-        }
-    };
-    result
-}
-
-fn _process_pending_slates(
-    wallet: &Wallet,
-    keychain_mask: Option<SecretKey>,
-    slates: &str
-) -> Result<*const c_char, Error> {
-
-    let mut processed_slates = "".to_string();
-    match process_received_slates(
-        wallet,
-        keychain_mask,
-        slates
-    ) {
-        Ok(slates) => {
-            processed_slates.push_str(&slates);
-        }, Err(e) => {
-            return  Err(e);
-        }
-    }
-    let s = CString::new(processed_slates).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     Ok(p)
@@ -1180,11 +970,81 @@ fn _get_wallet_address(
     index: u32,
     epicbox_config: &str
 ) -> Result<*const c_char, Error> {
+    let address = get_wallet_address(&wallet, keychain_mask, index, epicbox_config);
+    let s = CString::new(address).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    Ok(p)
+}
 
+pub fn get_wallet_address(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    index: u32,
+    epicbox_config: &str,
+) -> String {
+
+    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
     let api = Owner::new(wallet.clone());
     let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
-    let wallet_address = address.public_key;
-    let s = CString::new(wallet_address).unwrap();
+    format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain)
+}
+
+#[no_mangle]
+pub unsafe extern "C"  fn rust_listen_for_slates(
+    wallet: *const c_char,
+    secret_key_index: *const c_char,
+    epicbox_config: *const c_char,
+) -> *const c_char {
+    let wallet_ptr = CStr::from_ptr(wallet);
+    let key_index = CStr::from_ptr(secret_key_index);
+    let epicbox_config = CStr::from_ptr(epicbox_config);
+
+    let key_index: u32 = key_index.to_str().unwrap().to_string().parse().unwrap();
+    let epicbox_config = epicbox_config.to_str().unwrap();
+
+    let wallet_data = wallet_ptr.to_str().unwrap();
+    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+    let wlt = tuple_wallet_data.0;
+    let sek_key = tuple_wallet_data.1;
+
+    ensure_wallet!(wlt, wallet);
+    let result = match _listen_for_slates(
+        wallet,
+        sek_key,
+        epicbox_config
+    ) {
+        Ok(slates) => {
+            slates
+        }, Err(e ) => {
+            let error_msg = format!("Error {}", &e.to_string());
+            let error_msg_ptr = CString::new(error_msg).unwrap();
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            std::mem::forget(error_msg_ptr);
+            ptr
+        }
+    };
+    result
+}
+
+fn _listen_for_slates(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    epicbox_config: &str
+) -> Result<*const c_char, Error> {
+    match epicbox_listen(
+        &wallet,
+        keychain_mask,
+        epicbox_config,
+    ) {
+        Ok(()) => {
+            debug!("{}", "LISTENING FOR SLATES");
+            ()
+        },Err(e) => {
+            return Err(e);
+        }
+    }
+    let s = CString::new("").unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     Ok(p)
@@ -1266,40 +1126,6 @@ fn _get_tx_fees(
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     Ok(p)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn rust_post_slate_to_node(
-    wallet: *const c_char,
-    tx_slate_id: *const c_char,
-) -> *const c_char {
-    let wallet_ptr = CStr::from_ptr(wallet);
-    let tx_slate_id = CStr::from_ptr(tx_slate_id);
-    let tx_slate_id = tx_slate_id.to_str().unwrap();
-
-    let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
-
-    ensure_wallet!(wlt, wallet);
-
-    let result = match _post_slate_to_node(
-        wallet,
-        sek_key,
-        tx_slate_id
-    ) {
-        Ok(posted) => {
-            posted
-        }, Err(e ) => {
-            let error_msg = format!("Error {}", &e.to_string());
-            let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(error_msg_ptr);
-            ptr
-        }
-    };
-    result
 }
 
 pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> Result<String, Error> {
@@ -1461,15 +1287,15 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
 
     //First check if wallet seed directory exists, if not create
     if let Ok(exists_wallet_seed) = lc.wallet_exists(None) {
-        if exists_wallet_seed {
+        return if exists_wallet_seed {
             match lc.recover_from_mnemonic(
                 ZeroingString::from(mnemonic), ZeroingString::from(password)
             ) {
                 Ok(_) => {
-                    return  Ok(());
+                    Ok(())
                 }
                 Err(e) => {
-                    return  Err(e);
+                    Err(e)
                 }
             }
         } else {
@@ -1481,10 +1307,10 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
                 false,
             ) {
                 Ok(_) => {
-                    return  Ok(());
+                    Ok(())
                 }
                 Err(e) => {
-                    return  Err(e);
+                    Err(e)
                 }
             }
         }
@@ -1857,155 +1683,6 @@ pub fn tx_create(
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn subscribe_request(
-    wallet: *const c_char,
-    secret_key_index: *const c_char,
-    epicbox_config: *const c_char,
-) -> *const c_char  {
-    let wallet_ptr = CStr::from_ptr(wallet);
-    let key_index = CStr::from_ptr(secret_key_index);
-    let epicbox_config = CStr::from_ptr(epicbox_config);
-    let epicbox_config = epicbox_config.to_str().unwrap();
-    let key_index: u32 = key_index.to_str().unwrap().to_string().parse().unwrap();
-
-    let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
-
-    ensure_wallet!(wlt, wallet);
-
-
-    let result = match _subscribe_request(
-        wallet,
-        sek_key,
-        key_index,
-        epicbox_config,
-    ) {
-        Ok(subscribe_request) => {
-            subscribe_request
-        }, Err(e ) => {
-            let error_msg = format!("Error {}", &e.to_string());
-            let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(error_msg_ptr);
-            ptr
-        }
-    };
-    result
-}
-
-fn _subscribe_request(
-    wallet: &Wallet,
-    keychain_mask: Option<SecretKey>,
-    secret_key_index: u32,
-    epicbox_config: &str,
-) -> Result<*const c_char, Error> {
-    let key_pair = get_wallet_secret_key_pair(
-        wallet, keychain_mask, secret_key_index
-    ).unwrap();
-
-    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
-    // let epicbox_conf = match EpicBoxConfig::from_str(&epicbox_config.to_string()) {
-    //     Ok(config) => {
-    //         config
-    //     }, Err(e) => {
-    //         return Err(Error::from(ErrorKind::GenericError(format!(
-    //             "{}",
-    //             "Unable to get epicbox config"
-    //         ))))
-    //     }
-    // };
-
-    let subscribe_request = _build_subscribe_request(
-        key_pair,
-        epicbox_conf.clone()
-    );
-    let s = CString::new(subscribe_request).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
-}
-
-fn _post_slate_to_node(
-    wallet: &Wallet,
-    keychain_mask: Option<SecretKey>,
-    tx_slate_id: &str,
-) -> Result<*const c_char, Error> {
-
-    let  mut tx_post_message = String::from("");
-    match tx_post(wallet, keychain_mask, tx_slate_id) {
-        Ok(posted) => {
-            tx_post_message.push_str(&posted);
-        }, Err(e) => {
-            tx_post_message.push_str(&e.to_string());
-        }
-    }
-    let s = CString::new(tx_post_message).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
-}
-
-
-
-pub fn decrypt_epicbox_slates(
-    secret_pub_key_pair: (SecretKey, PublicKey), encrypted_slates: &str
-) -> Result<Vec<String>, Error>{
-    let messages: Vec<String> = serde_json::from_str(&encrypted_slates).unwrap();
-    let mut decrypted_slates: Vec<String> = Vec::new();
-    for message in messages.into_iter() {
-        let parsed: serde_json::Value = serde_json::from_str(&message).expect("Can't parse to JSON");
-        match  decrypt_message(&secret_pub_key_pair.0, parsed.clone()) {
-            Ok(decrypted_msg) => {
-                let sender_address = parsed.get("from").unwrap().as_str().unwrap();
-                let return_data = (decrypted_msg, sender_address);
-
-                decrypted_slates.push(serde_json::to_string(&return_data).unwrap());
-            }, Err(e) => {
-                let error_msg = format!("Error : {}", e.to_string());
-                decrypted_slates.push(error_msg);
-            }
-        };
-    }
-    Ok(decrypted_slates)
-
-}
-
-pub fn process_received_slates(
-    wallet: &Wallet, keychain_mask: Option<SecretKey>, message: &str
-) -> Result<String, Error> {
-
-    let mut process_result = "".to_string();
-    let process = process_epic_box_slate(&wallet, keychain_mask.clone(),  &message);
-    match process {
-        Ok(slate) => {
-            let msg_tuple: (String, String) =  serde_json::from_str(&message).unwrap();
-            let transaction: Vec<TxLogEntry> = serde_json::from_str(&msg_tuple.0).unwrap();
-
-            match transaction[0].tx_type {
-                TxLogEntryType::TxSent => {
-                    //Push into receive array
-                    let message_status = format!(r#"{{"status": "PendingProcessing"}}"#);
-                    let return_data = (message_status, slate);
-                    process_result.push_str(&serde_json::to_string(&return_data).unwrap());
-                },
-                TxLogEntryType::TxReceived =>  {
-                    let message_status = format!(r#"{{"status": "Finalised"}}"#);
-                    let return_data = (message_status, slate);
-                    process_result.push_str(&serde_json::to_string(&return_data).unwrap());
-                },
-                _ => {}
-            }
-        },
-        Err(err) => {
-            return  Err(err);
-        }
-    };
-    Ok(process_result)
-}
-
 /*
     Cancel tx by id
 */
@@ -2217,60 +1894,6 @@ pub fn derive_public_key_from_address(address: &str) -> PublicKey {
     let address = EpicboxAddress::from_str(address).unwrap();
     let public_key = address.public_key().unwrap();
     public_key
-}
-
-pub fn build_post_slate_request(
-    receiver_address: &str,
-    secret_pub_key_pair: (SecretKey, PublicKey),
-    tx: String,
-    epicbox_config: EpicboxConfig
-) -> String {
-    let address_sender = get_epicbox_address(
-        secret_pub_key_pair.1,
-        &epicbox_config.epicbox_domain,
-        epicbox_config.epicbox_port
-    );
-
-    let address_receiver = EpicboxAddress::from_str(receiver_address).unwrap();
-    let pub_key_receiver = address_receiver.public_key().unwrap();
-    let address_receiver = get_epicbox_address(
-        pub_key_receiver, &epicbox_config.epicbox_domain, epicbox_config.epicbox_port);
-
-    let mut challenge = String::new();
-    let message = EpicboxMessage::new(
-        tx,
-        &address_receiver.clone(),
-        &address_receiver.public_key().unwrap(),
-        &secret_pub_key_pair.0
-    ).map_err(|_| WsError::new(WsErrorKind::Protocol, "could not encrypt slate!")).unwrap();
-    let message_ser = serde_json::to_string(&message).unwrap();
-
-    let to_address = format!("{}", address_receiver.public_key);
-    let from_address = format!("{}", address_sender.public_key);
-    challenge.push_str(&message_ser);
-    let signature = sign_challenge(&challenge, &secret_pub_key_pair.0).unwrap().to_hex();
-    let json_request = format!(r#"{{"type": "PostSlate", "from": "{}", "to": "{}", "str": {}, "signature": "{}"}}"#,
-                               from_address,
-                               to_address,
-                               json::as_json(&message_ser),
-                               signature);
-
-    json_request
-}
-
-pub fn _build_subscribe_request(
-    secret_pub_key_pair: (SecretKey, PublicKey)
-    , epicbox_config: EpicboxConfig
-) -> String {
-    let address = get_epicbox_address(secret_pub_key_pair.1, &epicbox_config.epicbox_domain, epicbox_config.epicbox_port);
-
-    // The signed message binds to the request type (subscription) and the intended address (with domain)
-    // WARNING: This request does not bind to _any_ other context, and could be vulnerable to replay
-    let challenge = String::from(format!("SubscribeRequest_{}", address.public_key));
-
-    let signature = sign_challenge(&challenge, &secret_pub_key_pair.0).unwrap().to_hex();
-    let subscribe_str = format!(r#"{{"type": "Subscribe", "address": "{}", "signature": "{}"}}"#, address.public_key, signature);
-    subscribe_str
 }
 
 pub fn convert_deci_to_nano(amount: f64) -> u64 {
@@ -2534,4 +2157,18 @@ pub fn tx_send_http(
             return  Err(err);
         }
     }
+}
+
+pub fn epicbox_listen(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    epicbox_config: &str,
+) -> Result<(), Error> {
+    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
+
+    EpicboxListenChannel::new()?.listen(
+        wallet.clone(),
+        Arc::new(Mutex::new(keychain_mask)),
+        epicbox_conf
+    )
 }
