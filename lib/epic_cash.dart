@@ -43,11 +43,9 @@ typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
 typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
     Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
 
-typedef EpicboxListen = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+typedef EpicboxListen = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 
-typedef EpicboxListenFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+typedef EpicboxListenFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 
 typedef GetTransactions = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>);
 typedef GetTransactionsFFI = Pointer<Utf8> Function(
@@ -142,14 +140,12 @@ Future<String> scanOutPuts(
 }
 
 final EpicboxListen _epicboxListen = epicCashNative
-    .lookup<NativeFunction<EpicboxListenFFI>>("rust_listen_for_slates")
+    .lookup<NativeFunction<EpicboxListenFFI>>("run_listener")
     .asFunction();
 
-Future<String> epicboxListen(
-    String wallet, int secretKey, String epicboxConfig) async {
+Future<String> epicboxListen(String wallet, String epicboxConfig) async {
   return _epicboxListen(
     wallet.toNativeUtf8(),
-    secretKey.toString().toNativeUtf8().cast<Int8>(),
     epicboxConfig.toNativeUtf8(),
   ).toDartString();
 }
