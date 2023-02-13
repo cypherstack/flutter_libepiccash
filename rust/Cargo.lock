@@ -60,6 +60,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34fde25430d87a9388dadbe6e34d7f72a462c8b43ac8d309b42b0a8505d7e2a5"
 
 [[package]]
+name = "anyhow"
+version = "1.0.69"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "224afbd727c3d6e4b90103ece64b8d1b67fbb1973b1046c2281eed3f3803f800"
+
+[[package]]
 name = "arc-swap"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -880,11 +886,13 @@ name = "epic-cash-wallet"
 version = "0.1.0"
 dependencies = [
  "android_logger",
+ "anyhow",
  "chrono",
  "clap",
  "ctrlc",
  "failure",
  "failure_derive",
+ "ffi_helpers",
  "futures 0.3.21",
  "jni",
  "log 0.4.17",
@@ -962,6 +970,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3fcf0cee53519c866c09b5de1f6c56ff9d647101f81c1964fa632e148896cdf"
 dependencies = [
  "instant",
+]
+
+[[package]]
+name = "ffi_helpers"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c06bad5d1e3a9cfc3825643e055eb7f1fc1b1d52d1543c8ddb9107abd6497f2e"
+dependencies = [
+ "anyhow",
+ "libc",
+ "thiserror",
 ]
 
 [[package]]

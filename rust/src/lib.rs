@@ -37,7 +37,8 @@ use stack_epic_wallet_controller::command;
 
 use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
 use android_logger::FilterBuilder;
-use std::env;
+use std::{env, thread};
+use std::time::Duration;
 
 #[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
 pub struct Config {
@@ -70,12 +71,20 @@ type Wallet = Arc<
 macro_rules! ensure_wallet (
     ($wallet_ptr:expr, $wallet:ident) => (
         if ($wallet_ptr as *mut Wallet).as_mut().is_none() {
-            // let _ = $env.throw(serde_json::to_string(&format!("Wallet is NULL")).unwrap());
             println!("{}", "WALLET_IS_NOT_OPEN");
         }
         let $wallet = ($wallet_ptr as *mut Wallet).as_mut().unwrap();
     )
 );
+
+
+macro_rules! ensure_handler (
+    ($handler_ptr:expr, $handler:ident) => (
+
+        let $handler = ($handler_ptr as *mut TaskHandle<usize>).as_mut().unwrap();
+    )
+);
+
 
 fn init_logger() {
     android_logger::init_once(
@@ -96,27 +105,6 @@ impl Config {
             }
         };
         Ok(result)
-    }
-}
-
-static mut  SLATES_VECTOR: Vec<String> = Vec::new();
-impl Handler for Client {
-
-    fn on_message(&mut self, msg: Message) -> WSResult<()> {
-        // Close the connection when we get a response from the server
-
-        let msg = match msg {
-            Message::Text(s) => { s }
-            _ => { panic!() }
-        };
-        let parsed: serde_json::Value = serde_json::from_str(&msg).expect("Can't parse to JSON");
-        if parsed["type"] == "Slate" {
-            //Push into the vector
-            unsafe {
-                SLATES_VECTOR.push(msg);
-            }
-        }
-        self.out.close(CloseCode::Normal)
     }
 }
 
@@ -163,6 +151,9 @@ extern crate simplelog;
 
 use log::Level;
 use android_logger::Config as AndroidConfig;
+use ffi_helpers::{export_task, Task};
+use ffi_helpers::task::{CancellationToken, TaskHandle};
+use serde_json::json;
 use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
 use stack_test_epicboxlib::utils::crypto::{Hex, sign_challenge};
 
@@ -280,6 +271,7 @@ pub unsafe extern "C"  fn rust_open_wallet(
     config: *const c_char,
     password: *const c_char,
 ) -> *const c_char {
+    init_logger();
     let result = match _open_wallet(
         config,
         password
@@ -561,6 +553,16 @@ pub unsafe extern "C" fn rust_create_tx(
 
     let wallet_data = wallet_ptr.to_str().unwrap();
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+
+    let listen = Listener {
+        wallet_data: tuple_wallet_data.clone(),
+        epicbox_config: epicbox_config.parse().unwrap()
+    };
+
+    let handle = listener_spawn(&listen);
+    listener_cancel(handle);
+    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
+
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
 
@@ -576,6 +578,8 @@ pub unsafe extern "C" fn rust_create_tx(
         minimum_confirmations,
     ) {
         Ok(slate) => {
+            //Spawn listener again
+            listener_spawn(&listen);
             slate
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
@@ -766,7 +770,6 @@ pub unsafe extern "C" fn rust_get_chain_height(
 }
 
 fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
-    debug!("{}", "GETTING_CHAIN_HEIGHT");
     let c_config = unsafe { CStr::from_ptr(config) };
     let str_config = c_config.to_str().unwrap();
     let mut chain_height = "".to_string();
@@ -988,66 +991,6 @@ pub fn get_wallet_address(
     let api = Owner::new(wallet.clone());
     let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
     format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain)
-}
-
-#[no_mangle]
-pub unsafe extern "C"  fn rust_listen_for_slates(
-    wallet: *const c_char,
-    secret_key_index: *const c_char,
-    epicbox_config: *const c_char,
-) -> *const c_char {
-    let wallet_ptr = CStr::from_ptr(wallet);
-    let key_index = CStr::from_ptr(secret_key_index);
-    let epicbox_config = CStr::from_ptr(epicbox_config);
-
-    let key_index: u32 = key_index.to_str().unwrap().to_string().parse().unwrap();
-    let epicbox_config = epicbox_config.to_str().unwrap();
-
-    let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
-
-    ensure_wallet!(wlt, wallet);
-    let result = match _listen_for_slates(
-        wallet,
-        sek_key,
-        epicbox_config
-    ) {
-        Ok(slates) => {
-            slates
-        }, Err(e ) => {
-            let error_msg = format!("Error {}", &e.to_string());
-            let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(error_msg_ptr);
-            ptr
-        }
-    };
-    result
-}
-
-fn _listen_for_slates(
-    wallet: &Wallet,
-    keychain_mask: Option<SecretKey>,
-    epicbox_config: &str
-) -> Result<*const c_char, Error> {
-    match epicbox_listen(
-        &wallet,
-        keychain_mask,
-        epicbox_config,
-    ) {
-        Ok(()) => {
-            debug!("{}", "LISTENING FOR SLATES");
-            ()
-        },Err(e) => {
-            return Err(e);
-        }
-    }
-    let s = CString::new("").unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
 }
 
 #[no_mangle]
@@ -1625,16 +1568,11 @@ pub fn tx_create(
     address: &str
 ) -> Result<String, Error> {
     let owner_api = Owner::new(wallet.clone());
+    debug!("EPIC BOX CONFIG IS {}", epicbox_config.clone());
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
+
+
     owner_api.set_epicbox_config(Some(epicbox_conf));
-    let accounts = match  owner_api.accounts(keychain_mask.as_ref()) {
-        Ok(accounts_list) => {
-            accounts_list
-        }, Err(e) => {
-            return  Err(e);
-        }
-    };
-    let account = &accounts[0].label;
     let init_send_args = InitTxSendArgs {
         method: "epicbox".to_string(),
         dest: address.to_string(),
@@ -1644,7 +1582,7 @@ pub fn tx_create(
     };
 
     let args = InitTxArgs {
-        src_acct_name: Some(account.clone()),
+        src_acct_name: Some("default".to_string()),
         amount,
         minimum_confirmations,
         max_outputs: 500,
@@ -1657,6 +1595,7 @@ pub fn tx_create(
 
     match owner_api.init_send_tx(keychain_mask.as_ref(), args) {
         Ok(slate)=> {
+            debug!("SLATE SEND RESPONSE IS  {:?}", slate);
             //Get transaction for the slate, we will use type to determing if we should finalize or receive tx
             let txs = match owner_api.retrieve_txs(
                 keychain_mask.as_ref(),
@@ -2159,16 +2098,70 @@ pub fn tx_send_http(
     }
 }
 
-pub fn epicbox_listen(
-    wallet: &Wallet,
-    keychain_mask: Option<SecretKey>,
-    epicbox_config: &str,
-) -> Result<(), Error> {
-    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
+#[derive(Debug, Clone)]
+pub struct Listener {
+    pub wallet_data: (i64, Option<SecretKey>),
+    pub epicbox_config: String
+}
 
-    EpicboxListenChannel::new()?.listen(
-        wallet.clone(),
-        Arc::new(Mutex::new(keychain_mask)),
-        epicbox_conf
-    )
+
+impl Task for Listener {
+    type Output = usize;
+
+    fn run(&self, cancel_tok: &CancellationToken) -> Result<Self::Output, anyhow::Error> {
+        let mut spins = 0;
+
+        unsafe {
+            let epicbox_conf = serde_json::from_str::<EpicboxConfig>(&self.epicbox_config.as_str()).unwrap();
+            let wallet_data = &self.wallet_data;
+            let wlt = wallet_data.clone().0;
+            let sek_key = wallet_data.clone().1;
+            ensure_wallet!(wlt, wallet);
+            while !cancel_tok.cancelled() {
+                let listener = EpicboxListenChannel::new().unwrap();
+                listener.listen(
+                    wallet.clone(),
+                    Arc::new(Mutex::new(sek_key.clone())),
+                    epicbox_conf.clone()
+                ).expect("TODO: Error Listening on Epicbox");
+                spins += 1;
+            }
+        }
+        Ok(spins)
+    }
+}
+
+export_task! {
+    Task: Listener;
+    spawn: listener_spawn;
+    wait: listener_wait;
+    poll: listener_poll;
+    cancel: listener_cancel;
+    cancelled: listener_cancelled;
+    handle_destroy: listener_handle_destroy;
+    result_destroy: listener_result_destroy;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn run_listener(
+    wallet: *const c_char,
+    epicbox_config: *const c_char,
+) -> *const c_char  {
+    let wallet_ptr = CStr::from_ptr(wallet);
+    let epicbox_config = CStr::from_ptr(epicbox_config);
+    let epicbox_config = epicbox_config.to_str().unwrap();
+
+    let wallet_data = wallet_ptr.to_str().unwrap();
+    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+    let listen = Listener {
+        wallet_data: tuple_wallet_data,
+        epicbox_config: epicbox_config.parse().unwrap()
+    };
+
+    let handle = listener_spawn(&listen);
+    let msg = format!("START LISTENER {}", "LISTENER STARTED");
+    let msg_ptr = CString::new(msg).unwrap();
+    let ptr = msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(msg_ptr);
+    ptr
 }
