@@ -1918,8 +1918,8 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<(Wallet, Option<
             config
         }, Err(e) => {
             return Err(Error::from(ErrorKind::GenericError(format!(
-                "{}",
-                "Unable to get wallet config"
+                "Unable to get wallet config: {}",
+                e.to_string()
             ))))
         }
     };
