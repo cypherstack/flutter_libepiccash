@@ -2557,7 +2557,7 @@ pub fn tx_send_http(
 
     match api.init_send_tx(keychain_mask.as_ref(), args) {
         Ok(slate) => {
-            println!("{}", "CREATE_TX_SUCCESS");
+            println!("CREATE_TX_SUCCESS");
             //Get transaction for slate, for UI display
             let txs = match api.retrieve_txs(
                 keychain_mask.as_ref(),
