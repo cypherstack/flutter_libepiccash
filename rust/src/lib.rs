@@ -751,7 +751,7 @@ fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
     let c_config = unsafe { CStr::from_ptr(config) };
     let str_config = c_config.to_str().unwrap();
     let mut chain_height = "".to_string();
-    match get_chain_height(&str_config) {
+    match get_chain_height(str_config) {
         Ok(chain_tip) => {
             debug!("CHAIN_HEIGHT {}", chain_tip);
             chain_height.push_str(&chain_tip.to_string());
