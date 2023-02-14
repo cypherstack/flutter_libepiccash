@@ -1683,7 +1683,7 @@ pub fn tx_receive(wallet: &Wallet, keychain_mask: Option<SecretKey>, account: &s
             Ok(serde_json::to_string(&final_result).unwrap())
         },
         Err(e)=> {
-            return  Err(e);
+            Err(e)
         }
     }
 }
