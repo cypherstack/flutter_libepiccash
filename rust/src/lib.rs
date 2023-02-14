@@ -1661,7 +1661,7 @@ pub fn tx_receive(wallet: &Wallet, keychain_mask: Option<SecretKey>, account: &s
         keychain_mask.clone(),
         Some(check_middleware));
 
-    match foreign_api.receive_tx(&slate, Some(&account), None) {
+    match foreign_api.receive_tx(&slate, Some(account), None) {
         Ok(slate)=> {
             let txs = match owner_api.retrieve_txs(
                 keychain_mask.as_ref(),
