@@ -921,7 +921,7 @@ pub unsafe extern "C" fn rust_get_wallet_address(
     let sek_key = tuple_wallet_data.1;
 
     ensure_wallet!(wlt, wallet);
-    let result = match _get_wallet_address(
+    match _get_wallet_address(
         wallet,
         sek_key,
         index,
@@ -936,8 +936,7 @@ pub unsafe extern "C" fn rust_get_wallet_address(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 fn _get_wallet_address(
