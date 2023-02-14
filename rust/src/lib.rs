@@ -233,7 +233,7 @@ fn _wallet_init(
 
     let phrase = match mnemonic.to_str() {
         Ok(str_phrase) => {str_phrase}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+            Error::from(ErrorKind::GenericError(e.to_string()))
         )}
     };
 
