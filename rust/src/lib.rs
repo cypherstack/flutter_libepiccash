@@ -732,7 +732,7 @@ fn _tx_cancel(
 pub unsafe extern "C" fn rust_get_chain_height(
     config: *const c_char,
 ) -> *const c_char {
-    let result = match _get_chain_height(
+    match _get_chain_height(
         config
     ) {
         Ok(chain_height) => {
@@ -744,8 +744,7 @@ pub unsafe extern "C" fn rust_get_chain_height(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
