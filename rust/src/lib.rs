@@ -160,8 +160,7 @@ pub unsafe extern "C" fn wallet_init(
     password: *const c_char,
     name: *const c_char
 ) -> *const c_char {
-
-    let result = match _wallet_init(config, mnemonic, password, name) {
+    match _wallet_init(config, mnemonic, password, name) {
         Ok(created) => {
             created
         }, Err(e ) => {
@@ -171,8 +170,7 @@ pub unsafe extern "C" fn wallet_init(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 #[no_mangle]
