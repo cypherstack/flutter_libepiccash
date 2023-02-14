@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::path::{Path};
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
-use rustc_serialize::json;
 use uuid::Uuid;
 
 use stack_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
@@ -15,8 +14,7 @@ use stack_epic_wallet_libwallet::api_impl::owner;
 use stack_epic_wallet_impls::{DefaultLCProvider, DefaultWalletImpl, EpicboxListenChannel, HTTPNodeClient};
 
 use ws::{
-    CloseCode, Message, Error as WsError, ErrorKind as WsErrorKind,
-    Result as WSResult, Sender, Handler
+    Sender
 };
 
 use stack_epic_keychain::mnemonic;
