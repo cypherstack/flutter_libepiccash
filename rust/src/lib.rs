@@ -470,7 +470,7 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
 
     ensure_wallet!(wlt, wallet);
 
-    let result = match _wallet_scan_outputs(
+    match _wallet_scan_outputs(
         wallet,
         sek_key,
         start_height,
@@ -485,8 +485,7 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 fn _wallet_scan_outputs(
