@@ -1003,8 +1003,7 @@ pub unsafe extern "C" fn rust_get_tx_fees(
     let sek_key = tuple_wallet_data.1;
 
     ensure_wallet!(wlt, wallet);
-
-    let result = match _get_tx_fees(
+    match _get_tx_fees(
         &wallet,
         sek_key,
         amount,
@@ -1019,8 +1018,7 @@ pub unsafe extern "C" fn rust_get_tx_fees(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 fn _get_tx_fees(
