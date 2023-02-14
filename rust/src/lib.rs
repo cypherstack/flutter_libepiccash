@@ -1872,9 +1872,7 @@ pub fn tx_create(
                 &slate,
                 0
             ) {
-                Ok(_) => {
-                    ()
-                }
+                Ok(_) => {}
                 Err(err) => {
                     return  Err(err);
                 }
