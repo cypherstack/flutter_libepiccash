@@ -692,7 +692,7 @@ pub unsafe extern "C" fn rust_tx_cancel(
 
     ensure_wallet!(wlt, wallet);
 
-    let result = match _tx_cancel(
+    match _tx_cancel(
         wallet,
         sek_key,
         uuid,
@@ -706,8 +706,7 @@ pub unsafe extern "C" fn rust_tx_cancel(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 fn _tx_cancel(
