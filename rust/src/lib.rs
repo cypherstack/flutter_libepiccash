@@ -153,7 +153,7 @@ use ffi_helpers::task::{CancellationToken};
 #[no_mangle]
 /// # Safety
 ///
-/// TODO describe safety constrains
+/// TODO describe safety constraints
 pub unsafe extern "C" fn wallet_init(
     config: *const c_char,
     mnemonic: *const c_char,
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn wallet_init(
 #[no_mangle]
 /// # Safety
 ///
-/// TODO describe safety constrains
+/// TODO describe safety constraints
 pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
     match _get_mnemonic() {
         Ok(phrase) => {
@@ -260,7 +260,7 @@ fn _wallet_init(
 #[no_mangle]
 /// # Safety
 ///
-/// TODO describe safety constrains
+/// TODO describe safety constraints
 pub unsafe extern "C"  fn rust_open_wallet(
     config: *const c_char,
     password: *const c_char,
@@ -319,6 +319,9 @@ fn _open_wallet(
     This contains wallet balances
 */
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C"  fn rust_wallet_balances(
     wallet: *const c_char,
     refresh: *const c_char,
@@ -383,9 +386,10 @@ fn _wallet_balances(
     Ok(p)
 }
 
-
-
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C"  fn rust_recover_from_mnemonic(
     config: *const c_char,
     password: *const c_char,
@@ -452,6 +456,9 @@ fn _recover_from_mnemonic(
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C" fn rust_wallet_scan_outputs(
     wallet: *const c_char,
     start_height: *const c_char,
@@ -516,6 +523,9 @@ fn _wallet_scan_outputs(
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C" fn rust_create_tx(
     wallet: *const c_char,
     amount: *const c_char,
@@ -616,6 +626,9 @@ fn _create_tx(
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C" fn rust_txs_get(
     wallet: *const c_char,
     refresh_from_node: *const c_char,
@@ -675,6 +688,9 @@ fn _txs_get(
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C" fn rust_tx_cancel(
     wallet: *const c_char,
     tx_id: *const c_char,
@@ -729,6 +745,9 @@ fn _tx_cancel(
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C" fn rust_get_chain_height(
     config: *const c_char,
 ) -> *const c_char {
@@ -768,6 +787,9 @@ fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C" fn rust_delete_wallet(
     wallet: *const c_char,
 ) -> *const c_char  {
@@ -813,6 +835,9 @@ fn _delete_wallet(
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C" fn rust_tx_send_http(
     wallet: *const c_char,
     selection_strategy_is_use_all: *const c_char,
@@ -904,6 +929,9 @@ pub struct EpicboxInfo {
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C" fn rust_get_wallet_address(
     wallet: *const c_char,
     index: *const c_char,
@@ -966,6 +994,9 @@ pub fn get_wallet_address(
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C" fn rust_validate_address(
     address: *const c_char,
 ) -> *const c_char {
@@ -984,6 +1015,9 @@ pub unsafe extern "C" fn rust_validate_address(
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C" fn rust_get_tx_fees(
     wallet: *const c_char,
     c_amount: *const c_char,
@@ -2086,6 +2120,9 @@ export_task! {
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constraints
 pub unsafe extern "C" fn run_listener(
     wallet: *const c_char,
     epicbox_config: *const c_char,
