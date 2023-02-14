@@ -1213,7 +1213,7 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
             }
         } else {
             match lc.create_wallet(
-                Some(&name),
+                Some(name),
                 Some(ZeroingString::from(mnemonic)),
                 32,
                 ZeroingString::from(password),
