@@ -342,7 +342,7 @@ pub unsafe extern "C"  fn rust_wallet_balances(
 
     ensure_wallet!(wlt, wallet);
 
-    let result = match _wallet_balances(
+    match _wallet_balances(
         wallet,
         sek_key,
         refresh,
@@ -357,8 +357,7 @@ pub unsafe extern "C"  fn rust_wallet_balances(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 fn _wallet_balances(
