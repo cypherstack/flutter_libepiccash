@@ -1236,13 +1236,7 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
 */
 pub fn mnemonic() -> Result<String, stack_epic_keychain::mnemonic::Error> {
     let seed = create_seed(32);
-    match mnemonic::from_entropy(&seed) {
-        Ok(mnemonic_str) => {
-            Ok(mnemonic_str)
-        }, Err(e) => {
-            return  Err(e);
-        }
-    }
+    mnemonic::from_entropy(&seed)
 }
 
 fn create_seed(seed_length: u64) -> Vec<u8> {
@@ -1368,21 +1362,12 @@ pub fn wallet_scan_outputs(
     };
 
     if tip == 0 {
-        return Err(Error::from(ErrorKind::GenericError(format!(
-            "{}",
-            "Unable to scan, could not determine chain height"
-        ))));
+        return Err(Error::from(ErrorKind::GenericError("Unable to scan, could not determine chain height".to_string())));
     }
 
-    let start_height: u64 = match start_height {
-        Some(h) => h,
-        None => 1,
-    };
+    let start_height: u64 = start_height.unwrap_or(1);
 
-    let number_of_blocks_to_scan: u64 = match number_of_blocks_to_scan {
-        Some(h) => h,
-        None => 0,
-    };
+    let number_of_blocks_to_scan: u64 = number_of_blocks_to_scan.unwrap_or(0);
 
     let last_block = start_height + number_of_blocks_to_scan;
     let end_height: u64 = match last_block.cmp(&tip) {
@@ -1795,8 +1780,8 @@ pub fn get_epicbox_address(
 
 pub fn derive_public_key_from_address(address: &str) -> PublicKey {
     let address = EpicboxAddress::from_str(address).unwrap();
-    let public_key = address.public_key().unwrap();
-    public_key
+    
+    address.public_key().unwrap()
 }
 
 pub fn convert_deci_to_nano(amount: f64) -> u64 {
@@ -1807,8 +1792,8 @@ pub fn convert_deci_to_nano(amount: f64) -> u64 {
 
 pub fn nano_to_deci(amount: u64) -> f64 {
     let base_nano = 100000000;
-    let decimal = amount as f64 / base_nano as f64;
-    decimal
+    
+    amount as f64 / base_nano as f64
 }
 
 /*
@@ -1840,17 +1825,17 @@ pub fn decrypt_message(receiver_key: &SecretKey, msg_json: serde_json::Value) ->
 */
 pub fn process_epic_box_slate(wallet: &Wallet, keychain_mask: Option<SecretKey>, slate_info: &str
 ) -> Result<String, Error> {
-    let msg_tuple: (String, String) =  serde_json::from_str(&slate_info).unwrap();
+    let msg_tuple: (String, String) =  serde_json::from_str(slate_info).unwrap();
     let transaction: Vec<TxLogEntry> = serde_json::from_str(&msg_tuple.0).unwrap();
 
     match transaction[0].tx_type {
         TxLogEntryType::TxSent => {
-            match tx_receive(&wallet, keychain_mask.clone(), "default", &msg_tuple.1) {
+            match tx_receive(wallet, keychain_mask, "default", &msg_tuple.1) {
                 Ok(slate) => {
                     Ok(slate)
                 },
                 Err(e) => {
-                    return Err(e);
+                    Err(e)
                 }
             }
         },
@@ -1866,14 +1851,10 @@ pub fn process_epic_box_slate(wallet: &Wallet, keychain_mask: Option<SecretKey>,
             }
         },
         TxLogEntryType::ConfirmedCoinbase => {
-            Err(Error::from(ErrorKind::GenericError(format!(
-                "The provided slate has already been confirmed, not processed.",
-            ))))
+            Err(Error::from(ErrorKind::GenericError("The provided slate has already been confirmed, not processed.".to_string())))
         },
         _ => {
-            Err(Error::from(ErrorKind::GenericError(format!(
-                "The provided slate could not be processed, cancelled by user.",
-            ))))
+            Err(Error::from(ErrorKind::GenericError("The provided slate could not be processed, cancelled by user.".to_string())))
         }
     }
 
@@ -1883,13 +1864,13 @@ pub fn process_epic_box_slate(wallet: &Wallet, keychain_mask: Option<SecretKey>,
 
 */
 pub fn open_wallet(config_json: &str, password: &str) -> Result<(Wallet, Option<SecretKey>), Error> {
-    let config = match Config::from_str(&config_json.to_string()) {
+    let config = match Config::from_str(config_json) {
         Ok(config) => {
             config
         }, Err(e) => {
             return Err(Error::from(ErrorKind::GenericError(format!(
                 "Unable to get wallet config: {}",
-                e.to_string()
+                e
             ))))
         }
     };
@@ -1994,7 +1975,7 @@ pub fn delete_wallet(wallet: &Wallet) -> Result<String, Error> {
         };
     } else {
         return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", "Error closing wallet")))
+            Error::from(ErrorKind::GenericError("Error closing wallet".to_string()))
         );
     }
     Ok(result)
