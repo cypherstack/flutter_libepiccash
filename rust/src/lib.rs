@@ -1314,7 +1314,7 @@ fn inst_wallet<L, C, K>(
 }
 
 pub fn get_chain_height(config: &str) -> Result<u64, Error> {
-    let config = match Config::from_str(&config.to_string()) {
+    let config = match Config::from_str(config) {
         Ok(config) => {
             config
         }, Err(e) => {
