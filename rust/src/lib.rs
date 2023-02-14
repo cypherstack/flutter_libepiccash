@@ -2140,10 +2140,10 @@ pub unsafe extern "C" fn run_listener(
         epicbox_config: epicbox_config.parse().unwrap()
     };
 
-    let handle = listener_spawn(&listen);
+    let _handle = listener_spawn(&listen);
     let msg = format!("START LISTENER {}", "LISTENER STARTED");
     let msg_ptr = CString::new(msg).unwrap();
-    let ptr = msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+    let ptr = msg_ptr.as_ptr(); // Get a pointer to the underlying memory for s
     std::mem::forget(msg_ptr);
     ptr
 }
