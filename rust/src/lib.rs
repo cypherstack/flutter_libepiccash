@@ -1410,7 +1410,7 @@ pub fn wallet_scan_outputs(
 
             let parent_key_id = {
                 wallet_lock!(wallet, w);
-                w.parent_key_id().clone()
+                w.parent_key_id()
             };
 
             {
