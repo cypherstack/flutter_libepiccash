@@ -2452,9 +2452,7 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<(Wallet, Option<
                 };
                 if let Some(account) = config.account {
                     match wallet_inst.set_parent_key_id_by_name(&account) {
-                        Ok(_) => {
-                            ()
-                        }
+                        Ok(_) => {}
                         Err(err) => {
                             return  Err(err);
                         }
