@@ -1725,7 +1725,7 @@ pub fn tx_finalize(
             Ok(serde_json::to_string(&final_result).unwrap())
         },
         Err(e)=> {
-            return  Err(e);
+            Err(e)
         }
     }
 }
