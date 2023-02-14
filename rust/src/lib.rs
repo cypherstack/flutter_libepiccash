@@ -623,10 +623,7 @@ pub unsafe extern "C" fn rust_txs_get(
     let c_wallet = CStr::from_ptr(wallet);
     let c_refresh_from_node = CStr::from_ptr(refresh_from_node);
     let refresh_from_node: u64 = c_refresh_from_node.to_str().unwrap().to_string().parse().unwrap();
-    let refresh = match refresh_from_node {
-        0 => false,
-        _=> true
-    };
+    let refresh = !matches!(refresh_from_node, 0);
 
     let wallet_data = c_wallet.to_str().unwrap();
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
