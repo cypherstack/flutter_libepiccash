@@ -1049,7 +1049,7 @@ pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> 
         }, Err(e) => {
             return  Err(Error::from(ErrorKind::GenericError(format!(
                 "Error getting wallet config: {}",
-                e.to_string()
+                e
             ))));
         }
     };
