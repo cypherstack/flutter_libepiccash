@@ -1324,7 +1324,7 @@ pub fn get_chain_height(config: &str) -> Result<u64, Error> {
             ))))
         }
     };
-    let wallet_config = match create_wallet_config(config.clone()) {
+    let wallet_config = match create_wallet_config(config) {
         Ok(wallet_conf) => {
             wallet_conf
         }
