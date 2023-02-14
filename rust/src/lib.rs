@@ -1094,7 +1094,7 @@ pub fn get_wallet_secret_key_pair(
 ) -> Result<(SecretKey, PublicKey), Error>{
     let parent_key_id = {
         wallet_lock!(wallet, w);
-        w.parent_key_id().clone()
+        w.parent_key_id()
     };
     wallet_lock!(wallet, w);
 
