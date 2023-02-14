@@ -1441,7 +1441,7 @@ pub fn wallet_scan_outputs(
             let result = info.height;
             Ok(serde_json::to_string(&result).unwrap())
         }, Err(e) => {
-            return  Err(e);
+            Err(e)
         }
     }
 }
