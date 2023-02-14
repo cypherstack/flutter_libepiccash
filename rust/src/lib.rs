@@ -365,7 +365,7 @@ fn _wallet_balances(
 ) -> Result<*const c_char, Error> {
     let mut wallet_info = "".to_string();
     match get_wallet_info(
-        &wallet,
+        wallet,
         keychain_mask,
         refresh,
         min_confirmations
