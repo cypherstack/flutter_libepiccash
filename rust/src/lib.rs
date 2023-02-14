@@ -293,7 +293,7 @@ fn _open_wallet(
     let str_password = c_password.to_str().unwrap();
 
     let mut result = String::from("");
-    match open_wallet(&str_config.clone(), str_password) {
+    match open_wallet(str_config.clone(), str_password) {
         Ok(res) => {
             let wlt = res.0;
             let sek_key = res.1;
