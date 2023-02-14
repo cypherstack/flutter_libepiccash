@@ -439,10 +439,10 @@ fn _recover_from_mnemonic(
     let wallet_config = match Config::from_str(&input_conf.to_string()) {
         Ok(config) => {
             config
-        }, Err(err) => {
+        }, Err(e) => {
             return Err(Error::from(ErrorKind::GenericError(format!(
                 "Wallet config error : {}",
-                err.to_string()
+                e.to_string()
             ))))
         }
     };
@@ -1151,10 +1151,10 @@ pub fn get_wallet_secret_key_pair(
         Ok(p_key) => {
             p_key
         }
-        Err(err) => {
+        Err(e) => {
             return Err(Error::from(
                 ErrorKind::GenericError(
-                    format!("{}", err.to_string())
+                    format!("{}", e.to_string())
                 )
             ));
         }
