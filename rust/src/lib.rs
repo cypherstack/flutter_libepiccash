@@ -174,6 +174,9 @@ pub unsafe extern "C" fn wallet_init(
 }
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constrains
 pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
     let result = match _get_mnemonic() {
         Ok(phrase) => {
