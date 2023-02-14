@@ -596,7 +596,7 @@ fn _create_tx(
         epicbox_config,
         address) {
         Ok(slate) => {
-            let empty_json = format!(r#"{{"slate_msg": ""}}"#);
+            let empty_json = r#"{"slate_msg": ""}"#.to_string();
             let create_response = (&slate, &empty_json);
             let str_create_response = serde_json::to_string(&create_response).unwrap();
             message.push_str(&str_create_response);
