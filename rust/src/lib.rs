@@ -1392,7 +1392,7 @@ pub fn wallet_scan_outputs(
                 chain_tip.0
             },
             Err(_e) => {
-                0
+                0 // May want to return _e or _e.to_string() here
             }
         }
     };
