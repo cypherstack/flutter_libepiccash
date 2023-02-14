@@ -1738,17 +1738,13 @@ pub fn wallet_scan_outputs(
                     }
                 };
                 match batch.save_last_confirmed_height(&parent_key_id, info.height) {
-                    Ok(_) => {
-                        ()
-                    }
+                    Ok(_) => {}
                     Err(err) => {
                         return  Err(err);
                     }
                 };
                 match batch.commit() {
-                    Ok(_) => {
-                        ()
-                    }
+                    Ok(_) => {}
                     Err(err) => {
                         return  Err(err);
                     }
