@@ -1004,7 +1004,7 @@ pub unsafe extern "C" fn rust_get_tx_fees(
 
     ensure_wallet!(wlt, wallet);
     match _get_tx_fees(
-        &wallet,
+        wallet,
         sek_key,
         amount,
         minimum_confirmations,
