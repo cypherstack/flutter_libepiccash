@@ -824,10 +824,7 @@ pub unsafe extern "C" fn rust_tx_send_http(
     let c_wallet = CStr::from_ptr(wallet);
     let c_strategy_is_use_all = CStr::from_ptr(selection_strategy_is_use_all);
     let strategy_is_use_all: u64 = c_strategy_is_use_all.to_str().unwrap().to_string().parse().unwrap();
-    let strategy_use_all = match strategy_is_use_all {
-        0 => false,
-        _=> true
-    };
+    let strategy_use_all = !matches!(strategy_is_use_all, 0);
     let c_minimum_confirmations = CStr::from_ptr(minimum_confirmations);
     let minimum_confirmations: u64 = c_minimum_confirmations.to_str().unwrap().to_string().parse().unwrap();
     let c_message = CStr::from_ptr(message);
