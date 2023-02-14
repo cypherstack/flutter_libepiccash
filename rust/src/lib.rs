@@ -392,8 +392,7 @@ pub unsafe extern "C"  fn rust_recover_from_mnemonic(
     mnemonic: *const c_char,
     name: *const c_char
 ) -> *const c_char {
-
-    let result = match _recover_from_mnemonic(
+    match _recover_from_mnemonic(
         config,
         password,
         mnemonic,
@@ -408,8 +407,7 @@ pub unsafe extern "C"  fn rust_recover_from_mnemonic(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 fn _recover_from_mnemonic(
