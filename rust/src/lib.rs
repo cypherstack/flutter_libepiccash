@@ -1770,7 +1770,7 @@ pub fn tx_post(
                     Ok("tx_posted_to_node".to_owned())
                 },
                 Err(err)=> {
-                    return Err(err);
+                    Err(err)
                 }
             }
         }
