@@ -1124,7 +1124,7 @@ pub fn get_wallet_secret_key_pair(
         Err(e) => {
             return Err(Error::from(
                 ErrorKind::GenericError(
-                    format!("{}", e.to_string())
+                    format!("{}", e)
                 )
             ));
         }
