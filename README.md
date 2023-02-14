@@ -35,6 +35,27 @@ cd scripts/ios
 ./build_all
 ```
 
+### Linux:
+
+```
+cd scripts/linux
+./build_all.sh
+```
+
+### Windows:
+
+Cross compile:
+```
+cd scripts/windows
+./build_all.sh
+```
+
+Native build:
+```
+cd scripts/windows
+./build_all.ps1
+```
+
 ## Test
 Run `flutter test`
 
