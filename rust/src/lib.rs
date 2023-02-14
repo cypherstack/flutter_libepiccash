@@ -588,8 +588,8 @@ fn _create_tx(
 ) -> Result<*const c_char, Error> {
     let  mut message = String::from("");
     match tx_create(
-        &wallet,
-        keychain_mask.clone(),
+        wallet,
+        keychain_mask,
         amount,
         minimum_confirmations,
         false,
