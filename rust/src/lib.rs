@@ -1279,7 +1279,7 @@ fn get_wallet(config: &Config) -> Result<Wallet, Error> {
             return  Err(e);
         }
     };
-    return Ok(wallet);
+    Ok(wallet)
 }
 /*
     New wallet instance
