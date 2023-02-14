@@ -1048,7 +1048,7 @@ pub unsafe extern "C" fn rust_delete_wallet(
     let wallet_data = wallet_ptr.to_str().unwrap();
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
     let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
+    let _sek_key = tuple_wallet_data.1;
     ensure_wallet!(wlt, wallet);
     let result = match _delete_wallet(
         wallet
