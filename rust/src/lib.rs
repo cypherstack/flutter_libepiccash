@@ -1271,7 +1271,7 @@ fn get_wallet(config: &Config) -> Result<Wallet, Error> {
         DefaultLCProvider<HTTPNodeClient, ExtKeychain>,
         HTTPNodeClient,
         ExtKeychain,
-    >(wallet_config.clone(), node_client) {
+    >(wallet_config, node_client) {
         Ok(wallet_inst) => {
             wallet_inst
         }
