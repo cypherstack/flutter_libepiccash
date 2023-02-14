@@ -986,7 +986,7 @@ pub fn get_wallet_address(
 pub unsafe extern "C" fn rust_validate_address(
     address: *const c_char,
 ) -> *const c_char {
-    let address = unsafe { CStr::from_ptr(address) };
+    let address = CStr::from_ptr(address);
     let str_address = address.to_str().unwrap();
     let validate = validate_address(str_address);
     let return_value = match validate {
