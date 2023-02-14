@@ -1180,7 +1180,7 @@ pub fn get_wallet_info(
     Recover wallet from mnemonic
 */
 pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, name: &str) -> Result<(), Error> {
-    let wallet = match get_wallet(&config) {
+    let wallet = match get_wallet(config) {
         Ok(conf) => {
             conf
         }
