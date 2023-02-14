@@ -71,14 +71,12 @@ macro_rules! ensure_wallet (
     )
 );
 
-
-macro_rules! ensure_handler (
-    ($handler_ptr:expr, $handler:ident) => (
-
-        let $handler = ($handler_ptr as *mut TaskHandle<usize>).as_mut().unwrap();
-    )
-);
-
+//macro_rules! ensure_handler (
+//    ($handler_ptr:expr, $handler:ident) => (
+//
+//        let $handler = ($handler_ptr as *mut TaskHandle<usize>).as_mut().unwrap();
+//    )
+//);
 
 fn init_logger() {
     android_logger::init_once(
