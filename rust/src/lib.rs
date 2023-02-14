@@ -2001,7 +2001,7 @@ pub fn validate_address(address: &str) -> bool {
 pub fn delete_wallet(wallet: &Wallet) -> Result<String, Error> {
     //First close the wallet
     let mut result = String::from("");
-    if let Ok(closed) = close_wallet(&wallet) {
+    if let Ok(_closed) = close_wallet(&wallet) {
         let api = Owner::new(wallet.clone());
         match api.delete_wallet(None) {
             Ok(_) => {
