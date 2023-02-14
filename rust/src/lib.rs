@@ -145,7 +145,6 @@ use log::Level;
 use android_logger::Config as AndroidConfig;
 use ffi_helpers::{export_task, Task};
 use ffi_helpers::task::{CancellationToken};
-use stack_test_epicboxlib::utils::crypto::{Hex, sign_challenge};
 
 /*
     Create a new wallet
