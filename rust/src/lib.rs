@@ -635,7 +635,7 @@ pub unsafe extern "C" fn rust_txs_get(
 
     ensure_wallet!(wlt, wallet);
 
-    let result = match _txs_get(
+    match _txs_get(
         wallet,
         sek_key,
         refresh,
@@ -649,8 +649,7 @@ pub unsafe extern "C" fn rust_txs_get(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 fn _txs_get(
