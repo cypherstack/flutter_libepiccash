@@ -1828,7 +1828,7 @@ pub fn decrypt_message(receiver_key: &SecretKey, msg_json: serde_json::Value) ->
         Ok(decrypted) => {
             decrypted
         }, Err(e) => {
-            format!("Error {}", e.to_string())
+            format!("Error {}", e)
         }
     };
 
