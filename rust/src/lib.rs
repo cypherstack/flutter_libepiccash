@@ -33,7 +33,6 @@ use stack_epic_util::secp::{Secp256k1};
 
 use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
 use android_logger::FilterBuilder;
-use std::{env, thread};
 use std::time::Duration;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
