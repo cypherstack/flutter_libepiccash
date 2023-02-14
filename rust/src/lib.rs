@@ -40,7 +40,7 @@ use android_logger::FilterBuilder;
 use std::env;
 // mod main;
 
-#[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config {
     pub wallet_dir: String,
     pub check_node_api_http_addr: String,
@@ -55,7 +55,7 @@ struct Client {
     out: Sender,
 }
 
-#[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct EpicBoxConfig {
     domain: String,
     port: u16
