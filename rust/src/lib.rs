@@ -1294,7 +1294,7 @@ fn inst_wallet<L, C, K>(
         C: NodeClient + 'static,
         K: Keychain + 'static,
 {
-    let mut wallet = Box::new(DefaultWalletImpl::<'static, C>::new(node_client.clone()).unwrap())
+    let mut wallet = Box::new(DefaultWalletImpl::<'static, C>::new(node_client).unwrap())
         as Box<dyn WalletInst<'static, L, C, K>>;
     let lc = match wallet.lc_provider() {
         Ok(wallet_lc) => {
