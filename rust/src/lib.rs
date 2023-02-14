@@ -2054,8 +2054,8 @@ pub fn tx_send_http(
             let str_tx_data = serde_json::to_string(&tx_data).unwrap();
             Ok(str_tx_data)
         } Err(err) => {
-            println!("CREATE_TX_ERROR_IN_HTTP_SEND {}", err.to_string());
-            return  Err(err);
+            println!("CREATE_TX_ERROR_IN_HTTP_SEND {}", err);
+            Err(err)
         }
     }
 }
