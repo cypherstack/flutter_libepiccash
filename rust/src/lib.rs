@@ -777,7 +777,7 @@ pub unsafe extern "C" fn rust_delete_wallet(
     let wlt = tuple_wallet_data.0;
     let _sek_key = tuple_wallet_data.1;
     ensure_wallet!(wlt, wallet);
-    let result = match _delete_wallet(
+    match _delete_wallet(
         wallet
     ) {
         Ok(deleted) => {
@@ -789,8 +789,7 @@ pub unsafe extern "C" fn rust_delete_wallet(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 fn _delete_wallet(
