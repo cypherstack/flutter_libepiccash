@@ -178,7 +178,7 @@ pub unsafe extern "C" fn wallet_init(
 ///
 /// TODO describe safety constrains
 pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
-    let result = match _get_mnemonic() {
+    match _get_mnemonic() {
         Ok(phrase) => {
             phrase
         }, Err(e ) => {
@@ -188,8 +188,7 @@ pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 
