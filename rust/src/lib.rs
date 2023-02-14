@@ -1855,7 +1855,7 @@ pub fn process_epic_box_slate(wallet: &Wallet, keychain_mask: Option<SecretKey>,
             }
         },
         TxLogEntryType::TxReceived =>  {
-            let finalize = tx_finalize(&wallet, keychain_mask.clone(), &msg_tuple.1);
+            let finalize = tx_finalize(wallet, keychain_mask, &msg_tuple.1);
             match finalize {
                 Ok(str_slate) => {
                     Ok(str_slate)
