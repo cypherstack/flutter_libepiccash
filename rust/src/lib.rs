@@ -587,7 +587,7 @@ fn _create_tx(
     keychain_mask: Option<SecretKey>,
     amount: u64,
     address: &str,
-    secret_key_index: u32,
+    _secret_key_index: u32,
     epicbox_config: &str,
     minimum_confirmations: u64,
 ) -> Result<*const c_char, Error> {
