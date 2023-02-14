@@ -1619,9 +1619,7 @@ fn inst_wallet<L, C, K>(
         }
     };
     match lc.set_top_level_directory(&config.data_file_dir) {
-        Ok(_) => {
-            ()
-        }
+        Ok(_) => {}
         Err(err) => {
             return  Err(err);
         }
