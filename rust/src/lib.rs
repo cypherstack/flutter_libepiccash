@@ -221,7 +221,7 @@ fn _wallet_init(
 
     let str_password = match password.to_str() {
         Ok(str_pass) => {str_pass}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+            Error::from(ErrorKind::GenericError(e.to_string()))
         )}
     };
 
