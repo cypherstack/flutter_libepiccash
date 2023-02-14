@@ -239,7 +239,7 @@ fn _wallet_init(
 
     let str_name = match name.to_str() {
         Ok(str_name) => {str_name}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+            Error::from(ErrorKind::GenericError(e.to_string()))
         )}
     };
 
