@@ -843,7 +843,7 @@ pub unsafe extern "C" fn rust_tx_send_http(
     let sek_key = tuple_wallet_data.1;
     ensure_wallet!(wlt, wallet);
 
-    let result = match _tx_send_http(
+    match _tx_send_http(
         wallet,
         sek_key,
         strategy_use_all,
@@ -861,8 +861,7 @@ pub unsafe extern "C" fn rust_tx_send_http(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 fn _tx_send_http(
