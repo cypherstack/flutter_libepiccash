@@ -145,7 +145,6 @@ use log::Level;
 use android_logger::Config as AndroidConfig;
 use ffi_helpers::{export_task, Task};
 use ffi_helpers::task::{CancellationToken};
-use serde_json::json;
 use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
 use stack_test_epicboxlib::utils::crypto::{Hex, sign_challenge};
 
