@@ -1350,7 +1350,7 @@ pub fn get_chain_height(config: &str) -> Result<u64, Error> {
         }, Err(e) => {
             return Err(Error::from(ErrorKind::GenericError(format!(
                 "Unable to get wallet config: {}",
-                e
+                e.to_string()
             ))))
         }
     };
