@@ -1823,7 +1823,7 @@ pub fn decrypt_message(receiver_key: &SecretKey, msg_json: serde_json::Value) ->
     let encrypted_message: EpicboxMessage =
         serde_json::from_str(message).map_err(|_| TxProofErrorKind::ParseEpicboxMessage).unwrap();
 
-    let key = encrypted_message.key(&sender_public_key, &receiver_key).unwrap();
+    let key = encrypted_message.key(&sender_public_key, receiver_key).unwrap();
     let decrypted_message = match encrypted_message.decrypt_with_key(&key) {
         Ok(decrypted) => {
             decrypted
