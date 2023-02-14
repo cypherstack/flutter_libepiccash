@@ -2018,7 +2018,7 @@ pub fn tx_send_http(
     address: &str,
 ) -> Result<String, Error>{
     let api = Owner::new(wallet.clone());
-    let initSendArgs = InitTxSendArgs {
+    let init_send_args = InitTxSendArgs {
         method: "http".to_string(),
         dest: address.to_string(),
         finalize: true,
@@ -2034,7 +2034,7 @@ pub fn tx_send_http(
         num_change_outputs: 1,
         selection_strategy_is_use_all,
         message: Some(message.to_string()),
-        send_args: Some(initSendArgs),
+        send_args: Some(init_send_args),
         ..Default::default()
     };
 
