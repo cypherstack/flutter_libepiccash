@@ -423,7 +423,7 @@ fn _recover_from_mnemonic(
 
     let input_conf = c_conf.to_str().unwrap();
     let str_password = c_password.to_str().unwrap();
-    let wallet_config = match Config::from_str(&input_conf.to_string()) {
+    let wallet_config = match Config::from_str(input_conf) {
         Ok(config) => {
             config
         }, Err(e) => {
