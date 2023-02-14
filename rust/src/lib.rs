@@ -2503,11 +2503,11 @@ pub fn delete_wallet(wallet: &Wallet) -> Result<String, Error> {
                 result.push_str("deleted");
             }
             Err(err) => {
-                return  Err(err);
+                return Err(err);
             }
         };
     } else {
-        return  return Err(
+        return Err(
             Error::from(ErrorKind::GenericError(format!("{}", "Error closing wallet")))
         );
     }
