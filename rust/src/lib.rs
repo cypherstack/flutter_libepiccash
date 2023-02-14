@@ -1595,7 +1595,7 @@ pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id:
         Ok(_) => {
             Ok("cancelled".to_owned())
         },Err(e) => {
-            return Err(e);
+            Err(e)
         }
     }
 }
