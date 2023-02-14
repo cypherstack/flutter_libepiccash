@@ -31,8 +31,6 @@ use stack_epic_util::secp::rand::Rng;
 use stack_epic_util::secp::key::{SecretKey, PublicKey};
 use stack_epic_util::secp::{Secp256k1};
 
-use stack_epic_wallet_controller::command;
-
 use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
 use android_logger::FilterBuilder;
 use std::{env, thread};
