@@ -1743,7 +1743,7 @@ pub fn tx_post(
         keychain_mask.as_ref(),
         false,
         None,
-        Some(tx_uuid.clone())
+        Some(tx_uuid)
     ) {
         Ok(result) => {
             result
