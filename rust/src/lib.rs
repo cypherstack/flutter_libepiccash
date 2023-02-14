@@ -1984,14 +1984,7 @@ pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
 
 pub fn validate_address(address: &str) -> bool {
     let address = EpicboxAddress::from_str(address);
-    match address {
-        Ok(_) => {
-            true
-        },
-        _ => {
-            false
-        }
-    }
+    matches!(address, Ok(_))
 }
 
 pub fn delete_wallet(wallet: &Wallet) -> Result<String, Error> {
