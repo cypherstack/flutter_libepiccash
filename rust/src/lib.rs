@@ -257,8 +257,10 @@ fn _wallet_init(
     Ok(p)
 }
 
-
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constrains
 pub unsafe extern "C"  fn rust_open_wallet(
     config: *const c_char,
     password: *const c_char,
@@ -273,7 +275,7 @@ pub unsafe extern "C"  fn rust_open_wallet(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlying memory for s
             std::mem::forget(error_msg_ptr);
             ptr
         }
