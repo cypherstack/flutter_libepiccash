@@ -266,7 +266,7 @@ pub unsafe extern "C"  fn rust_open_wallet(
     password: *const c_char,
 ) -> *const c_char {
     init_logger();
-    let result = match _open_wallet(
+    match _open_wallet(
         config,
         password
     ) {
@@ -279,8 +279,7 @@ pub unsafe extern "C"  fn rust_open_wallet(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
+    }
 }
 
 fn _open_wallet(
