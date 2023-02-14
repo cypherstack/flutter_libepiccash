@@ -151,6 +151,9 @@ use ffi_helpers::task::{CancellationToken};
 */
 
 #[no_mangle]
+/// # Safety
+///
+/// TODO describe safety constrains
 pub unsafe extern "C" fn wallet_init(
     config: *const c_char,
     mnemonic: *const c_char,
@@ -164,7 +167,7 @@ pub unsafe extern "C" fn wallet_init(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlying memory for s
             std::mem::forget(error_msg_ptr);
             ptr
         }
