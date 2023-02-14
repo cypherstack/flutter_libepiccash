@@ -2074,7 +2074,7 @@ impl Task for Listener {
         let mut spins = 0;
 
         unsafe {
-            let epicbox_conf = serde_json::from_str::<EpicboxConfig>(&self.epicbox_config.as_str()).unwrap();
+            let epicbox_conf = serde_json::from_str::<EpicboxConfig>(self.epicbox_config.as_str()).unwrap();
             let wallet_data = &self.wallet_data;
             let wlt = wallet_data.clone().0;
             let sek_key = wallet_data.clone().1;
