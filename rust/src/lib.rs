@@ -945,7 +945,7 @@ fn _get_wallet_address(
     index: u32,
     epicbox_config: &str
 ) -> Result<*const c_char, Error> {
-    let address = get_wallet_address(&wallet, keychain_mask, index, epicbox_config);
+    let address = get_wallet_address(wallet, keychain_mask, index, epicbox_config);
     let s = CString::new(address).unwrap();
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
