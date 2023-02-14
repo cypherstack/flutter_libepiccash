@@ -881,7 +881,7 @@ fn _tx_send_http(
         address
     ) {
         Ok(sent) => {
-            let empty_json = format!(r#"{{"slate_msg": ""}}"#);
+            let empty_json = r#"{"slate_msg": ""}"#.to_string();
             let create_response = (&sent, &empty_json);
             let str_create_response = serde_json::to_string(&create_response).unwrap();
             send_result.push_str(&str_create_response);
