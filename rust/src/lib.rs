@@ -496,7 +496,7 @@ fn _wallet_scan_outputs(
 ) -> Result<*const c_char, Error> {
     let mut scan_result = String::from("");
     match wallet_scan_outputs(
-        &wallet,
+        wallet,
         keychain_mask,
         Some(start_height),
         Some(number_of_blocks)
