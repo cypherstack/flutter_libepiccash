@@ -1043,7 +1043,7 @@ fn _get_tx_fees(
 
 pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> Result<String, Error> {
     let wallet_pass = ZeroingString::from(password);
-    let wallet_config = match Config::from_str(&config) {
+    let wallet_config = match Config::from_str(config) {
         Ok(config) => {
             config
         }, Err(e) => {
