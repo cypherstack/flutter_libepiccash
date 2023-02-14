@@ -1170,7 +1170,7 @@ pub fn get_wallet_info(
                 amount_locked: nano_to_deci(wallet_summary.amount_locked)
             })
         }, Err(e) => {
-            return  Err(e);
+            Err(e)
         }
     }
 
