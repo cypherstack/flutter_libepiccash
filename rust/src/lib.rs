@@ -554,7 +554,7 @@ pub unsafe extern "C" fn rust_create_tx(
 
     ensure_wallet!(wlt, wallet);
 
-    let result = match _create_tx(
+    match _create_tx(
         wallet,
         sek_key,
         amount,
@@ -574,9 +574,7 @@ pub unsafe extern "C" fn rust_create_tx(
             std::mem::forget(error_msg_ptr);
             ptr
         }
-    };
-    result
-
+    }
 }
 
 fn _create_tx(
