@@ -429,7 +429,7 @@ fn _recover_from_mnemonic(
         }, Err(e) => {
             return Err(Error::from(ErrorKind::GenericError(format!(
                 "Wallet config error : {}",
-                e.to_string()
+                e
             ))))
         }
     };
