@@ -1581,7 +1581,7 @@ pub fn tx_create(
             Ok(str_result)
         },
         Err(e)=> {
-            return Err(e);
+            Err(e)
         }
     }
 }
