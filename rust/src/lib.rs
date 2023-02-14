@@ -227,7 +227,7 @@ fn _wallet_init(
 
     let str_config = match config.to_str() {
         Ok(str_conf) => {str_conf}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+            Error::from(ErrorKind::GenericError(format!("{}", e)))
         )}
     };
 
