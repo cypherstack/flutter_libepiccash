@@ -330,10 +330,7 @@ pub unsafe extern "C"  fn rust_wallet_balances(
     let minimum_confirmations: u64 = minimum_confirmations.to_str().unwrap().to_string().parse().unwrap();
 
     let refresh_from_node: u64 = c_refresh.to_str().unwrap().to_string().parse().unwrap();
-    let refresh = match refresh_from_node {
-        0 => false,
-        _=> true
-    };
+    let refresh = !matches!(refresh_from_node, 0);
 
     let wallet_data = wallet_ptr.to_str().unwrap();
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
