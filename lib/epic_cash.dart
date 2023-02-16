@@ -47,6 +47,7 @@ typedef EpicboxListen = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 
 typedef EpicboxListenFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 
+typedef GetTransactios = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef GetTransactions = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>);
 typedef GetTransactionsFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Int8>);
@@ -164,6 +165,14 @@ Future<String> createTransaction(String wallet, int amount, String address,
     epicboxConfig.toNativeUtf8(),
     minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
   ).toDartString();
+}
+
+final GetTransaction _getTransaction = epicCashNative
+    .lookup<NativeFunction<GetTransactionsFFI>>("rust_tx_get")
+    .asFunction();
+
+Future<String> getTransaction(String txSlateId) async {
+  return _getTransaction(txSlateId.toNativeUtf8()).toDartString();
 }
 
 final GetTransactions _getTransactions = epicCashNative
