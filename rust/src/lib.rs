@@ -621,8 +621,74 @@ fn _create_tx(
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     Ok(p)
+}
 
+#[no_mangle]
+pub unsafe extern "C" fn rust_tx_get(
+    wallet: *const c_char,
+    refresh_from_node: *const c_char,
+    tx_slate_id: &str,
+) -> *const c_char {
+    let c_refresh_from_node = CStr::from_ptr(refresh_from_node);
+    let refresh_from_node: u64 = c_refresh_from_node.to_str().unwrap().to_string().parse().unwrap();
+    let refresh = match refresh_from_node {
+        0 => false,
+        _=> true
+    };
 
+    let wallet_ptr = CStr::from_ptr(wallet);
+    // let tx_id = CStr::from_ptr(tx_slate_id);
+    // let tx_id = tx_id.to_str().unwrap();
+
+    let wallet_data = wallet_ptr.to_str().unwrap();
+    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+    let wlt = tuple_wallet_data.0;
+    // let sek_key = tuple_wallet_data.1;
+
+    ensure_wallet!(wlt, wallet);
+
+    let result = match _tx_get(
+        wallet,
+        refresh,
+        tx_slate_id,
+    ) {
+        Ok(tx) => {
+            tx
+        }, Err(e) => {
+            let error_msg = format!("Error {}", &e.to_string());
+            let error_msg_ptr = CString::new(error_msg).unwrap();
+            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlying memory for s
+            std::mem::forget(error_msg_ptr);
+            ptr
+        }
+    };
+    result
+}
+
+fn _tx_get(
+    wallet: &Wallet,
+    refresh_from_node: bool,
+    tx_slate_id: &str,
+) -> Result<*const c_char, Error> {
+    // Used pattern from _txs_get, could probably change how result is returned
+    let mut tx_result = "".to_string();
+    match tx_get(
+        wallet,
+        refresh_from_node,
+        tx_slate_id
+    ) {
+        Ok(tx) => {
+            tx_result.push_str(&tx);
+        },
+        Err(err) => {
+            return Err(err);
+        },
+    }
+
+    let s = CString::new(tx_result).unwrap();
+    let p = s.as_ptr(); // Get a pointer to the underlying memory for s
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    Ok(p)
 }
 
 #[no_mangle]
