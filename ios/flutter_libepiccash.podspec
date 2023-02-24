@@ -11,7 +11,7 @@ A new Flutter plugin project.
                        DESC
   s.homepage         = 'http://cypherstack.com'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Likho Jiba' => 'likhojiba@gmail.com' }
+  s.author           = { 'Cypher Stack team' => 'heyo@cypherstack.com' }
   s.source           = { :path => '.' }
   s.public_header_files = 'Classes**/*.h'
   s.source_files = 'Classes/**/*'
