@@ -46,7 +46,8 @@ const char *rust_tx_cancel(const char *wallet, const char *tx_id);
 
 const char *rust_get_chain_height(const char *config);
 
-const char *rust_delete_wallet(const char *wallet);
+const char *rust_delete_wallet(const char *wallet,
+                               const char *epicbox_config,);
 
 const char *rust_get_wallet_address(const char *wallet,
                                     const char *index,

@@ -792,6 +792,7 @@ fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
 #[no_mangle]
 pub unsafe extern "C" fn rust_delete_wallet(
     wallet: *const c_char,
+    config: *const c_char,
 ) -> *const c_char  {
     let wallet_ptr = CStr::from_ptr(wallet);
     let wallet_data = wallet_ptr.to_str().unwrap();
@@ -800,7 +801,8 @@ pub unsafe extern "C" fn rust_delete_wallet(
     let sek_key = tuple_wallet_data.1;
     ensure_wallet!(wlt, wallet);
     let result = match _delete_wallet(
-        wallet
+        wallet,
+        config,
     ) {
         Ok(deleted) => {
             deleted
@@ -817,10 +819,11 @@ pub unsafe extern "C" fn rust_delete_wallet(
 
 fn _delete_wallet(
     wallet: &Wallet,
+    config: *const c_char,
 ) -> Result<*const c_char, Error> {
 
     let mut delete_result = String::from("");
-    match delete_wallet(wallet) {
+    match delete_wallet(wallet, config) {
         Ok(deleted) => {
             delete_result.push_str(&deleted);
         },
@@ -2002,6 +2005,14 @@ pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
             lc.close_wallet(None)?;
         }
     }
+    Ok::<std::string::String, Error>("Wallet has been closed".to_owned());
+    let mut wallet_lock = wallet.lock();
+    let lc = wallet_lock.lc_provider()?;
+    if let Ok(open_wallet) = lc.wallet_exists(None) {
+        if open_wallet {
+            lc.close_wallet(None)?;
+        }
+    }
     Ok("Wallet has been closed".to_owned())
 }
 
@@ -2017,12 +2028,45 @@ pub fn validate_address(address: &str) -> bool {
     }
 }
 
-pub fn delete_wallet(wallet: &Wallet) -> Result<String, Error> {
-    //First close the wallet
+pub fn delete_wallet(wallet: &Wallet, config: *const c_char) -> Result<String, Error> {
     let mut result = String::from("");
-    if let Ok(closed) = close_wallet(&wallet) {
-        let api = Owner::new(wallet.clone());
-        match api.delete_wallet(None) {
+    //
+    // first check if the wallet exists
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let input_conf = c_conf.to_str().unwrap();
+    let wallet_config = match Config::from_str(&input_conf.to_string()) {
+        Ok(config) => {
+            config
+        }, Err(err) => {
+            return Err(Error::from(ErrorKind::GenericError(format!(
+                "Wallet config error : {}",
+                err.to_string()
+            ))))
+        }
+    };
+    let wallet = match get_wallet(&wallet_config) {
+        Ok(wllet) => {
+            wllet
+        }
+        Err(e) => {
+            return  Err(e);
+        }
+    };
+    let mut wallet_lock = wallet.lock();
+    let lc = match wallet_lock.lc_provider() {
+        Ok(wallet_lc) => {
+            wallet_lc
+        }
+        Err(e) => {
+            return  Err(e);
+        }
+    };
+    if let Ok(wallet_exists) = lc.wallet_exists(None) {
+        if wallet_exists {
+            // then close the wallet
+            if let Ok(closed) = close_wallet(&wallet) {
+                let api = Owner::new(wallet.clone());
+                match api.delete_wallet(None) {
             Ok(_) => {
                 result.push_str("deleted");
             }
@@ -2031,9 +2075,13 @@ pub fn delete_wallet(wallet: &Wallet) -> Result<String, Error> {
             }
         };
     } else {
-        return  return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", "Error closing wallet")))
-        );
+                return  return Err(
+                    Error::from(ErrorKind::GenericError(format!("{}", "Error closing wallet")))
+                );
+            }
+        } else {
+            result.push_str("wallet does not exist");
+        }
     }
     Ok(result)
 }
