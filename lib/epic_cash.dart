@@ -43,9 +43,11 @@ typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
 typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
     Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
 
-typedef EpicboxListen = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef EpicboxListen = Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef EpicboxListenFFI = Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>);
 
-typedef EpicboxListenFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef EpicboxPoll = Pointer<Int8> Function(Pointer<Void>);
+typedef EpicboxPollFFI = Pointer<Int8> Function(Pointer<Void>);
 
 typedef GetTransactions = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>);
 typedef GetTransactionsFFI = Pointer<Utf8> Function(
@@ -143,11 +145,21 @@ final EpicboxListen _epicboxListen = epicCashNative
     .lookup<NativeFunction<EpicboxListenFFI>>("run_listener")
     .asFunction();
 
-Future<String> epicboxListen(String wallet, String epicboxConfig) async {
+Pointer<Void> epicboxListen(String wallet, String epicboxConfig) {
   return _epicboxListen(
     wallet.toNativeUtf8(),
     epicboxConfig.toNativeUtf8(),
-  ).toDartString();
+  );
+}
+
+final EpicboxPoll _epicboxPoll = epicCashNative
+    .lookup<NativeFunction<EpicboxPollFFI>>("lister_cancelled")
+    .asFunction();
+
+Future<String> pollBoxCancelled(String handler) async {
+  return _epicboxPoll(
+    handler.toNativeUtf8().cast<Void>(),
+  ).toString();
 }
 
 final CreateTransaction _createTransaction = epicCashNative
