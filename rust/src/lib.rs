@@ -1918,6 +1918,17 @@ pub unsafe extern "C" fn run_listener(
     let handler_value = handler.read();
     let boxed_handler = Box::new(handler_value);
     Box::into_raw(boxed_handler) as *mut _
+
+
+
+
+
+
+    // let msg = format!("START LISTENER {}", "LISTENER STARTED");
+    // let msg_ptr = CString::new(msg).unwrap();
+    // let ptr = msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+    // std::mem::forget(msg_ptr);
+    // ptr
 }
 
 #[no_mangle]
@@ -1926,12 +1937,12 @@ pub unsafe extern "C" fn lister_cancelled(
 ) -> *const c_char  {
     let handle = handler as *mut TaskHandle<usize>;
 
-    // debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
-    // listener_cancel(handle);
-    // debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
+    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
+    listener_cancel(handle);
+    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
 
 
-    let error_msg = format!("I AM A STRING {}", "SOME STRING");
+    let error_msg = format!("I AM A STRING {}", listener_cancelled(handle));
     let error_msg_ptr = CString::new(error_msg).unwrap();
     let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(error_msg_ptr);
