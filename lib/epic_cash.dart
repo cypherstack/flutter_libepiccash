@@ -189,9 +189,9 @@ final GetChainHeight _getChainHeight = epicCashNative
     .lookup<NativeFunction<GetChainHeightFFI>>("rust_get_chain_height")
     .asFunction();
 
-int getChainHeight(String config) {
+int? getChainHeight(String config) {
   String latestHeight = _getChainHeight(config.toNativeUtf8()).toDartString();
-  return int.parse(latestHeight);
+  return int.tryParse(latestHeight);
 }
 
 final AddressInfo _addressInfo = epicCashNative
