@@ -40,7 +40,7 @@ public class SwiftFlutterLibepiccashPlugin: NSObject, FlutterPlugin {
 
     rust_get_chain_height("const char *config");
     rust_delete_wallet("const char *wallet",
-                       "const char *epicbox_config",);
+                       "const char *epicbox_config");
     rust_get_wallet_address("const char *wallet", "const char *index", "const char *epicbox_config");
     rust_validate_address("const char *address");
     rust_get_tx_fees("const char *wallet", "const char *c_amount", "const char *min_confirmations");
