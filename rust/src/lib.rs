@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::os::raw::{c_char};
-use std::ffi::{CString, CStr, c_void};
+use std::ffi::{CString, CStr, c_void, c_int};
 use std::sync::Arc;
 use std::path::{Path};
 use rand::thread_rng;
@@ -523,6 +523,7 @@ pub unsafe extern "C" fn rust_create_tx(
     secret_key_index: *const c_char,
     epicbox_config: *const c_char,
     min_confirmations: *const c_char,
+    epicbox_listener_handler: *mut c_void
 ) -> *const c_char {
     let wallet_ptr = CStr::from_ptr(wallet);
     let minimum_confirmations = CStr::from_ptr(min_confirmations);
@@ -545,7 +546,8 @@ pub unsafe extern "C" fn rust_create_tx(
         epicbox_config: epicbox_config.parse().unwrap()
     };
 
-    let handle = listener_spawn(&listen);
+    //Cancel Epicbox Listener
+    let handle = epicbox_listener_handler as *mut TaskHandle<usize>;
     listener_cancel(handle);
     debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
 
@@ -564,8 +566,8 @@ pub unsafe extern "C" fn rust_create_tx(
         minimum_confirmations,
     ) {
         Ok(slate) => {
-            //Spawn listener again
-            listener_spawn(&listen);
+            //Spawn listener again (NEED a way to return this to dart)
+            let new_handler = listener_spawn(&listen);
             slate
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
@@ -1918,19 +1920,22 @@ pub unsafe extern "C" fn run_listener(
     let handler_value = handler.read();
     let boxed_handler = Box::new(handler_value);
     Box::into_raw(boxed_handler) as *mut _
-
-
-
-
-
-
-    // let msg = format!("START LISTENER {}", "LISTENER STARTED");
-    // let msg_ptr = CString::new(msg).unwrap();
-    // let ptr = msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-    // std::mem::forget(msg_ptr);
-    // ptr
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn restart_epicbox_lestener(
+    handler: *mut c_void
+) -> c_int {
+    let handle = handler as *mut TaskHandle<usize>;
+
+    if listener_cancelled(handle) == 0 {
+        listener_cancel(handle);
+    }
+    // let return_ptr = CInt;
+    listener_cancelled(handle)
+}
+
+//TODO - REMOVE redundant method
 #[no_mangle]
 pub unsafe extern "C" fn lister_cancelled(
     handler: *mut c_void,
