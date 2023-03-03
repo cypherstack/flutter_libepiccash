@@ -800,14 +800,17 @@ pub unsafe extern "C" fn rust_delete_wallet(
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
     ensure_wallet!(wlt, wallet);
+
+    let c_conf = unsafe { CStr::from_ptr(config) };
+    let _config = Config::from_str(c_conf.to_str().unwrap()).unwrap(); // TODO handle error here
+
     let result = match _delete_wallet(
-        wallet,
-        config,
+        _config,
     ) {
         Ok(deleted) => {
             deleted
-        }, Err(err ) => {
-            let error_msg = format!("Error {}", &err.to_string());
+        }, Err(err) => {
+            let error_msg = format!("Error deleting wallet from _delete_wallet in rust_delete_wallet {}", &err.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
             let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
             std::mem::forget(error_msg_ptr);
@@ -818,12 +821,10 @@ pub unsafe extern "C" fn rust_delete_wallet(
 }
 
 fn _delete_wallet(
-    wallet: &Wallet,
-    config: *const c_char,
+    config: Config,
 ) -> Result<*const c_char, Error> {
-
     let mut delete_result = String::from("");
-    match delete_wallet(wallet, config) {
+    match delete_wallet(config) {
         Ok(deleted) => {
             delete_result.push_str(&deleted);
         },
@@ -2028,23 +2029,10 @@ pub fn validate_address(address: &str) -> bool {
     }
 }
 
-pub fn delete_wallet(wallet: &Wallet, config: *const c_char) -> Result<String, Error> {
+pub fn delete_wallet(config: Config) -> Result<String, Error> {
     let mut result = String::from("");
-    //
-    // first check if the wallet exists
-    let c_conf = unsafe { CStr::from_ptr(config) };
-    let input_conf = c_conf.to_str().unwrap();
-    let wallet_config = match Config::from_str(&input_conf.to_string()) {
-        Ok(config) => {
-            config
-        }, Err(err) => {
-            return Err(Error::from(ErrorKind::GenericError(format!(
-                "Wallet config error : {}",
-                err.to_string()
-            ))))
-        }
-    };
-    let wallet = match get_wallet(&wallet_config) {
+    // get wallet object in order to use class methods
+    let wallet = match get_wallet(&config) {
         Ok(wllet) => {
             wllet
         }
@@ -2052,6 +2040,7 @@ pub fn delete_wallet(wallet: &Wallet, config: *const c_char) -> Result<String, E
             return  Err(e);
         }
     };
+    // get the wallet mutex
     let mut wallet_lock = wallet.lock();
     let lc = match wallet_lock.lc_provider() {
         Ok(wallet_lc) => {
@@ -2061,21 +2050,23 @@ pub fn delete_wallet(wallet: &Wallet, config: *const c_char) -> Result<String, E
             return  Err(e);
         }
     };
+    // check if the wallet exists
     if let Ok(wallet_exists) = lc.wallet_exists(None) {
         if wallet_exists {
             // then close the wallet
             if let Ok(closed) = close_wallet(&wallet) {
                 let api = Owner::new(wallet.clone());
+                // and finally delete it
                 match api.delete_wallet(None) {
-            Ok(_) => {
-                result.push_str("deleted");
-            }
-            Err(err) => {
-                return  Err(err);
-            }
-        };
-    } else {
-                return  return Err(
+                    Ok(_) => {
+                        result.push_str("deleted");
+                    }
+                    Err(err) => {
+                        return  Err(err);
+                    }
+                };
+            } else {
+                return Err(
                     Error::from(ErrorKind::GenericError(format!("{}", "Error closing wallet")))
                 );
             }
