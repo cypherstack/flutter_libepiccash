@@ -1934,7 +1934,7 @@ pub unsafe extern "C" fn run_listener(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn restart_epicbox_lestener(
+pub unsafe extern "C" fn restart_epicbox_listener(
     handler: *mut c_void
 ) -> c_int {
     let handle = handler as *mut TaskHandle<usize>;
