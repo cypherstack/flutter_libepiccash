@@ -48,7 +48,7 @@ public class SwiftFlutterLibepiccashPlugin: NSObject, FlutterPlugin {
     rust_tx_send_http("const char *wallet", "const char *selection_strategy_is_use_all","const char *minimum_confirmations",
                       "const char *message",
                       "const char *amount",
-                      "const char *address")
+                      "const char *address");
 
     run_listener("const char *wallet",
                  "const char *epicbox_config");
