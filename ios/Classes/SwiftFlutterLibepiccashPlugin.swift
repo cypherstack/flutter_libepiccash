@@ -49,6 +49,9 @@ public class SwiftFlutterLibepiccashPlugin: NSObject, FlutterPlugin {
                       "const char *message",
                       "const char *amount",
                       "const char *address")
+
+    run_listener("const char *wallet",
+                 "const char *epicbox_config");
       // ...
       // This code will force the bundler to use these functions, but will never be called
     }

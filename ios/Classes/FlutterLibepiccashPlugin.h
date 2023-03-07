@@ -65,3 +65,6 @@ const char *rust_tx_send_http(const char *wallet,
                               const char *message,
                               const char *amount,
                               const char *address);
+
+const char *run_listener(const char *wallet,
+                         const char *epicbox_config);
