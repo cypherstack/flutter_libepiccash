@@ -193,7 +193,7 @@ Future<String> createTransaction(
           secretKey.toString().toNativeUtf8().cast<Int8>(),
           epicboxConfig.toNativeUtf8(),
           minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
-          epicboxHandler.toNativeUtf8()) // TODO get this type right
+          epicboxHandler.toString().toNativeUtf8())
       .toDartString();
 }
 
