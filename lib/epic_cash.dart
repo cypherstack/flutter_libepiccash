@@ -44,9 +44,15 @@ class EpicboxSendResponse extends Struct {
 }
 
 typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
-typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
-    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
+    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<void>);
+typedef CreateTransactionFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>,
+    Pointer<Int8>,
+    Pointer<Utf8>,
+    Pointer<Int8>,
+    Pointer<Utf8>,
+    Pointer<Int8>,
+    Pointer<void>);
 
 typedef EpicboxListen = Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>);
 typedef EpicboxListenFFI = Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>);
