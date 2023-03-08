@@ -542,27 +542,10 @@ pub unsafe extern "C" fn rust_create_tx(
         epicbox_config: epicbox_config.parse().unwrap()
     };
 
-    // //Cancel Epicbox Listener
-    // let handle = epicbox_listener_handler as *mut TaskHandle<usize>;
-    // // listener_cancel(handle);
-    // handle.cancel();
-    // debug!("LISTENER CANCELLED IS {}", handler.cancelled());
-
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
 
     ensure_wallet!(wlt, wallet);
-
-    // let slate = _create_tx(
-    //     wallet,
-    //     sek_key,
-    //     amount,
-    //     address,
-    //     key_index,
-    //     epicbox_config,
-    //     minimum_confirmations,
-    // ).unwrap();
-    // let new_handler = listener_spawn(&listen);
 
     // EpicboxSendResponse {
     //     slate,
@@ -579,22 +562,9 @@ pub unsafe extern "C" fn rust_create_tx(
         minimum_confirmations,
     ) {
         Ok(slate) => {
-            //Cancel Epicbox Listener
-            let handle = epicbox_listener_handler as *mut TaskHandle<usize>;
-            // listener_cancel(handle);
-            debug!("LISTENER CANCELLED BEFORE IS {}", listener_cancelled(handle));
-            listener_cancel(handle);
-            debug!("LISTENER CANCELLED AFTER IS {}", listener_cancelled(handle));
-            //Destroy handle
-            listener_handle_destroy(handle);
+            // TODO check on listener state, do not send while listener active: close it, create the tx, and restart it
+            // for now handled by exposing handler methods and cancelling & restarting from Dart
             slate
-            // liste
-            //Spawn listener again (NEED a way to return this to dart)
-            // let new_handler = listener_spawn(&listen);
-            // EpicboxSendResponse {
-            //     slate,
-            //     epicboxHandler: new_handler,
-            // }
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
@@ -608,7 +578,6 @@ pub unsafe extern "C" fn rust_create_tx(
         }
     };
     result
-
 }
 
 fn _create_tx(
