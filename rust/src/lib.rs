@@ -1919,19 +1919,6 @@ pub unsafe extern "C" fn run_listener(
     Box::into_raw(boxed_handler) as *mut _
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn restart_epicbox_lestener(
-    handler: *mut c_void
-) -> c_int {
-    let handle = handler as *mut TaskHandle<usize>;
-
-    if listener_cancelled(handle) == 0 {
-        listener_cancel(handle);
-    }
-    // let return_ptr = CInt;
-    listener_cancelled(handle)
-}
-
 //TODO - REMOVE redundant method
 #[no_mangle]
 pub unsafe extern "C" fn listener_cancelled(
