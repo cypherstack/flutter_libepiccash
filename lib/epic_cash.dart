@@ -171,8 +171,14 @@ final CreateTransaction _createTransaction = epicCashNative
     .lookup<NativeFunction<CreateTransactionFFI>>("rust_create_tx")
     .asFunction();
 
-Future<String> createTransaction(String wallet, int amount, String address,
-    int secretKey, String epicboxConfig, int minimumConfirmations) async {
+Future<String> createTransaction(
+    String wallet,
+    int amount,
+    String address,
+    int secretKey,
+    String epicboxConfig,
+    int minimumConfirmations,
+    Pointer<void> epicboxHandler) async {
   // final
   return _createTransaction(
           wallet.toNativeUtf8(),
@@ -180,7 +186,8 @@ Future<String> createTransaction(String wallet, int amount, String address,
           address.toNativeUtf8(),
           secretKey.toString().toNativeUtf8().cast<Int8>(),
           epicboxConfig.toNativeUtf8(),
-          minimumConfirmations.toString().toNativeUtf8().cast<Int8>())
+          minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
+          epicboxHandler.toNativeUtf8()) // TODO get this type right
       .toDartString();
 }
 
