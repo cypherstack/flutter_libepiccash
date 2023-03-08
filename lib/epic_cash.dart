@@ -38,6 +38,11 @@ typedef ScanOutPuts = Pointer<Utf8> Function(
 typedef ScanOutPutsFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
+class EpicboxSendResponse extends Struct {
+  external Pointer<Utf8> get slate;
+  external Pointer<Void> get epicboxHandler;
+}
+
 typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
     Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
 typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
@@ -156,9 +161,9 @@ final EpicboxPoll _epicboxPoll = epicCashNative
     .lookup<NativeFunction<EpicboxPollFFI>>("lister_cancelled")
     .asFunction();
 
-Future<String> pollBoxCancelled(String handler) async {
+Future<String> pollBoxCancelled(Pointer<Void> handler) async {
   return _epicboxPoll(
-    handler.toNativeUtf8().cast<Void>(),
+    handler,
   ).toString();
 }
 
@@ -168,14 +173,15 @@ final CreateTransaction _createTransaction = epicCashNative
 
 Future<String> createTransaction(String wallet, int amount, String address,
     int secretKey, String epicboxConfig, int minimumConfirmations) async {
+  // final
   return _createTransaction(
-    wallet.toNativeUtf8(),
-    amount.toString().toNativeUtf8().cast<Int8>(),
-    address.toNativeUtf8(),
-    secretKey.toString().toNativeUtf8().cast<Int8>(),
-    epicboxConfig.toNativeUtf8(),
-    minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
-  ).toDartString();
+          wallet.toNativeUtf8(),
+          amount.toString().toNativeUtf8().cast<Int8>(),
+          address.toNativeUtf8(),
+          secretKey.toString().toNativeUtf8().cast<Int8>(),
+          epicboxConfig.toNativeUtf8(),
+          minimumConfirmations.toString().toNativeUtf8().cast<Int8>())
+      .toDartString();
 }
 
 final GetTransactions _getTransactions = epicCashNative

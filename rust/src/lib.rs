@@ -5,26 +5,20 @@ use std::sync::Arc;
 use std::path::{Path};
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
-use rustc_serialize::json;
 use uuid::Uuid;
 
-use stack_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
+use stack_epic_wallet_api::{self, ForeignCheckMiddlewareFn, Owner};
 use stack_epic_wallet_config::{WalletConfig, EpicboxConfig};
 use stack_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
 use stack_epic_wallet_libwallet::api_impl::owner;
 use stack_epic_wallet_impls::{DefaultLCProvider, DefaultWalletImpl, EpicboxListenChannel, HTTPNodeClient};
-
-use ws::{
-    CloseCode, Message, Error as WsError, ErrorKind as WsErrorKind,
-    Result as WSResult, Sender, Handler
-};
 
 use stack_epic_keychain::mnemonic;
 use stack_epic_wallet_util::stack_epic_core::global::ChainTypes;
 use stack_epic_util::file::get_first_line;
 use stack_epic_wallet_util::stack_epic_util::ZeroingString;
 use stack_epic_util::Mutex;
-use stack_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, Error, ErrorKind, TxLogEntry, TxLogEntryType};
+use stack_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, Error, ErrorKind};
 
 use stack_epic_wallet_util::stack_epic_keychain::{Keychain, ExtKeychain};
 
@@ -33,12 +27,9 @@ use stack_epic_util::secp::rand::Rng;
 use stack_epic_util::secp::key::{SecretKey, PublicKey};
 use stack_epic_util::secp::{Secp256k1};
 
-use stack_epic_wallet_controller::command;
 
-use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
+use stack_test_epicboxlib::types::{EpicboxAddress};
 use android_logger::FilterBuilder;
-use std::{env, thread};
-use std::time::Duration;
 
 #[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
 pub struct Config {
@@ -140,8 +131,6 @@ use log::Level;
 use android_logger::Config as AndroidConfig;
 use ffi_helpers::{export_task, Task};
 use ffi_helpers::task::{CancellationToken, TaskHandle};
-use serde_json::json;
-use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
 
 /*
     Create a new wallet
@@ -515,6 +504,13 @@ fn _wallet_scan_outputs(
     Ok(p)
 }
 
+pub struct EpicboxSendResponse {
+    pub slate: *const c_char,
+    pub epicboxHandler: *mut TaskHandle<usize>,
+}
+
+
+use std::ptr::null;
 #[no_mangle]
 pub unsafe extern "C" fn rust_create_tx(
     wallet: *const c_char,
@@ -546,15 +542,32 @@ pub unsafe extern "C" fn rust_create_tx(
         epicbox_config: epicbox_config.parse().unwrap()
     };
 
-    //Cancel Epicbox Listener
-    let handle = epicbox_listener_handler as *mut TaskHandle<usize>;
-    listener_cancel(handle);
-    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
+    // //Cancel Epicbox Listener
+    // let handle = epicbox_listener_handler as *mut TaskHandle<usize>;
+    // // listener_cancel(handle);
+    // handle.cancel();
+    // debug!("LISTENER CANCELLED IS {}", handler.cancelled());
 
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
 
     ensure_wallet!(wlt, wallet);
+
+    // let slate = _create_tx(
+    //     wallet,
+    //     sek_key,
+    //     amount,
+    //     address,
+    //     key_index,
+    //     epicbox_config,
+    //     minimum_confirmations,
+    // ).unwrap();
+    // let new_handler = listener_spawn(&listen);
+
+    // EpicboxSendResponse {
+    //     slate,
+    //     epicboxHandler: new_handler,
+    // }
 
     let result = match _create_tx(
         wallet,
@@ -566,15 +579,32 @@ pub unsafe extern "C" fn rust_create_tx(
         minimum_confirmations,
     ) {
         Ok(slate) => {
-            //Spawn listener again (NEED a way to return this to dart)
-            let new_handler = listener_spawn(&listen);
+            //Cancel Epicbox Listener
+            let handle = epicbox_listener_handler as *mut TaskHandle<usize>;
+            // listener_cancel(handle);
+            debug!("LISTENER CANCELLED BEFORE IS {}", listener_cancelled(handle));
+            listener_cancel(handle);
+            debug!("LISTENER CANCELLED AFTER IS {}", listener_cancelled(handle));
+            //Destroy handle
+            listener_handle_destroy(handle);
             slate
+            // liste
+            //Spawn listener again (NEED a way to return this to dart)
+            // let new_handler = listener_spawn(&listen);
+            // EpicboxSendResponse {
+            //     slate,
+            //     epicboxHandler: new_handler,
+            // }
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
             let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
             std::mem::forget(error_msg_ptr);
             ptr
+            // EpicboxSendResponse {
+            //     slate: null(),
+            //     epicboxHandler: null()
+            // }
         }
     };
     result
