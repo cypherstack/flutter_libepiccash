@@ -59,6 +59,9 @@ typedef EpicboxListenerStart = Pointer<Void> Function(
 typedef EpicboxListenerStartFFI = Pointer<Void> Function(
     Pointer<Utf8>, Pointer<Utf8>);
 
+typedef EpicboxListenerStop = Pointer<Void> Function(Pointer<Utf8>);
+typedef EpicboxListenerStopFFI = Pointer<Void> Function(Pointer<Utf8>);
+
 typedef EpicboxPoll = Pointer<Int8> Function(Pointer<Void>);
 typedef EpicboxPollFFI = Pointer<Int8> Function(Pointer<Void>);
 
@@ -163,6 +166,17 @@ Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
     wallet.toNativeUtf8(),
     epicboxConfig.toNativeUtf8(),
   );
+}
+
+final EpicboxListenerStop _epicboxListenerStop = epicCashNative
+    .lookup<NativeFunction<EpicboxListenerStopFFI>>(
+        "rust_stop_epicbox_listener")
+    .asFunction();
+
+Pointer<void> epicboxListenerStop(Pointer<void> handler) {
+  return _epicboxListenerStop(
+      handler.toString().toNativeUtf8() // TODO get this type right
+      );
 }
 
 final EpicboxPoll _epicboxPoll = epicCashNative

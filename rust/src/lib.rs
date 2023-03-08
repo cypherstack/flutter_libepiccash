@@ -1952,3 +1952,17 @@ pub unsafe extern "C" fn lister_cancelled(
     std::mem::forget(error_msg_ptr);
     ptr
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_stop_epicbox_listener(
+    handler: *mut c_void
+) -> c_int {
+    let handle = handler as *mut TaskHandle<usize>;
+
+    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
+    if listener_cancelled(handle) == 0 { // TODO cancel regardless of cancelled state?
+        listener_cancel(handle);
+    }
+
+    listener_cancelled(handle);
+}
