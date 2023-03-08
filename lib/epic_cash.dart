@@ -54,8 +54,10 @@ typedef CreateTransactionFFI = Pointer<Utf8> Function(
     Pointer<Int8>,
     Pointer<void>);
 
-typedef EpicboxListen = Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>);
-typedef EpicboxListenFFI = Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef EpicboxListenerStart = Pointer<Void> Function(
+    Pointer<Utf8>, Pointer<Utf8>);
+typedef EpicboxListenerStartFFI = Pointer<Void> Function(
+    Pointer<Utf8>, Pointer<Utf8>);
 
 typedef EpicboxPoll = Pointer<Int8> Function(Pointer<Void>);
 typedef EpicboxPollFFI = Pointer<Int8> Function(Pointer<Void>);
@@ -152,12 +154,12 @@ Future<String> scanOutPuts(
   ).toDartString();
 }
 
-final EpicboxListen _epicboxListen = epicCashNative
-    .lookup<NativeFunction<EpicboxListenFFI>>("run_listener")
+final EpicboxListenerStart _epicboxListenerStart = epicCashNative
+    .lookup<NativeFunction<EpicboxListenerStartFFI>>("run_listener")
     .asFunction();
 
-Pointer<Void> epicboxListen(String wallet, String epicboxConfig) {
-  return _epicboxListen(
+Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
+  return _epicboxListenerStart(
     wallet.toNativeUtf8(),
     epicboxConfig.toNativeUtf8(),
   );
