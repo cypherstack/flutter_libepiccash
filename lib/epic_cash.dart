@@ -180,7 +180,7 @@ Pointer<void> epicboxListenerStop(Pointer<void> handler) {
 }
 
 final EpicboxPoll _epicboxPoll = epicCashNative
-    .lookup<NativeFunction<EpicboxPollFFI>>("lister_cancelled")
+    .lookup<NativeFunction<EpicboxPollFFI>>("listener_cancelled")
     .asFunction();
 
 Future<String> pollBoxCancelled(Pointer<Void> handler) async {
