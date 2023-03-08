@@ -614,8 +614,6 @@ fn _create_tx(
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     Ok(p)
-
-
 }
 
 #[no_mangle]
@@ -1936,7 +1934,7 @@ pub unsafe extern "C" fn restart_epicbox_lestener(
 
 //TODO - REMOVE redundant method
 #[no_mangle]
-pub unsafe extern "C" fn lister_cancelled(
+pub unsafe extern "C" fn listener_cancelled(
     handler: *mut c_void,
 ) -> *const c_char  {
     let handle = handler as *mut TaskHandle<usize>;
@@ -1945,10 +1943,9 @@ pub unsafe extern "C" fn lister_cancelled(
     listener_cancel(handle);
     debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
 
-
     let error_msg = format!("I AM A STRING {}", listener_cancelled(handle));
     let error_msg_ptr = CString::new(error_msg).unwrap();
-    let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+    let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlying memory for s
     std::mem::forget(error_msg_ptr);
     ptr
 }
