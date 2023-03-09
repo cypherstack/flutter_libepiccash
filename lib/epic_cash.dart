@@ -159,7 +159,7 @@ Future<String> scanOutPuts(
 
 final EpicboxListenerStart _epicboxListenerStart = epicCashNative
     .lookup<NativeFunction<EpicboxListenerStartFFI>>(
-        "rust_epicbox_start_listener")
+        "rust_epicbox_listener_start")
     .asFunction();
 
 Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
@@ -171,7 +171,7 @@ Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
 
 final EpicboxListenerStop _epicboxListenerStop = epicCashNative
     .lookup<NativeFunction<EpicboxListenerStopFFI>>(
-        "rust_stop_epicbox_listener")
+        "rust_epicbox_listener_stop")
     .asFunction();
 
 // TODO set better response model

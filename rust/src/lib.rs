@@ -1897,7 +1897,7 @@ export_task! {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_start_epicbox_listener(
+pub unsafe extern "C" fn rust_epicbox_listener_start(
     wallet: *const c_char,
     epicbox_config: *const c_char,
 ) -> *mut c_void  {
@@ -1919,7 +1919,7 @@ pub unsafe extern "C" fn rust_start_epicbox_listener(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_stop_epicbox_listener(
+pub unsafe extern "C" fn rust_epicbox_listener_stop(
     handler: *mut TaskHandle<usize>
 ) -> c_int {
     let handle = handler as *mut TaskHandle<usize>;

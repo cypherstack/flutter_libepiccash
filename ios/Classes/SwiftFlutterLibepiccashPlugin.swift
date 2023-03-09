@@ -49,10 +49,10 @@ public class SwiftFlutterLibepiccashPlugin: NSObject, FlutterPlugin {
                                   "const char *amount",
                                   "const char *address");
 
-  rust_start_epicbox_listener("const char *wallet",
+  rust_epicbox_listener_start("const char *wallet",
                               "const char *epicbox_config");
 
-  rust_stop_epicbox_listener("const char *handler");
+  rust_epicbox_listener_stop("const char *handler");
 
       // ...
       // This code will force the bundler to use these functions, but will never be called
