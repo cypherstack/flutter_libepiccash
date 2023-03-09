@@ -59,8 +59,8 @@ typedef EpicboxListenerStart = Pointer<Void> Function(
 typedef EpicboxListenerStartFFI = Pointer<Void> Function(
     Pointer<Utf8>, Pointer<Utf8>);
 
-typedef EpicboxListenerStop = Pointer<Void> Function(Pointer<Utf8>);
-typedef EpicboxListenerStopFFI = Pointer<Void> Function(Pointer<Utf8>);
+typedef EpicboxListenerStop = Pointer<Int8> Function(Pointer<Utf8>);
+typedef EpicboxListenerStopFFI = Pointer<Int8> Function(Pointer<Utf8>);
 
 typedef EpicboxPoll = Pointer<Int8> Function(Pointer<Void>);
 typedef EpicboxPollFFI = Pointer<Int8> Function(Pointer<Void>);
