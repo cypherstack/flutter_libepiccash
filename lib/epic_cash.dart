@@ -174,12 +174,21 @@ final EpicboxListenerStop _epicboxListenerStop = epicCashNative
         "rust_stop_epicbox_listener")
     .asFunction();
 
-Pointer<void> epicboxListenerStop(Pointer<void> handler) {
-  return _epicboxListenerStop(
-      handler.toString().toNativeUtf8() // TODO make sure this type is right
-      );
+// TODO set better response model
+// from rust, TaskHandle.cancelled returns an int, 0 is not cancelled, not 0 is cancelled
+// for now returning a bool where true = cancelled, false = error cancelling
+// TODO response model to return error
+bool epicboxListenerStop(Pointer<void> handler) {
+  int result = _epicboxListenerStop(
+          handler.toString().toNativeUtf8() // TODO make sure this type is right
+          )
+      .value
+      .toInt();
+  print("RESULT IS $result");
+  return result == 0 ? false : true;
 }
 
+// pollBoxCancelled below redundant if epicboxListenerStop above returns a result based on listener_cancelled already
 final EpicboxPoll _epicboxPoll = epicCashNative
     .lookup<NativeFunction<EpicboxPollFFI>>("listener_cancelled")
     .asFunction();
