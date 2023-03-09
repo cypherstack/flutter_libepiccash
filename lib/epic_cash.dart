@@ -44,26 +44,17 @@ class EpicboxSendResponse extends Struct {
 }
 
 typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<void>);
-typedef CreateTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<void>);
+    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
+typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
+    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
 
 typedef EpicboxListenerStart = Pointer<Void> Function(
     Pointer<Utf8>, Pointer<Utf8>);
 typedef EpicboxListenerStartFFI = Pointer<Void> Function(
     Pointer<Utf8>, Pointer<Utf8>);
 
-typedef EpicboxListenerStop = Pointer<Int8> Function(Pointer<Utf8>);
-typedef EpicboxListenerStopFFI = Pointer<Int8> Function(Pointer<Utf8>);
-
-typedef EpicboxPoll = Pointer<Int8> Function(Pointer<Void>);
-typedef EpicboxPollFFI = Pointer<Int8> Function(Pointer<Void>);
+typedef EpicboxListenerStop = Pointer<Utf8> Function(Pointer<Void>);
+typedef EpicboxListenerStopFFI = Pointer<Utf8> Function(Pointer<Void>);
 
 typedef GetTransactions = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>);
 typedef GetTransactionsFFI = Pointer<Utf8> Function(
@@ -95,6 +86,9 @@ typedef DeleteWalletFFI = Pointer<Utf8> Function(Pointer<Utf8>);
 
 typedef OpenWallet = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 typedef OpenWalletFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+
+// typedef CancelListener = Pointer<Utf8> Function(Pointer<Void>);
+// typedef CancelListenerFFI = Pointer<Utf8> Function(Pointer<Void>);
 
 typedef TxHttpSend = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
     Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
@@ -170,47 +164,21 @@ Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
 }
 
 final EpicboxListenerStop _epicboxListenerStop = epicCashNative
-    .lookup<NativeFunction<EpicboxListenerStopFFI>>(
-        "rust_epicbox_listener_stop")
+    .lookup<NativeFunction<EpicboxListenerStopFFI>>("_listener_cancel")
     .asFunction();
 
-// TODO set better response model
-// from rust, TaskHandle.cancelled returns an int, 0 is not cancelled, not 0 is cancelled
-// for now returning a bool where true = cancelled, false = error cancelling
-// TODO response model to return error
-bool epicboxListenerStop(Pointer<void> handler) {
-  int result = _epicboxListenerStop(
-          handler.toString().toNativeUtf8() // TODO make sure this type is right
-          )
-      .value
-      .toInt();
-  print("RESULT IS $result");
-  return result == 0 ? false : true;
-}
-
-// pollBoxCancelled below redundant if epicboxListenerStop above returns a result based on listener_cancelled already
-final EpicboxPoll _epicboxPoll = epicCashNative
-    .lookup<NativeFunction<EpicboxPollFFI>>("listener_cancelled")
-    .asFunction();
-
-Future<String> pollBoxCancelled(Pointer<Void> handler) async {
-  return _epicboxPoll(
+String epicboxListenerStop(Pointer<Void> handler) {
+  return _epicboxListenerStop(
     handler,
-  ).toString();
+  ).toDartString();
 }
 
 final CreateTransaction _createTransaction = epicCashNative
     .lookup<NativeFunction<CreateTransactionFFI>>("rust_create_tx")
     .asFunction();
 
-Future<String> createTransaction(
-    String wallet,
-    int amount,
-    String address,
-    int secretKey,
-    String epicboxConfig,
-    int minimumConfirmations,
-    Pointer<void> epicboxHandler) async {
+Future<String> createTransaction(String wallet, int amount, String address,
+    int secretKey, String epicboxConfig, int minimumConfirmations) async {
   // final
   return _createTransaction(
           wallet.toNativeUtf8(),
@@ -218,8 +186,7 @@ Future<String> createTransaction(
           address.toNativeUtf8(),
           secretKey.toString().toNativeUtf8().cast<Int8>(),
           epicboxConfig.toNativeUtf8(),
-          minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
-          epicboxHandler.toString().toNativeUtf8())
+          minimumConfirmations.toString().toNativeUtf8().cast<Int8>())
       .toDartString();
 }
 

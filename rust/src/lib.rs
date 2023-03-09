@@ -518,8 +518,7 @@ pub unsafe extern "C" fn rust_create_tx(
     to_address: *const c_char,
     secret_key_index: *const c_char,
     epicbox_config: *const c_char,
-    min_confirmations: *const c_char,
-    epicbox_listener_handler: *mut c_void
+    min_confirmations: *const c_char
 ) -> *const c_char {
     let wallet_ptr = CStr::from_ptr(wallet);
     let minimum_confirmations = CStr::from_ptr(min_confirmations);
@@ -537,20 +536,10 @@ pub unsafe extern "C" fn rust_create_tx(
     let wallet_data = wallet_ptr.to_str().unwrap();
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
 
-    let listen = Listener {
-        wallet_data: tuple_wallet_data.clone(),
-        epicbox_config: epicbox_config.parse().unwrap()
-    };
-
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
 
     ensure_wallet!(wlt, wallet);
-
-    // EpicboxSendResponse {
-    //     slate,
-    //     epicboxHandler: new_handler,
-    // }
 
     let result = match _create_tx(
         wallet,
@@ -562,8 +551,6 @@ pub unsafe extern "C" fn rust_create_tx(
         minimum_confirmations,
     ) {
         Ok(slate) => {
-            // TODO check on listener state, do not send while listener active: close it, create the tx, and restart it
-            // for now handled by exposing handler methods and cancelling & restarting from Dart
             slate
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
@@ -571,10 +558,6 @@ pub unsafe extern "C" fn rust_create_tx(
             let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
             std::mem::forget(error_msg_ptr);
             ptr
-            // EpicboxSendResponse {
-            //     slate: null(),
-            //     epicboxHandler: null()
-            // }
         }
     };
     result
@@ -1919,15 +1902,18 @@ pub unsafe extern "C" fn rust_epicbox_listener_start(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn rust_epicbox_listener_stop(
-    handler: *mut TaskHandle<usize>
-) -> c_int {
+pub unsafe extern "C" fn _listener_cancel(
+    handler: *mut c_void,
+) -> *const c_char  {
     let handle = handler as *mut TaskHandle<usize>;
 
-    // debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
-    if listener_cancelled(handle) == 0 { // TODO cancel regardless of cancelled state?
-        listener_cancel(handle);
-    }
+    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
+    listener_cancel(handle);
+    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
 
-    listener_cancelled(handle) // should we just return `listener_cancel(handle)` directly?
+    let error_msg = format!("{}", listener_cancelled(handle));
+    let error_msg_ptr = CString::new(error_msg).unwrap();
+    let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(error_msg_ptr);
+    ptr
 }
