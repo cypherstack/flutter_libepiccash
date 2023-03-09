@@ -518,8 +518,7 @@ pub unsafe extern "C" fn rust_create_tx(
     to_address: *const c_char,
     secret_key_index: *const c_char,
     epicbox_config: *const c_char,
-    min_confirmations: *const c_char,
-    epicbox_listener_handler: *mut c_void
+    min_confirmations: *const c_char
 ) -> *const c_char {
     let wallet_ptr = CStr::from_ptr(wallet);
     let minimum_confirmations = CStr::from_ptr(min_confirmations);

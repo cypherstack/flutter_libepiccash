@@ -44,15 +44,9 @@ class EpicboxSendResponse extends Struct {
 }
 
 typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<void>);
-typedef CreateTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<void>);
+    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
+typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
+    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
 
 typedef EpicboxListenerStart = Pointer<Void> Function(
     Pointer<Utf8>, Pointer<Utf8>);
@@ -203,14 +197,8 @@ final CreateTransaction _createTransaction = epicCashNative
     .lookup<NativeFunction<CreateTransactionFFI>>("rust_create_tx")
     .asFunction();
 
-Future<String> createTransaction(
-    String wallet,
-    int amount,
-    String address,
-    int secretKey,
-    String epicboxConfig,
-    int minimumConfirmations,
-    Pointer<void> epicboxHandler) async {
+Future<String> createTransaction(String wallet, int amount, String address,
+    int secretKey, String epicboxConfig, int minimumConfirmations) async {
   // final
   return _createTransaction(
           wallet.toNativeUtf8(),
@@ -218,8 +206,7 @@ Future<String> createTransaction(
           address.toNativeUtf8(),
           secretKey.toString().toNativeUtf8().cast<Int8>(),
           epicboxConfig.toNativeUtf8(),
-          minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
-          epicboxHandler.toString().toNativeUtf8())
+          minimumConfirmations.toString().toNativeUtf8().cast<Int8>())
       .toDartString();
 }
 
