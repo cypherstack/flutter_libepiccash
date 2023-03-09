@@ -1859,7 +1859,6 @@ pub struct Listener {
     pub epicbox_config: String
 }
 
-
 impl Task for Listener {
     type Output = usize;
 
@@ -1898,7 +1897,7 @@ export_task! {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn run_listener(
+pub unsafe extern "C" fn rust_start_epicbox_listener(
     wallet: *const c_char,
     epicbox_config: *const c_char,
 ) -> *mut c_void  {
@@ -1921,14 +1920,14 @@ pub unsafe extern "C" fn run_listener(
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_stop_epicbox_listener(
-    handler: *mut c_void
+    handler: *mut TaskHandle<usize>
 ) -> c_int {
     let handle = handler as *mut TaskHandle<usize>;
 
-    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
+    // debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
     if listener_cancelled(handle) == 0 { // TODO cancel regardless of cancelled state?
         listener_cancel(handle);
     }
 
-    listener_cancelled(handle);
+    listener_cancelled(handle) // should we just return `listener_cancel(handle)` directly?
 }
