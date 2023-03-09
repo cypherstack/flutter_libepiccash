@@ -158,7 +158,8 @@ Future<String> scanOutPuts(
 }
 
 final EpicboxListenerStart _epicboxListenerStart = epicCashNative
-    .lookup<NativeFunction<EpicboxListenerStartFFI>>("run_listener")
+    .lookup<NativeFunction<EpicboxListenerStartFFI>>(
+        "rust_epicbox_start_listener")
     .asFunction();
 
 Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
@@ -175,7 +176,7 @@ final EpicboxListenerStop _epicboxListenerStop = epicCashNative
 
 Pointer<void> epicboxListenerStop(Pointer<void> handler) {
   return _epicboxListenerStop(
-      handler.toString().toNativeUtf8() // TODO get this type right
+      handler.toString().toNativeUtf8() // TODO make sure this type is right
       );
 }
 
