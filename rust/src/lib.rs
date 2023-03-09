@@ -1919,24 +1919,6 @@ pub unsafe extern "C" fn run_listener(
     Box::into_raw(boxed_handler) as *mut _
 }
 
-//TODO - REMOVE redundant method
-#[no_mangle]
-pub unsafe extern "C" fn listener_cancelled(
-    handler: *mut c_void,
-) -> *const c_char  {
-    let handle = handler as *mut TaskHandle<usize>;
-
-    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
-    listener_cancel(handle);
-    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
-
-    let error_msg = format!("I AM A STRING {}", listener_cancelled(handle));
-    let error_msg_ptr = CString::new(error_msg).unwrap();
-    let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlying memory for s
-    std::mem::forget(error_msg_ptr);
-    ptr
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn rust_stop_epicbox_listener(
     handler: *mut c_void
