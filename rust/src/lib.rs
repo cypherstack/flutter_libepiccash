@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::os::raw::{c_char};
-use std::ffi::{CString, CStr, c_void, c_int};
+use std::ffi::{CString, CStr, c_void};
 use std::sync::Arc;
 use std::path::{Path};
 use rand::thread_rng;
