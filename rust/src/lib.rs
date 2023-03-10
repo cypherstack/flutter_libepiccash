@@ -518,8 +518,7 @@ pub unsafe extern "C" fn rust_create_tx(
     to_address: *const c_char,
     secret_key_index: *const c_char,
     epicbox_config: *const c_char,
-    min_confirmations: *const c_char,
-    epicbox_listener_handler: *mut c_void
+    min_confirmations: *const c_char
 ) -> *const c_char {
     let wallet_ptr = CStr::from_ptr(wallet);
     let minimum_confirmations = CStr::from_ptr(min_confirmations);
@@ -537,37 +536,10 @@ pub unsafe extern "C" fn rust_create_tx(
     let wallet_data = wallet_ptr.to_str().unwrap();
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
 
-    let listen = Listener {
-        wallet_data: tuple_wallet_data.clone(),
-        epicbox_config: epicbox_config.parse().unwrap()
-    };
-
-    // //Cancel Epicbox Listener
-    // let handle = epicbox_listener_handler as *mut TaskHandle<usize>;
-    // // listener_cancel(handle);
-    // handle.cancel();
-    // debug!("LISTENER CANCELLED IS {}", handler.cancelled());
-
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
 
     ensure_wallet!(wlt, wallet);
-
-    // let slate = _create_tx(
-    //     wallet,
-    //     sek_key,
-    //     amount,
-    //     address,
-    //     key_index,
-    //     epicbox_config,
-    //     minimum_confirmations,
-    // ).unwrap();
-    // let new_handler = listener_spawn(&listen);
-
-    // EpicboxSendResponse {
-    //     slate,
-    //     epicboxHandler: new_handler,
-    // }
 
     let result = match _create_tx(
         wallet,
@@ -579,36 +551,16 @@ pub unsafe extern "C" fn rust_create_tx(
         minimum_confirmations,
     ) {
         Ok(slate) => {
-            //Cancel Epicbox Listener
-            let handle = epicbox_listener_handler as *mut TaskHandle<usize>;
-            // listener_cancel(handle);
-            debug!("LISTENER CANCELLED BEFORE IS {}", listener_cancelled(handle));
-            listener_cancel(handle);
-            debug!("LISTENER CANCELLED AFTER IS {}", listener_cancelled(handle));
-            //Destroy handle
-            listener_handle_destroy(handle);
             slate
-            // liste
-            //Spawn listener again (NEED a way to return this to dart)
-            // let new_handler = listener_spawn(&listen);
-            // EpicboxSendResponse {
-            //     slate,
-            //     epicboxHandler: new_handler,
-            // }
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
             let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
             std::mem::forget(error_msg_ptr);
             ptr
-            // EpicboxSendResponse {
-            //     slate: null(),
-            //     epicboxHandler: null()
-            // }
         }
     };
     result
-
 }
 
 fn _create_tx(
@@ -645,8 +597,6 @@ fn _create_tx(
     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     Ok(p)
-
-
 }
 
 #[no_mangle]
@@ -1903,7 +1853,6 @@ pub struct Listener {
     pub epicbox_config: String
 }
 
-
 impl Task for Listener {
     type Output = usize;
 
@@ -1942,7 +1891,7 @@ export_task! {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn run_listener(
+pub unsafe extern "C" fn rust_epicbox_listener_start(
     wallet: *const c_char,
     epicbox_config: *const c_char,
 ) -> *mut c_void  {
@@ -1964,21 +1913,7 @@ pub unsafe extern "C" fn run_listener(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn restart_epicbox_lestener(
-    handler: *mut c_void
-) -> c_int {
-    let handle = handler as *mut TaskHandle<usize>;
-
-    if listener_cancelled(handle) == 0 {
-        listener_cancel(handle);
-    }
-    // let return_ptr = CInt;
-    listener_cancelled(handle)
-}
-
-//TODO - REMOVE redundant method
-#[no_mangle]
-pub unsafe extern "C" fn lister_cancelled(
+pub unsafe extern "C" fn _listener_cancel(
     handler: *mut c_void,
 ) -> *const c_char  {
     let handle = handler as *mut TaskHandle<usize>;
@@ -1987,8 +1922,7 @@ pub unsafe extern "C" fn lister_cancelled(
     listener_cancel(handle);
     debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
 
-
-    let error_msg = format!("I AM A STRING {}", listener_cancelled(handle));
+    let error_msg = format!("{}", listener_cancelled(handle));
     let error_msg_ptr = CString::new(error_msg).unwrap();
     let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
     std::mem::forget(error_msg_ptr);
