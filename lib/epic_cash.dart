@@ -72,8 +72,8 @@ typedef TransactionFees = Pointer<Utf8> Function(
 typedef TransactionFeesFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
-typedef DeleteWallet = Pointer<Utf8> Function(Pointer<Utf8>);
-typedef DeleteWalletFFI = Pointer<Utf8> Function(Pointer<Utf8>);
+typedef DeleteWallet = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef DeleteWalletFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 
 typedef OpenWallet = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 typedef OpenWalletFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
@@ -190,8 +190,13 @@ final GetChainHeight _getChainHeight = epicCashNative
     .asFunction();
 
 int getChainHeight(String config) {
-  String latestHeight = _getChainHeight(config.toNativeUtf8()).toDartString();
-  return int.parse(latestHeight);
+  final latestHeight = _getChainHeight(config.toNativeUtf8());
+
+  if (latestHeight == nullptr) {
+    return 0;
+  }
+  // String latestHeight = _getChainHeight(config.toNativeUtf8()).toDartString();
+  return int.parse(latestHeight.toDartString());
 }
 
 final AddressInfo _addressInfo = epicCashNative
@@ -231,8 +236,9 @@ final DeleteWallet _deleteWallet = epicCashNative
     .lookup<NativeFunction<DeleteWalletFFI>>("rust_delete_wallet")
     .asFunction();
 
-Future<String> deleteWallet(String wallet) async {
-  return _deleteWallet(wallet.toNativeUtf8()).toDartString();
+Future<String> deleteWallet(String wallet, String config) async {
+  return _deleteWallet(wallet.toNativeUtf8(), config.toNativeUtf8())
+      .toDartString();
 }
 
 final OpenWallet _openWallet = epicCashNative
