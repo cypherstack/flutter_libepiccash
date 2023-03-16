@@ -107,15 +107,8 @@ fn init_logger() {
 }
 
 impl Config {
-    fn from_str(json: &str) -> Result<Self, serde_json::error::Error> {
-        let result = match  serde_json::from_str::<Config>(json) {
-            Ok(config) => {
-                config
-            }, Err(err) => {
-                return  Err(err);
-            }
-        };
-        Ok(result)
+    fn from_str(json: &str) -> Result<Self, Error> {
+        serde_json::from_str::<Config>(json).map_err(|err| Error::from(ErrorKind::GenericError(err.to_string())))
     }
 }
 
@@ -167,6 +160,14 @@ use ffi_helpers::task::{CancellationToken, TaskHandle};
 use serde_json::json;
 use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
 
+#[no_mangle]
+pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
+    let result = mnemonic();
+    let cstr = error!(result, std::ptr::null());
+    let cstr = error!(CString::new(cstr), std::ptr::null());
+    cstr.into_raw()
+}
+
 /*
     Create a new wallet
 */
@@ -179,109 +180,15 @@ pub unsafe extern "C" fn wallet_init(
     name: *const c_char
 ) -> *const c_char {
 
-    let result = match _wallet_init(config, mnemonic, password, name) {
-        Ok(created) => {
-            created
-        }, Err(e ) => {
-            let error_msg = format!("Error {}", &e.to_string());
-            let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(error_msg_ptr);
-            ptr
-        }
-    };
-    result
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
-    init_logger();
-    debug!("GET MNEMONIC CALLED IN {}", "NEW FUNCTION");
-    let result = mnemonic();
+    let config = cstr!(config, std::ptr::null());
+    let mnemonic = cstr!(mnemonic, std::ptr::null());
+    let password = cstr!(password, std::ptr::null());
+    let name = cstr!(name, std::ptr::null());
+    let result = create_wallet(config, mnemonic, password, name);
     let cstr = error!(result, std::ptr::null());
     let cstr = error!(CString::new(cstr), std::ptr::null());
     cstr.into_raw()
-
-    // let result = match _get_mnemonic() {
-    //     Ok(phrase) => {
-    //         phrase
-    //     }, Err(e ) => {
-    //         let error_msg = format!("Error {}", &e.to_string());
-    //         let error_msg_ptr = CString::new(error_msg).unwrap();
-    //         let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-    //         std::mem::forget(error_msg_ptr);
-    //         ptr
-    //     }
-    // };
-    // result
 }
-
-
-fn _get_mnemonic() -> Result<*const c_char, stack_epic_keychain::mnemonic::Error> {
-    let mut wallet_phrase = "".to_string();
-    match mnemonic() {
-        Ok(phrase) => {
-            wallet_phrase.push_str(&phrase);
-        },Err(e) => {
-            return Err(e);
-        }
-    }
-    let s = CString::new(wallet_phrase).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
-}
-
-fn _wallet_init(
-    config: *const c_char,
-    mnemonic: *const c_char,
-    password: *const c_char,
-    name: *const c_char
-) -> Result<*const c_char, Error> {
-
-    let config = unsafe { CStr::from_ptr(config) };
-    let mnemonic = unsafe { CStr::from_ptr(mnemonic) };
-    let password = unsafe { CStr::from_ptr(password) };
-    let name = unsafe { CStr::from_ptr(name) };
-
-    let str_password = match password.to_str() {
-        Ok(str_pass) => {str_pass}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
-        )}
-    };
-
-    let str_config = match config.to_str() {
-        Ok(str_conf) => {str_conf}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
-        )}
-    };
-
-    let phrase = match mnemonic.to_str() {
-        Ok(str_phrase) => {str_phrase}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
-        )}
-    };
-
-    let str_name = match name.to_str() {
-        Ok(str_name) => {str_name}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
-        )}
-    };
-
-    let mut create_msg = "".to_string();
-    match create_wallet(str_config, phrase, str_password, str_name) {
-        Ok(_) => {
-            create_msg.push_str("");
-        },Err(e) => {
-            return Err(e);
-        }
-    }
-    let s = CString::new(create_msg).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
-}
-
 
 #[no_mangle]
 pub unsafe extern "C"  fn rust_open_wallet(
@@ -421,64 +328,15 @@ pub unsafe extern "C"  fn rust_recover_from_mnemonic(
     name: *const c_char
 ) -> *const c_char {
 
-    let result = match _recover_from_mnemonic(
-        config,
-        password,
-        mnemonic,
-        name
-    ) {
-        Ok(recovered) => {
-            recovered
-        }, Err(e ) => {
-            let error_msg = format!("Error {}", &e.to_string());
-            let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(error_msg_ptr);
-            ptr
-        }
-    };
-    result
-}
+    let config = cstr!(config, std::ptr::null());
+    let password = cstr!(password, std::ptr::null());
+    let mnemonic = cstr!(mnemonic, std::ptr::null());
+    let name = cstr!(name, std::ptr::null());
 
-fn _recover_from_mnemonic(
-    config: *const c_char,
-    password: *const c_char,
-    mnemonic: *const c_char,
-    name: *const c_char
-) -> Result<*const c_char, Error> {
-    let c_conf = unsafe { CStr::from_ptr(config) };
-    let c_password = unsafe { CStr::from_ptr(password) };
-    let c_mnemonic = unsafe { CStr::from_ptr(mnemonic) };
-    let c_name = unsafe { CStr::from_ptr(name) };
-
-    let input_conf = c_conf.to_str().unwrap();
-    let str_password = c_password.to_str().unwrap();
-    let wallet_config = match Config::from_str(&input_conf.to_string()) {
-        Ok(config) => {
-            config
-        }, Err(err) => {
-            return Err(Error::from(ErrorKind::GenericError(format!(
-                "Wallet config error : {}",
-                err.to_string()
-            ))))
-        }
-    };
-    let phrase = c_mnemonic.to_str().unwrap();
-    let name = c_name.to_str().unwrap();
-
-    let mut recover_response = "".to_string();
-    match recover_from_mnemonic(phrase, str_password, &wallet_config, name) {
-        Ok(_)=> {
-            recover_response.push_str("recovered");
-        },
-        Err(e)=> {
-            return Err(e);
-        }
-    }
-    let s = CString::new(recover_response).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
+    let result = recover_from_mnemonic(mnemonic, password, &config, name);
+    let cstr = error!(result, std::ptr::null());
+    let cstr = error!(CString::new(cstr), std::ptr::null());
+    cstr.into_raw()
 }
 
 #[no_mangle]
@@ -770,7 +628,6 @@ fn _tx_cancel(
 pub unsafe extern "C" fn rust_get_chain_height(
     config: *const c_char,
 ) -> *const c_char {
-
     init_logger();
     let config = cstr!(config, std::ptr::null());
     let result = get_chain_height(config);
@@ -778,26 +635,6 @@ pub unsafe extern "C" fn rust_get_chain_height(
     let cstr = error!(CString::new(cstr.to_string()), std::ptr::null());
     cstr.into_raw()
 }
-
-// fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
-//     let c_config = unsafe { CStr::from_ptr(config) };
-//     let str_config = c_config.to_str().unwrap();
-//     let mut chain_height = "".to_string();
-//     match get_chain_height(&str_config) {
-//         Ok(chain_tip) => {
-//             debug!("CHAIN_HEIGHT {}", chain_tip);
-//             chain_height.push_str(&chain_tip.to_string());
-//         },
-//         Err(e) => {
-//             debug!("CHAIN_HEIGHT_ERROR {}", e.to_string());
-//             return Err(e);
-//         },
-//     }
-//     let s = CString::new(chain_height).unwrap();
-//     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-//     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-//     Ok(p)
-// }
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_delete_wallet(
@@ -1073,34 +910,10 @@ fn _get_tx_fees(
 
 pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> Result<String, Error> {
     let wallet_pass = ZeroingString::from(password);
-    let wallet_config = match Config::from_str(&config) {
-        Ok(config) => {
-            config
-        }, Err(e) => {
-            return  Err(Error::from(ErrorKind::GenericError(format!(
-                "Error getting wallet config: {}",
-                e.to_string()
-            ))));
-        }
-    };
-
-    let wallet = match get_wallet(&wallet_config) {
-        Ok(wllet) => {
-            wllet
-        }
-        Err(e) => {
-            return  Err(e);
-        }
-    };
+    let wallet_config = Config::from_str(config)?;
+    let wallet = get_wallet(&wallet_config)?;
     let mut wallet_lock = wallet.lock();
-    let lc = match wallet_lock.lc_provider() {
-        Ok(wallet_lc) => {
-            wallet_lc
-        }
-        Err(e) => {
-            return  Err(e);
-        }
-    };
+    let lc = wallet_lock.lc_provider()?;
     let rec_phrase = ZeroingString::from(phrase.clone());
     let result = match lc.create_wallet(
         Some(name),
@@ -1117,50 +930,6 @@ pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> 
         },
     };
     Ok(result)
-}
-
-pub fn get_wallet_secret_key_pair(
-    wallet: &Wallet, keychain_mask: Option<SecretKey>, index: u32
-) -> Result<(SecretKey, PublicKey), Error>{
-    let parent_key_id = {
-        wallet_lock!(wallet, w);
-        w.parent_key_id().clone()
-    };
-    wallet_lock!(wallet, w);
-
-    let k = match w.keychain(keychain_mask.as_ref()) {
-        Ok(keychain) => {
-            keychain
-        }
-        Err(err) => {
-            return  Err(err);
-        }
-    };
-    let s = Secp256k1::new();
-    let sec_key = match address::address_from_derivation_path(
-        &k, &parent_key_id, index
-    ) {
-        Ok(s_key) => {
-            s_key
-        }
-        Err(err) => {
-            return Err(err);
-        }
-    };
-    let pub_key = match PublicKey::from_secret_key(&s, &sec_key) {
-        Ok(p_key) => {
-            p_key
-        }
-        Err(err) => {
-            return Err(Error::from(
-                ErrorKind::GenericError(
-                    format!("{}", err.to_string())
-                )
-            ));
-        }
-    };
-
-    Ok((sec_key, pub_key))
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -1209,56 +978,31 @@ pub fn get_wallet_info(
 /*
     Recover wallet from mnemonic
 */
-pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, name: &str) -> Result<(), Error> {
-    let wallet = match get_wallet(&config) {
-        Ok(conf) => {
-            conf
-        }
-        Err(e) => {
-            return  Err(e);
-        }
-    };
+pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &str, name: &str) -> Result<String, Error> {
+    let config = Config::from_str(config)?;
+    let wallet = get_wallet(&config)?;
     let mut w_lock = wallet.lock();
-    let lc = match w_lock.lc_provider() {
-        Ok(wallet_lc) => {
-            wallet_lc
-        }
-        Err(e) => {
-            return  Err(e);
-        }
-    };
+    let lc = w_lock.lc_provider()?;
 
-    //First check if wallet seed directory exists, if not create
-    if let Ok(exists_wallet_seed) = lc.wallet_exists(None) {
-        return if exists_wallet_seed {
-            match lc.recover_from_mnemonic(
+    //Check if wallet seed directory exists, if not create
+    match lc.wallet_exists(None)? {
+        true => {
+            lc.recover_from_mnemonic(
                 ZeroingString::from(mnemonic), ZeroingString::from(password)
-            ) {
-                Ok(_) => {
-                    Ok(())
-                }
-                Err(e) => {
-                    Err(e)
-                }
-            }
-        } else {
-            match lc.create_wallet(
+            )?;
+            Ok("".to_string())
+        }
+        false => {
+            lc.create_wallet(
                 Some(&name),
                 Some(ZeroingString::from(mnemonic)),
                 32,
                 ZeroingString::from(password),
                 false,
-            ) {
-                Ok(_) => {
-                    Ok(())
-                }
-                Err(e) => {
-                    Err(e)
-                }
-            }
+            )?;
+            Ok("".to_string())
         }
     }
-    Ok(())
 }
 
 /*
@@ -1288,13 +1032,7 @@ fn create_seed(seed_length: u64) -> Vec<u8> {
     Get wallet that will be used for calls to epic wallet
 */
 fn get_wallet(config: &Config) -> Result<Wallet, Error> {
-    let wallet_config = match create_wallet_config(config.clone()) {
-        Ok(conf) => {
-            conf
-        } Err(e) => {
-            return Err(e);
-        }
-    };
+    let wallet_config = create_wallet_config(config.clone())?;
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
     let wallet =  match inst_wallet::<
@@ -1346,16 +1084,7 @@ fn inst_wallet<L, C, K>(
 }
 
 pub fn get_chain_height(config: &str) -> Result<u64, Error> {
-    let config = match Config::from_str(&config.to_string()) {
-        Ok(config) => {
-            config
-        }, Err(e) => {
-            return Err(Error::from(ErrorKind::GenericError(format!(
-                "{}",
-                "Unable to get wallet config"
-            ))))
-        }
-    };
+    let config = Config::from_str(config)?;
     let wallet_config = match create_wallet_config(config.clone()) {
         Ok(wallet_conf) => {
             wallet_conf
@@ -1696,16 +1425,7 @@ pub fn nano_to_deci(amount: u64) -> f64 {
 
 */
 pub fn open_wallet(config_json: &str, password: &str) -> Result<(Wallet, Option<SecretKey>), Error> {
-    let config = match Config::from_str(&config_json.to_string()) {
-        Ok(config) => {
-            config
-        }, Err(e) => {
-            return Err(Error::from(ErrorKind::GenericError(format!(
-                "{}",
-                "Unable to get wallet config"
-            ))))
-        }
-    };
+    let config = Config::from_str(config_json)?;
     let wallet = match get_wallet(&config) {
         Ok(wllet) => {
             wllet
