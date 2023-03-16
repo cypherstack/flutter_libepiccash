@@ -1,46 +1,34 @@
 use std::cmp::Ordering;
 use std::os::raw::{c_char};
-use std::ffi::{CString, CStr};
+use std::ffi::{CString, CStr, c_int};
 use std::sync::Arc;
 use std::path::{Path};
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
-use rustc_serialize::json;
 use uuid::Uuid;
 
-use stack_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
+use stack_epic_wallet_api::{self, Owner};
 use stack_epic_wallet_config::{WalletConfig, EpicboxConfig};
 use stack_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
 use stack_epic_wallet_libwallet::api_impl::owner;
 use stack_epic_wallet_impls::{DefaultLCProvider, DefaultWalletImpl, EpicboxListenChannel, HTTPNodeClient};
-
-use ws::{
-    CloseCode, Message, Error as WsError, ErrorKind as WsErrorKind,
-    Result as WSResult, Sender, Handler
-};
 
 use stack_epic_keychain::mnemonic;
 use stack_epic_wallet_util::stack_epic_core::global::ChainTypes;
 use stack_epic_util::file::get_first_line;
 use stack_epic_wallet_util::stack_epic_util::ZeroingString;
 use stack_epic_util::Mutex;
-use stack_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, Error, ErrorKind, TxLogEntry, TxLogEntryType};
+use stack_epic_wallet_libwallet::{scan, wallet_lock, NodeClient, WalletInst, WalletLCProvider, Error, ErrorKind};
 
 use stack_epic_wallet_util::stack_epic_keychain::{Keychain, ExtKeychain};
 
 use stack_epic_util::secp::rand::Rng;
+use stack_epic_util::secp::key::{SecretKey};
 
-use stack_epic_util::secp::key::{SecretKey, PublicKey};
-use stack_epic_util::secp::{Secp256k1};
-
-use stack_epic_wallet_controller::command;
-
-use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
+use stack_test_epicboxlib::types::{EpicboxAddress};
 use android_logger::FilterBuilder;
-use std::{env, thread};
-use std::time::Duration;
 
-#[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config {
     pub wallet_dir: String,
     pub check_node_api_http_addr: String,
@@ -79,7 +67,7 @@ macro_rules! error {
     ($result:expr, $error:expr) => {
         match $result {
             Ok(value) => value,
-            Err(e) => {
+            Err(_e) => {
                 // ffi_helpers::update_last_error(e);
                 return $error;
             }
@@ -156,9 +144,8 @@ extern crate simplelog;
 use log::Level;
 use android_logger::Config as AndroidConfig;
 use ffi_helpers::{export_task, Task};
-use ffi_helpers::task::{CancellationToken, TaskHandle};
-use serde_json::json;
-use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
+use ffi_helpers::task::{CancellationToken};
+// use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
 
 #[no_mangle]
 pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
@@ -473,7 +460,7 @@ fn _create_tx(
     keychain_mask: Option<SecretKey>,
     amount: u64,
     address: &str,
-    secret_key_index: u32,
+    _secret_key_index: u32,
     epicbox_config: &str,
     minimum_confirmations: u64,
 ) -> Result<*const c_char, Error> {
@@ -641,43 +628,46 @@ pub unsafe extern "C" fn rust_delete_wallet(
     _wallet: *const c_char,
     config: *const c_char,
 ) -> *const c_char  {
-    let c_conf = CStr::from_ptr(config);
-    let _config = Config::from_str(c_conf.to_str().unwrap()).unwrap(); // TODO handle error here
+    let config = cstr!(config, std::ptr::null());
+    let result = delete_wallet(config);
+    let cstr = error!(result, std::ptr::null());
+    let cstr = error!(CString::new(cstr), std::ptr::null());
+    cstr.into_raw()
 
-    let result = match _delete_wallet(
-        _config,
-    ) {
-        Ok(deleted) => {
-            deleted
-        }, Err(err) => {
-            let error_msg = format!("Error deleting wallet from _delete_wallet in rust_delete_wallet {}", &err.to_string());
-            let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(error_msg_ptr);
-            ptr
-        }
-    };
-    result
+    // let result = match _delete_wallet(
+    //     _config,
+    // ) {
+    //     Ok(deleted) => {
+    //         deleted
+    //     }, Err(err) => {
+    //         let error_msg = format!("Error deleting wallet from _delete_wallet in rust_delete_wallet {}", &err.to_string());
+    //         let error_msg_ptr = CString::new(error_msg).unwrap();
+    //         let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+    //         std::mem::forget(error_msg_ptr);
+    //         ptr
+    //     }
+    // };
+    // result
 }
 
-fn _delete_wallet(
-    config: Config,
-) -> Result<*const c_char, Error> {
-    let mut delete_result = String::from("");
-    match delete_wallet(config) {
-        Ok(deleted) => {
-            delete_result.push_str(&deleted);
-        },
-        Err(err) => {
-            return Err(err);
-        },
-    }
-    let s = CString::new(delete_result).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
-
-}
+// fn _delete_wallet(
+//     config: Config,
+// ) -> Result<*const c_char, Error> {
+//     let mut delete_result = String::from("");
+//     match delete_wallet(config) {
+//         Ok(deleted) => {
+//             delete_result.push_str(&deleted);
+//         },
+//         Err(err) => {
+//             return Err(err);
+//         },
+//     }
+//     let s = CString::new(delete_result).unwrap();
+//     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+//     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+//     Ok(p)
+//
+// }
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_tx_send_http(
@@ -833,19 +823,13 @@ pub fn get_wallet_address(
 #[no_mangle]
 pub unsafe extern "C" fn rust_validate_address(
     address: *const c_char,
-) -> *const c_char {
-    let address = unsafe { CStr::from_ptr(address) };
-    let str_address = address.to_str().unwrap();
-    let validate = validate_address(str_address);
-    let return_value = match validate {
+) -> i32 {
+    init_logger();
+    let address = cstr!(address);
+    match validate_address(address) {
         true => 1,
         false => 0
-    };
-
-    let s = CString::new(return_value.to_string()).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    p
+    }
 }
 
 #[no_mangle]
@@ -1085,14 +1069,7 @@ fn inst_wallet<L, C, K>(
 
 pub fn get_chain_height(config: &str) -> Result<u64, Error> {
     let config = Config::from_str(config)?;
-    let wallet_config = match create_wallet_config(config.clone()) {
-        Ok(wallet_conf) => {
-            wallet_conf
-        }
-        Err(e) => {
-            return  Err(e);
-        }
-    };
+    let wallet_config = create_wallet_config(config.clone())?;
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
     let chain_tip = match node_client.chain_height() {
@@ -1373,42 +1350,6 @@ pub fn tx_get(wallet: &Wallet, refresh_from_node: bool, tx_slate_id: &str) -> Re
     Ok(serde_json::to_string(&txs.1).unwrap())
 }
 
-/*
-    Check slate version
-*/
-fn check_middleware(
-    name: ForeignCheckMiddlewareFn,
-    node_version_info: Option<NodeVersionInfo>,
-    slate: Option<&Slate>,
-) -> Result<(), Error> {
-    match name {
-        // allow coinbases to be built regardless
-        ForeignCheckMiddlewareFn::BuildCoinbase => Ok(()),
-        _ => {
-            let mut bhv = 3;
-            if let Some(n) = node_version_info {
-                bhv = n.block_header_version;
-            }
-            if let Some(s) = slate {
-                if bhv > 4
-                    && s.version_info.block_header_version
-                    < slate_versions::EPIC_BLOCK_HEADER_VERSION
-                {
-                    Err(stack_epic_wallet_libwallet::ErrorKind::Compatibility(
-                        "Incoming Slate is not compatible with this wallet. \
-						 Please upgrade the node or use a different one."
-                            .to_string(),
-                    ))?;
-
-                    // Err(ErrorKind::Compatibility("Incoming Slate is not compatible with this wallet. \
-                    // Please upgrade the node or use a different one.".to_string())).unwrap().expect("TODO: panic message");
-                }
-            }
-            Ok(())
-        }
-    }
-}
-
 pub fn convert_deci_to_nano(amount: f64) -> u64 {
     let base_nano = 100000000;
     let nano = amount * base_nano as f64;
@@ -1508,8 +1449,7 @@ pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
 }
 
 pub fn validate_address(address: &str) -> bool {
-    let address = EpicboxAddress::from_str(address);
-    match address {
+    match EpicboxAddress::from_str(address) {
         Ok(_) => {
             true
         },
@@ -1519,17 +1459,11 @@ pub fn validate_address(address: &str) -> bool {
     }
 }
 
-pub fn delete_wallet(config: Config) -> Result<String, Error> {
+pub fn delete_wallet(config: &str) -> Result<String, Error> {
+    let config = Config::from_str(config)?;
     let mut result = String::from("");
     // get wallet object in order to use class methods
-    let wallet = match get_wallet(&config) {
-        Ok(wllet) => {
-            wllet
-        }
-        Err(e) => {
-            return  Err(e);
-        }
-    };
+    let wallet = get_wallet(&config)?;
     //First close the wallet
     if let Ok(_) = close_wallet(&wallet) {
         let api = Owner::new(wallet.clone());
@@ -1559,7 +1493,7 @@ pub fn tx_send_http(
     address: &str,
 ) -> Result<String, Error>{
     let api = Owner::new(wallet.clone());
-    let initSendArgs = InitTxSendArgs {
+    let init_send_args = InitTxSendArgs {
         method: "http".to_string(),
         dest: address.to_string(),
         finalize: true,
@@ -1575,7 +1509,7 @@ pub fn tx_send_http(
         num_change_outputs: 1,
         selection_strategy_is_use_all,
         message: Some(message.to_string()),
-        send_args: Some(initSendArgs),
+        send_args: Some(init_send_args),
         ..Default::default()
     };
 
@@ -1669,7 +1603,7 @@ pub unsafe extern "C" fn run_listener(
         epicbox_config: epicbox_config.parse().unwrap()
     };
 
-    let handle = listener_spawn(&listen);
+    let _handle = listener_spawn(&listen);
     let msg = format!("START LISTENER {}", "LISTENER STARTED");
     let msg_ptr = CString::new(msg).unwrap();
     let ptr = msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s

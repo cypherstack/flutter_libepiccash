@@ -64,8 +64,8 @@ typedef AddressInfo = Pointer<Utf8> Function(
 typedef AddressInfoFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 
-typedef ValidateAddress = Pointer<Utf8> Function(Pointer<Utf8>);
-typedef ValidateAddressFFI = Pointer<Utf8> Function(Pointer<Utf8>);
+typedef ValidateAddress = Int32 Function(Pointer<Utf8>);
+typedef ValidateAddressFFI = int Function(Pointer<Utf8>);
 
 typedef TransactionFees = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
@@ -195,7 +195,6 @@ int getChainHeight(String config) {
   if (latestHeight == nullptr) {
     return 0;
   }
-  // String latestHeight = _getChainHeight(config.toNativeUtf8()).toDartString();
   return int.parse(latestHeight.toDartString());
 }
 
@@ -211,12 +210,12 @@ String getAddressInfo(String wallet, int index, String epicboxConfig) {
       .toDartString();
 }
 
-final ValidateAddress _validateSendAddress = epicCashNative
-    .lookup<NativeFunction<ValidateAddressFFI>>("rust_validate_address")
-    .asFunction();
+final _validateSendAddress = epicCashNative
+    .lookup<NativeFunction<ValidateAddress>>('rust_validate_address')
+    .asFunction<ValidateAddressFFI>();
 
 String validateSendAddress(String address) {
-  return _validateSendAddress(address.toNativeUtf8()).toDartString();
+  return _validateSendAddress(address.toNativeUtf8()).toString();
 }
 
 final TransactionFees _transactionFees = epicCashNative
