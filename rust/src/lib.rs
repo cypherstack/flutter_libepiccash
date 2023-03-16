@@ -763,48 +763,33 @@ pub unsafe extern "C" fn rust_get_wallet_address(
     index: *const c_char,
     epicbox_config: *const c_char,
 ) -> *const c_char {
-    let wallet_ptr = CStr::from_ptr(wallet);
-    let index = CStr::from_ptr(index);
-    let epicbox_config = CStr::from_ptr(epicbox_config);
-    let epicbox_config = epicbox_config.to_str().unwrap();
-    let index: u32 = index.to_str().unwrap().to_string().parse().unwrap();
 
-    let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+    let wallet = cstr!(wallet, std::ptr::null());
+    let index = cstr!(index, std::ptr::null());
+    let index: u32 = index.to_string().parse().unwrap(); //TODO- see if we can remove this unwrap
+    let epicbox_config = cstr!(epicbox_config, std::ptr::null());
+
+    // let wallet_ptr = CStr::from_ptr(wallet);
+    // let index = CStr::from_ptr(index);
+    // let epicbox_config = CStr::from_ptr(epicbox_config);
+    // let epicbox_config = epicbox_config.to_str().unwrap();
+    // let index: u32 = index.to_str().unwrap().to_string().parse().unwrap();
+
+    // let wallet_data = wallet_ptr.to_str().unwrap();
+    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet).unwrap();
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
 
     ensure_wallet!(wlt, wallet);
-    let result = match _get_wallet_address(
+    let result = get_wallet_address(
         wallet,
         sek_key,
         index,
         epicbox_config
-    ) {
-        Ok(address) => {
-            address
-        }, Err(e ) => {
-            let error_msg = format!("Error {}", &e.to_string());
-            let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(error_msg_ptr);
-            ptr
-        }
-    };
-    result
-}
-
-fn _get_wallet_address(
-    wallet: &Wallet,
-    keychain_mask: Option<SecretKey>,
-    index: u32,
-    epicbox_config: &str
-) -> Result<*const c_char, Error> {
-    let address = get_wallet_address(&wallet, keychain_mask, index, epicbox_config);
-    let s = CString::new(address).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
+    );
+    let cstr = error!(result, std::ptr::null());
+    let cstr = error!(CString::new(cstr), std::ptr::null());
+    cstr.into_raw()
 }
 
 pub fn get_wallet_address(
@@ -812,12 +797,11 @@ pub fn get_wallet_address(
     keychain_mask: Option<SecretKey>,
     index: u32,
     epicbox_config: &str,
-) -> String {
-
+) -> Result<String, Error> {
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
     let api = Owner::new(wallet.clone());
-    let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
-    format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain)
+    let address = api.get_public_address(keychain_mask.as_ref(), index)?;
+    Ok(format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain))
 }
 
 #[no_mangle]
