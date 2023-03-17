@@ -12,6 +12,33 @@ final DynamicLibrary epicCashNative = io.Platform.isWindows
             ? DynamicLibrary.open('libepic_cash_wallet.so')
             : DynamicLibrary.process();
 
+// pub last_confirmed_height: u64,
+// pub minimum_confirmations: u64,
+// pub total: f64,
+// pub amount_awaiting_finalization: f64,
+// pub amount_awaiting_confirmation: f64,
+// pub amount_immature: f64,
+// pub amount_currently_spendable: f64,
+// pub amount_locked: f64,
+class WalletInfoFormatted extends Struct {
+  @Int64()
+  external int last_confirmed_height;
+  @Int64()
+  external int minimum_confirmations;
+  @Float()
+  external double total;
+  @Float()
+  external double amount_awaiting_finalization;
+  @Float()
+  external double amount_awaiting_confirmation;
+  @Float()
+  external double amount_immature;
+  @Float()
+  external double amount_currently_spendable;
+  @Float()
+  external double amount_locked;
+}
+
 typedef WalletMnemonic = Pointer<Utf8> Function();
 typedef WalletMnemonicFFI = Pointer<Utf8> Function();
 
@@ -20,9 +47,9 @@ typedef WalletInit = Pointer<Utf8> Function(
 typedef WalletInitFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
 
-typedef WalletInfo = Pointer<Utf8> Function(
+typedef WalletInfo = Pointer<WalletInfoFormatted> Function(
     Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
-typedef WalletInfoFFI = Pointer<Utf8> Function(
+typedef WalletInfoFFI = Pointer<WalletInfoFormatted> Function(
     Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
 typedef RecoverWallet = Pointer<Utf8> Function(
@@ -102,17 +129,20 @@ String initWallet(
       .toDartString();
 }
 
-final WalletInfo _walletInfo = epicCashNative
+final WalletInfoFormatted _walletInfo = epicCashNative
     .lookup<NativeFunction<WalletInfoFFI>>("rust_wallet_balances")
     .asFunction();
 
 Future<String> getWalletInfo(
     String wallet, int refreshFromNode, int min_confirmations) async {
-  return _walletInfo(
-          wallet.toNativeUtf8(),
-          refreshFromNode.toString().toNativeUtf8().cast<Int8>(),
-          min_confirmations.toString().toNativeUtf8().cast<Int8>())
-      .toDartString();
+  final returnedData = _walletInfo(
+      wallet.toNativeUtf8(),
+      refreshFromNode.toString().toNativeUtf8().cast<Int8>(),
+      min_confirmations.toString().toNativeUtf8().cast<Int8>());
+
+  print("RETURNED DATA IS ${returnedData}");
+
+  return "";
 }
 
 final RecoverWallet _recoverWallet = epicCashNative
