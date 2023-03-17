@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
-use std::os::raw::{c_char};
-use std::ffi::{CString, CStr, c_int};
+use std::os::raw::{c_char, c_void};
+use std::ffi::{CString, CStr};
 use std::sync::Arc;
 use std::path::{Path};
 use rand::thread_rng;
@@ -145,6 +145,7 @@ use log::Level;
 use android_logger::Config as AndroidConfig;
 use ffi_helpers::{export_task, Task};
 use ffi_helpers::task::{CancellationToken};
+use serde_json::from_str;
 // use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
 
 #[no_mangle]
@@ -231,80 +232,42 @@ fn _open_wallet(
     Ok(p)
 }
 
-
 /*
     Get wallet info
     This contains wallet balances
 */
 #[no_mangle]
-pub unsafe extern "C"  fn rust_wallet_balances(
+pub unsafe extern "C" fn rust_wallet_balances(
     wallet: *const c_char,
     refresh: *const c_char,
     min_confirmations: *const c_char,
-) -> *const c_char {
-    let wallet_ptr = CStr::from_ptr(wallet);
-    let c_refresh = CStr::from_ptr(refresh);
-    let minimum_confirmations = CStr::from_ptr(min_confirmations);
-    let minimum_confirmations: u64 = minimum_confirmations.to_str().unwrap().to_string().parse().unwrap();
+) -> *mut c_void  {
+    let wallet = cstr!(wallet, std::ptr::null_mut());
+    let refresh = cstr!(refresh, std::ptr::null_mut());
+    let minimum_confirmations = cstr!(min_confirmations, std::ptr::null_mut());
 
-    let refresh_from_node: u64 = c_refresh.to_str().unwrap().to_string().parse().unwrap();
+    let minimum_confirmations: u64 = error!(minimum_confirmations.parse(), std::ptr::null_mut());
+    let refresh_from_node: u64 = error!(refresh.parse(), std::ptr::null_mut());
+
     let refresh = match refresh_from_node {
         0 => false,
         _=> true
     };
-
-    let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+    let tuple_wallet_data: (i64, Option<SecretKey>) = from_str(wallet).unwrap();
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
 
     ensure_wallet!(wlt, wallet);
-
-    let result = match _wallet_balances(
+    let wallet_info = error!(get_wallet_info(
         wallet,
         sek_key,
         refresh,
         minimum_confirmations
-    ) {
-        Ok(balances) => {
-            balances
-        }, Err(e ) => {
-            let error_msg = format!("Error {}", &e.to_string());
-            let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-            std::mem::forget(error_msg_ptr);
-            ptr
-        }
-    };
-    result
-}
+    ), std::ptr::null_mut());
 
-fn _wallet_balances(
-    wallet: &Wallet,
-    keychain_mask: Option<SecretKey>,
-    refresh: bool,
-    min_confirmations: u64,
-) -> Result<*const c_char, Error> {
-    let mut wallet_info = "".to_string();
-    match get_wallet_info(
-        &wallet,
-        keychain_mask,
-        refresh,
-        min_confirmations
-    ) {
-        Ok(info) => {
-            let str_wallet_info = serde_json::to_string(&info).unwrap();
-            wallet_info.push_str(&str_wallet_info);
-        },Err(e) => {
-            return Err(e);
-        }
-    }
-    let s = CString::new(wallet_info).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
+    let box_wallet_info = Box::new(wallet_info);
+    Box::into_raw(box_wallet_info) as *mut c_void
 }
-
 
 
 #[no_mangle]
@@ -633,41 +596,7 @@ pub unsafe extern "C" fn rust_delete_wallet(
     let cstr = error!(result, std::ptr::null());
     let cstr = error!(CString::new(cstr), std::ptr::null());
     cstr.into_raw()
-
-    // let result = match _delete_wallet(
-    //     _config,
-    // ) {
-    //     Ok(deleted) => {
-    //         deleted
-    //     }, Err(err) => {
-    //         let error_msg = format!("Error deleting wallet from _delete_wallet in rust_delete_wallet {}", &err.to_string());
-    //         let error_msg_ptr = CString::new(error_msg).unwrap();
-    //         let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
-    //         std::mem::forget(error_msg_ptr);
-    //         ptr
-    //     }
-    // };
-    // result
 }
-
-// fn _delete_wallet(
-//     config: Config,
-// ) -> Result<*const c_char, Error> {
-//     let mut delete_result = String::from("");
-//     match delete_wallet(config) {
-//         Ok(deleted) => {
-//             delete_result.push_str(&deleted);
-//         },
-//         Err(err) => {
-//             return Err(err);
-//         },
-//     }
-//     let s = CString::new(delete_result).unwrap();
-//     let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-//     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-//     Ok(p)
-//
-// }
 
 #[no_mangle]
 pub unsafe extern "C" fn rust_tx_send_http(
@@ -768,14 +697,6 @@ pub unsafe extern "C" fn rust_get_wallet_address(
     let index = cstr!(index, std::ptr::null());
     let index: u32 = index.to_string().parse().unwrap(); //TODO- see if we can remove this unwrap
     let epicbox_config = cstr!(epicbox_config, std::ptr::null());
-
-    // let wallet_ptr = CStr::from_ptr(wallet);
-    // let index = CStr::from_ptr(index);
-    // let epicbox_config = CStr::from_ptr(epicbox_config);
-    // let epicbox_config = epicbox_config.to_str().unwrap();
-    // let index: u32 = index.to_str().unwrap().to_string().parse().unwrap();
-
-    // let wallet_data = wallet_ptr.to_str().unwrap();
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet).unwrap();
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
@@ -798,7 +719,7 @@ pub fn get_wallet_address(
     index: u32,
     epicbox_config: &str,
 ) -> Result<String, Error> {
-    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
+    let epicbox_conf = from_str::<EpicboxConfig>(epicbox_config).unwrap();
     let api = Owner::new(wallet.clone());
     let address = api.get_public_address(keychain_mask.as_ref(), index)?;
     Ok(format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain))
@@ -809,7 +730,7 @@ pub unsafe extern "C" fn rust_validate_address(
     address: *const c_char,
 ) -> i32 {
     init_logger();
-    let address = cstr!(address);
+    let address = cstr!(address, 0);
     match validate_address(address) {
         true => 1,
         false => 0
