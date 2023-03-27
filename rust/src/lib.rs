@@ -96,7 +96,7 @@ fn init_logger() {
 }
 
 impl Config {
-    fn from_str(json: &str) -> Result<Self, serde_json::error::Error> {
+    pub fn from_str(json: &str) -> Result<Self, serde_json::error::Error> {
         let result = match  serde_json::from_str::<Config>(json) {
             Ok(config) => {
                 config
