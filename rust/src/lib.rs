@@ -554,14 +554,14 @@ pub unsafe extern "C" fn rust_create_tx(
     let wallet_data = wallet_ptr.to_str().unwrap();
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
 
-    let listen = Listener {
-        wallet_data: tuple_wallet_data.clone(),
-        epicbox_config: epicbox_config.parse().unwrap()
-    };
-
-    let handle = listener_spawn(&listen);
-    listener_cancel(handle);
-    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
+    // let listen = Listener {
+    //     wallet_data: tuple_wallet_data.clone(),
+    //     epicbox_config: epicbox_config.parse().unwrap()
+    // };
+    //
+    // let handle = listener_spawn(&listen);
+    // listener_cancel(handle);
+    // debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
 
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
@@ -579,7 +579,7 @@ pub unsafe extern "C" fn rust_create_tx(
     ) {
         Ok(slate) => {
             //Spawn listener again
-            listener_spawn(&listen);
+            // listener_spawn(&listen);
             slate
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
