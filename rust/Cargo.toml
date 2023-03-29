@@ -31,12 +31,12 @@ stack_epic_keychain = "3.3.2"
 stack_epic_util = "3.3.2"
 stack_epic_core = "3.3.2"
 
-stack_epic_wallet_api = "3.3.2"
-stack_epic_wallet_impls = "3.3.2"
-stack_epic_wallet_libwallet = "3.3.2"
-stack_epic_wallet_config = "3.3.2"
-stack_epic_wallet_util = "3.3.2"
-stack_epic_wallet_controller = "3.3.2"
+stack_epic_wallet_api = "3.3.5"
+stack_epic_wallet_impls = "3.3.5"
+stack_epic_wallet_libwallet = "3.3.4"
+stack_epic_wallet_config = "3.3.4"
+stack_epic_wallet_util = "3.3.4"
+stack_epic_wallet_controller = "3.3.5"
 
 # Epic box for posting slates and getting epic addresses
 stack_test_epicboxlib = "1.0.3"

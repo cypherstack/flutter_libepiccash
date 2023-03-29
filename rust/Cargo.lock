@@ -3667,9 +3667,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_wallet_api"
-version = "3.3.4"
+version = "3.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da20962097c70682fddf8580117f4595cbd5be35101469ec9ff3701bde006041"
+checksum = "a14261f4c5801b3f7509d4ed850a64bd701d5f1eb121b39d6457987b13fd5d2f"
 dependencies = [
  "base64 0.9.3",
  "chrono",
@@ -3706,9 +3706,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_wallet_controller"
-version = "3.3.4"
+version = "3.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbd2218e8b50e1bbd669cf4be38da293f32a05a48b0355436fe6b06043ec0df7"
+checksum = "4f0cc6e477e150a67481e905d344a9a540c834d93771f0e7abfd636fc0041ae2"
 dependencies = [
  "chrono",
  "easy-jsonrpc-mw",
@@ -3740,9 +3740,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_wallet_impls"
-version = "3.3.4"
+version = "3.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68c9137ee6d59bd95678a466b04ce3d6a2946f5735adc592390bd8d06a80bae6"
+checksum = "0691f2f0377f4626cf90941fd827ef95dc0af2e55fa3698e899a9ff30dbc9258"
 dependencies = [
  "bitvec",
  "blake2-rfc",
