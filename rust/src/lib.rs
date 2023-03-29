@@ -96,7 +96,7 @@ fn init_logger() {
 }
 
 impl Config {
-    pub fn from_str(json: &str) -> Result<Self, serde_json::error::Error> {
+    fn from_str(json: &str) -> Result<Self, serde_json::error::Error> {
         let result = match  serde_json::from_str::<Config>(json) {
             Ok(config) => {
                 config
@@ -558,6 +558,10 @@ pub unsafe extern "C" fn rust_create_tx(
         wallet_data: tuple_wallet_data.clone(),
         epicbox_config: epicbox_config.parse().unwrap()
     };
+
+    let handle = listener_spawn(&listen);
+    listener_cancel(handle);
+    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
 
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
