@@ -1,32 +1,36 @@
 #!/bin/bash
 
-if [ -z "$1" ]; then
-    echo "Failed to copy lib bins. Missing target root dir path"
-    exit 1
+OS=linux
+TAG_COMMIT=$(git log -1 --pretty=format:"%H")
+
+rm -rf flutter_libepiccash_bins
+git clone https://git.cypherstack.com/stackwallet/flutter_libepiccash_bins
+if [ -d flutter_libepiccash_bins ]; then
+  cd flutter_libepiccash_bins
+else
+  echo "Failed to clone flutter_libepiccash_bins"
+  exit 1
 fi
 
 TARGET_PATH=../../android/src/main/jniLibs
+BIN=libepic_cash_wallet.so
 
-ARM64_BIN=arm64-v8a/libepic_cash_wallet.so
+for TARGET in arm64-v8a armeabi-v7a x86_64
+do
+  ARCH_PATH=$TARGET
 
-if [ -f "$TARGET_PATH/$ARM64_BIN" ]; then
-  cp "$TARGET_PATH/$ARM64_BIN" "$1"/android/src/main/jniLibs/"$ARM64_BIN"
-else
-  echo "$ARM64_BIN not found!"
-fi
-
-ARMEABI_V7A_BIN=armeabi-v7a/libepic_cash_wallet.so
-
-if [ -f "$TARGET_PATH/$ARMEABI_V7A_BIN" ]; then
-  cp "$TARGET_PATH/$ARMEABI_V7A_BIN" "$1"/android/src/main/jniLibs/"$ARMEABI_V7A_BIN"
-else
-  echo "$ARMEABI_V7A_BIN not found!"
-fi
-
-X86_64_BIN=x86_64/libepic_cash_wallet.so
-
-if [ -f "$TARGET_PATH/$X86_64_BIN" ]; then
-  cp "$TARGET_PATH/$X86_64_BIN" "$1"/android/src/main/jniLibs/"$X86_64_BIN"
-else
-  echo "$X86_64_BIN not found!"
-fi
+  if [ -f "$TARGET_PATH/$ARCH_PATH/$BIN" ]; then
+    git checkout $OS/$TARGET || git checkout -b $OS/$TARGET
+    if [ ! -d $OS/$ARCH_PATH ]; then
+      mkdir -p $OS/$ARCH_PATH
+    fi
+    cp -rf $TARGET_PATH/$ARCH_PATH/$BIN $OS/$ARCH_PATH/$BIN
+    git add .
+    git commit -m "$TAG_COMMIT"
+    git push origin $OS/$TARGET
+    git tag $TARGET"_$TAG_COMMIT"
+    git push --tags
+  else
+    echo "$TARGET not found!"
+  fi
+done
