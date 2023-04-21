@@ -1,34 +1,35 @@
 #!/bin/bash
 
 LIB_ROOT=../..
+OS=android
 ANDROID_LIBS_DIR=$LIB_ROOT/android/src/main/jniLibs
 
-DL_DIR=bins
+TAG_COMMIT=$(git log -1 --pretty=format:"%H")
 
-git clone "https://git.cypherstack.com/julian/flutter_libepiccash_bins" $DL_DIR
-
-# TODO verify correct bins!!!!!!!!!!!!!!!!!!!!!!!
-
-ARM64_BIN=arm64-v8a/libepic_cash_wallet.so
-
-if [ -f "$DL_DIR/android/$ARM64_BIN" ]; then
-  cp "$DL_DIR/android/$ARM64_BIN" "$ANDROID_LIBS_DIR/$ARM64_BIN"
+rm -rf flutter_libepiccash_bins
+git clone https://git.cypherstack.com/stackwallet/flutter_libepiccash_bins
+if [ -d flutter_libepiccash_bins ]; then
+  cd flutter_libepiccash_bins
 else
-  echo "$ARM64_BIN not found!"
+  echo "Failed to clone flutter_libepiccash_bins"
+  exit 1
 fi
 
-ARMEABI_V7A_BIN=armeabi-v7a/libepic_cash_wallet.so
+BIN=libepic_cash_wallet.so
 
-if [ -f "$DL_DIR/android/$ARMEABI_V7A_BIN" ]; then
-  cp "$DL_DIR/android/$ARMEABI_V7A_BIN" "$ANDROID_LIBS_DIR/$ARMEABI_V7A_BIN"
-else
-  echo "$ARMEABI_V7A_BIN not found!"
-fi
-
-X86_64_BIN=x86_64/libepic_cash_wallet.so
-
-if [ -f "$DL_DIR/android/$X86_64_BIN" ]; then
-  cp "$DL_DIR/android/$X86_64_BIN" "$ANDROID_LIBS_DIR/$X86_64_BIN"
-else
-  echo "$X86_64_BIN not found!"
-fi
+for TARGET in arm64-v8a armeabi-v7a x86_64
+do
+  ARCH_PATH=$TARGET/release
+  if [ $(git tag -l $TARGET"_$TAG_COMMIT") ]; then
+      git checkout $TARGET"_$TAG_COMMIT"
+      if [ -f "$OS/$ARCH_PATH/$BIN" ]; then
+        mkdir -p ../$LINUX_LIBS_DIR/$ARCH_PATH
+        # TODO verify bin checksum hashes
+        cp -rf "$OS/$ARCH_PATH/$BIN" "../$LINUX_LIBS_DIR/$ARCH_PATH/$BIN"
+      else
+        echo "$TARGET not found!"
+      fi
+  else
+      echo "No precompiled bins for $TARGET found!"
+  fi
+done
