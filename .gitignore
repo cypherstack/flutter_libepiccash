@@ -37,3 +37,5 @@ rust/libepic_cash_wallet.h
 lib/git_versions.dart
 
 scripts/windows/vcpkg/
+
+linux/bin/
