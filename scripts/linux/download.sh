@@ -1,26 +1,35 @@
 #!/bin/bash
 
 LIB_ROOT=../..
-LINUX_LIBS_DIR=$LIB_ROOT/linux/bin
+OS=linux
+LINUX_LIBS_DIR=$LIB_ROOT/$OS/bin
 
-DL_DIR=bins
+TAG_COMMIT=$(git log -1 --pretty=format:"%H")
 
-git clone "https://git.cypherstack.com/julian/flutter_libepiccash_bins" $DL_DIR
-
-# TODO verify correct bins!!!!!!!!!!!!!!!!!!!!!!!
-
-ARM_BIN=aarch64-unknown-linux-gnu/release/libepic_cash_wallet.so
-
-if [ -f "$DL_DIR/linux/$ARM_BIN" ]; then
-  cp "$DL_DIR/linux/$ARM_BIN" "$LINUX_LIBS_DIR/$ARM_BIN"
+rm -rf flutter_libepiccash_bins
+git clone https://git.cypherstack.com/stackwallet/flutter_libepiccash_bins
+if [ -d flutter_libepiccash_bins ]; then
+  cd flutter_libepiccash_bins
 else
-  echo "$ARM_BIN not found!"
+  echo "Failed to clone flutter_libepiccash_bins"
+  exit 1
 fi
 
-X86_64_BIN=x86_64-unknown-linux-gnu/release/libepic_cash_wallet.so
+BIN=libepic_cash_wallet.so
 
-if [ -f "$DL_DIR/linux/$X86_64_BIN" ]; then
-  cp "$DL_DIR/linux/$X86_64_BIN" "$LINUX_LIBS_DIR/$X86_64_BIN"
-else
-  echo "$X86_64_BIN not found!"
-fi
+for TARGET in aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
+do
+  ARCH_PATH=$TARGET/release
+  if [ $(git tag -l $TARGET"_$TAG_COMMIT") ]; then
+      git checkout $TARGET"_$TAG_COMMIT"
+      if [ -f "$OS/$ARCH_PATH/$BIN" ]; then
+        mkdir -p ../$LINUX_LIBS_DIR/$ARCH_PATH
+        # TODO verify bin checksum hashes
+        cp -rf "$OS/$ARCH_PATH/$BIN" "../$LINUX_LIBS_DIR/$ARCH_PATH/$BIN"
+      else
+        echo "$TARGET not found!"
+      fi
+  else
+      echo "No precompiled bins for $TARGET found!"
+  fi
+done
