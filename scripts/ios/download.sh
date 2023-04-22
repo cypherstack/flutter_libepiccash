@@ -26,10 +26,10 @@ do
       git checkout $TARGET"_$TAG_COMMIT"
       if [ -f "$OS/$ARCH_PATH/$BIN" ]; then
         mkdir -p ../$IOS_LIBS_DIR
-        mkdir -p ../IOS_INCL_DIR
+        mkdir -p ../$IOS_INCL_DIR
         # TODO verify bin checksum hashes
         cp -rf "$OS/$ARCH_PATH/$BIN" "../$IOS_LIBS_DIR/$BIN"
-        cp -rf "$OS/$ARCH_PATH/$HEADER" "../$IOS_LIBS_DIR/$HEADER"
+        cp -rf "$OS/$ARCH_PATH/$HEADER" "../$IOS_INCL_DIR/$HEADER"
       else
         echo "$TARGET not found!"
       fi

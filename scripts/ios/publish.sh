@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OS=linux
+OS=ios
 TAG_COMMIT=$(git log -1 --pretty=format:"%H")
 
 rm -rf flutter_libepiccash_bins
@@ -16,7 +16,7 @@ TARGET_PATH=../build/rust/target
 BIN=libepic_cash_wallet.a
 HEADER=libepic_cash_wallet.h
 
-for TARGET in aarch64-apple-ios
+for TARGET in aarch64-apple-ios x86_64-apple-ios
 do
   ARCH_PATH=$TARGET/release
 
@@ -26,7 +26,7 @@ do
       mkdir -p $OS/$ARCH_PATH
     fi
     cp -rf $TARGET_PATH/$ARCH_PATH/$BIN $OS/$ARCH_PATH/$BIN
-    cp -rf $TARGET_PATH/$ARCH_PATH/$HEADER $OS/$ARCH_PATH/$HEADER
+    cp -rf $TARGET_PATH/../$HEADER $OS/$ARCH_PATH/$HEADER
     git add .
     git commit -m "$TAG_COMMIT"
     git push origin $OS/$TARGET
