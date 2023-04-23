@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OS=linux
+OS=android
 TAG_COMMIT=$(git log -1 --pretty=format:"%H")
 
 rm -rf flutter_libepiccash_bins
@@ -12,7 +12,7 @@ else
   exit 1
 fi
 
-TARGET_PATH=../../android/src/main/jniLibs
+TARGET_PATH=../../../android/src/main/jniLibs
 BIN=libepic_cash_wallet.so
 
 for TARGET in arm64-v8a armeabi-v7a x86_64
