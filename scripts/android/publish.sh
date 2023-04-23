@@ -31,7 +31,7 @@ do
       git add .
       git commit -m "$TARGET commit for $TAG_COMMIT"
       git push origin $OS/$TARGET
-      git tag $TARGET"_$TAG_COMMIT"
+      git tag "${OS}_${TARGET}_${TAG_COMMIT}"
       git push --tags
     else
       echo "$TARGET not found!"
