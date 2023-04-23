@@ -20,8 +20,8 @@ BIN=libepic_cash_wallet.so
 for TARGET in arm64-v8a armeabi-v7a x86_64
 do
   ARCH_PATH=$TARGET/release
-  if [ $(git tag -l $TARGET"_$TAG_COMMIT") ]; then
-      git checkout $TARGET"_$TAG_COMMIT"
+  if [ $(git tag -l "${OS}_${TARGET}_${TAG_COMMIT}") ]; then
+      git checkout "${OS}_${TARGET}_${TAG_COMMIT}"
       if [ -f "$OS/$ARCH_PATH/$BIN" ]; then
         mkdir -p ../$ANDROID_LIBS_DIR/$ARCH_PATH
         # TODO verify bin checksum hashes

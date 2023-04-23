@@ -37,10 +37,10 @@ rust/libepic_cash_wallet.h
 lib/git_versions.dart
 
 scripts/windows/vcpkg/
-scripts/linux/flutter_epiccash_bins/
-scripts/ios/flutter_epiccash_bins/
-scripts/android/flutter_epiccash_bins/
-scripts/windows/flutter_epiccash_bins/
-scripts/macos/flutter_epiccash_bins/
+scripts/linux/flutter_libepiccash_bins/
+scripts/ios/flutter_libepiccash_bins/
+scripts/android/flutter_libepiccash_bins/
+scripts/windows/flutter_libepiccash_bins/
+scripts/macos/flutter_libepiccash_bins/
 
 linux/bin/
