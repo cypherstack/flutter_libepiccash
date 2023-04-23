@@ -23,9 +23,9 @@ do
   if [ $(git tag -l $TARGET"_$TAG_COMMIT") ]; then
       git checkout $TARGET"_$TAG_COMMIT"
       if [ -f "$OS/$ARCH_PATH/$BIN" ]; then
-        mkdir -p ../$LINUX_LIBS_DIR/$ARCH_PATH
+        mkdir -p ../$ANDROID_LIBS_DIR/$ARCH_PATH
         # TODO verify bin checksum hashes
-        cp -rf "$OS/$ARCH_PATH/$BIN" "../$LINUX_LIBS_DIR/$ARCH_PATH/$BIN"
+        cp -rf "$OS/$ARCH_PATH/$BIN" "../$ANDROID_LIBS_DIR/$ARCH_PATH/$BIN"
       else
         echo "$TARGET not found!"
       fi
