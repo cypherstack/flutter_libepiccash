@@ -17,8 +17,8 @@ BIN=libepic_cash_wallet.so
 
 for TARGET in aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 do
-  if [ $(git tag -l "${TARGET}_${TAG_COMMIT}") ]; then
-    echo "Tag ${TARGET}_${TAG_COMMIT} already exists!"
+  if [ $(git tag -l "${OS}_${TARGET}_${TAG_COMMIT}") ]; then
+    echo "Tag ${OS}_${TARGET}_${TAG_COMMIT} already exists!"
   else
     ARCH_PATH=$TARGET/release
 
