@@ -23,7 +23,7 @@ do
   if [ $(git tag -l "${OS}_${TARGET}_${TAG_COMMIT}") ]; then
       git checkout "${OS}_${TARGET}_${TAG_COMMIT}"
       if [ -f "$OS/$ARCH_PATH/$BIN" ]; then
-        mkdir -p ../$LINUX_LIBS_DIR/$ARCH_PATH
+        mkdir -p ../$ANDROID_LIBS_DIR/$ARCH_PATH
         # TODO verify bin checksum hashes
         cp -rf "$OS/$ARCH_PATH/$BIN" "../$ANDROID_LIBS_DIR/$ARCH_PATH/$BIN"
       else
