@@ -23,14 +23,14 @@ do
     ARCH_PATH=$TARGET/release
 
     if [ -f "$TARGET_PATH/$ARCH_PATH/$BIN" ]; then
-      git checkout "${OS}_${TARGET}_${TAG_COMMIT}" || git checkout -b "${OS}_${TARGET}_${TAG_COMMIT}"
+      git checkout $OS/$TARGET || git checkout -b $OS/$TARGET
       if [ ! -d $OS/$ARCH_PATH ]; then
         mkdir -p $OS/$ARCH_PATH
       fi
       cp -rf $TARGET_PATH/$ARCH_PATH/$BIN $OS/$ARCH_PATH/$BIN
       git add .
       git commit -m "$TARGET commit for $TAG_COMMIT"
-      git push origin "${OS}_${TARGET}_${TAG_COMMIT}"
+      git push origin $OS/$TARGET
       git tag "${OS}_${TARGET}_${TAG_COMMIT}"
       git push --tags
     else
