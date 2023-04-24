@@ -1,8 +1,9 @@
 #!/bin/bash
 
 LIB_ROOT=../..
-OS=android
-ANDROID_LIBS_DIR=$LIB_ROOT/android/src/main/jniLibs
+OS=ios
+IOS_LIBS_DIR=$LIB_ROOT/$OS/libs
+IOS_INCL_DIR=$LIB_ROOT/$OS/include
 
 TAG_COMMIT=$(git log -1 --pretty=format:"%H")
 
@@ -15,17 +16,20 @@ else
   exit 1
 fi
 
-BIN=libepic_cash_wallet.so
+HEADER=libepic_cash_wallet.h
+BIN=libepic_cash_wallet.a
 
-for TARGET in arm64-v8a armeabi-v7a x86_64
+for TARGET in aarch64-apple-ios
 do
   ARCH_PATH=$TARGET/release
-  if [ $(git tag -l "${OS}_${TARGET}_${TAG_COMMIT}") ]; then
-      git checkout "${OS}_${TARGET}_${TAG_COMMIT}"
+  if [ $(git tag -l $TARGET"_$TAG_COMMIT") ]; then
+      git checkout $TARGET"_$TAG_COMMIT"
       if [ -f "$OS/$ARCH_PATH/$BIN" ]; then
-        mkdir -p ../$LINUX_LIBS_DIR/$ARCH_PATH
+        mkdir -p ../$IOS_LIBS_DIR
+        mkdir -p ../$IOS_INCL_DIR
         # TODO verify bin checksum hashes
-        cp -rf "$OS/$ARCH_PATH/$BIN" "../$ANDROID_LIBS_DIR/$ARCH_PATH/$BIN"
+        cp -rf "$OS/$ARCH_PATH/$BIN" "../$IOS_LIBS_DIR/$BIN"
+        cp -rf "$OS/$ARCH_PATH/$HEADER" "../$IOS_INCL_DIR/$HEADER"
       else
         echo "$TARGET not found!"
       fi

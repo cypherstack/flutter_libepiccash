@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OS=android
+OS=ios
 TAG_COMMIT=$(git log -1 --pretty=format:"%H")
 
 rm -rf flutter_libepiccash_bins
@@ -12,15 +12,16 @@ else
   exit 1
 fi
 
-TARGET_PATH=../../../android/src/main/jniLibs
-BIN=libepic_cash_wallet.so
+TARGET_PATH=../build/rust/target
+BIN=libepic_cash_wallet.a
+HEADER=libepic_cash_wallet.h
 
-for TARGET in arm64-v8a armeabi-v7a x86_64
+for TARGET in aarch64-apple-ios x86_64-apple-ios
 do
-  if [ $(git tag -l "${OS}_${TARGET}_${TAG_COMMIT}") ]; then
-    echo "Tag ${OS}_${TARGET}_${TAG_COMMIT} already exists!"
+  if [ $(git tag -l "${TARGET}_${TAG_COMMIT}") ]; then
+    echo "Tag ${TARGET}_${TAG_COMMIT} already exists!"
   else
-    ARCH_PATH=$TARGET
+    ARCH_PATH=$TARGET/release
 
     if [ -f "$TARGET_PATH/$ARCH_PATH/$BIN" ]; then
       git checkout $OS/$TARGET || git checkout -b $OS/$TARGET
@@ -28,10 +29,11 @@ do
         mkdir -p $OS/$ARCH_PATH
       fi
       cp -rf $TARGET_PATH/$ARCH_PATH/$BIN $OS/$ARCH_PATH/$BIN
+      cp -rf $TARGET_PATH/../$HEADER $OS/$ARCH_PATH/$HEADER
       git add .
       git commit -m "$TARGET commit for $TAG_COMMIT"
       git push origin $OS/$TARGET
-      git tag "${OS}_${TARGET}_${TAG_COMMIT}"
+      git tag $TARGET"_$TAG_COMMIT"
       git push --tags
     else
       echo "$TARGET not found!"
