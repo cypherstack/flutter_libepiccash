@@ -27,7 +27,7 @@ do
         # TODO verify bin checksum hashes
         cp -rf "$OS/$ARCH_PATH/$BIN" "../$ANDROID_LIBS_DIR/$ARCH_PATH/$BIN"
       else
-        echo "$TARGET not found!"
+        echo "$TARGET not found at $OS/$ARCH_PATH/$BIN!"
       fi
   else
       echo "No precompiled bins for $TARGET found!"
