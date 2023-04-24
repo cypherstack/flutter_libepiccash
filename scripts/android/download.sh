@@ -19,7 +19,7 @@ BIN=libepic_cash_wallet.so
 
 for TARGET in arm64-v8a armeabi-v7a x86_64
 do
-  ARCH_PATH=$TARGET/release
+  ARCH_PATH=$TARGET
   if [ $(git tag -l "${OS}_${TARGET}_${TAG_COMMIT}") ]; then
       git checkout "${OS}_${TARGET}_${TAG_COMMIT}"
       if [ -f "$OS/$ARCH_PATH/$BIN" ]; then
