@@ -7,7 +7,7 @@ ANDROID_LIBS_DIR=$LIB_ROOT/android/src/main/jniLibs
 TAG_COMMIT=$(git log -1 --pretty=format:"%H")
 
 rm -rf flutter_libepiccash_bins
-git clone https://github.com/sneurlax/flutter_libepiccash_bins
+git clone https://git.cypherstack.com/stackwallet/flutter_libepiccash_bins
 if [ -d flutter_libepiccash_bins ]; then
   cd flutter_libepiccash_bins
 else
