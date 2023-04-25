@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# IOS publish script WIP; doublecheck that they follow patterns in linux/android scripts before running
+
 OS=ios
 TAG_COMMIT=$(git log -1 --pretty=format:"%H")
 

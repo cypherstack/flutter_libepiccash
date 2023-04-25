@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# IOS publish script WIP; doublecheck that they follow patterns in linux/android scripts before running
+
 LIB_ROOT=../..
 OS=ios
 IOS_LIBS_DIR=$LIB_ROOT/$OS/libs

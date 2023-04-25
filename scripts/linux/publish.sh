@@ -17,8 +17,8 @@ BIN=libepic_cash_wallet.so
 
 for TARGET in aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 do
-  if [ $(git tag -l "${TARGET}_${TAG_COMMIT}") ]; then
-    echo "Tag ${TARGET}_${TAG_COMMIT} already exists!"
+  if [ $(git tag -l "${OS}_${TARGET}_${TAG_COMMIT}") ]; then
+    echo "Tag ${OS}_${TARGET}_${TAG_COMMIT} already exists!"
   else
     ARCH_PATH=$TARGET/release
 
@@ -31,10 +31,10 @@ do
       git add .
       git commit -m "$TARGET commit for $TAG_COMMIT"
       git push origin $OS/$TARGET
-      git tag $TARGET"_$TAG_COMMIT"
+      git tag "${OS}_${TARGET}_${TAG_COMMIT}"
       git push --tags
     else
-      echo "$TARGET not found!"
+      echo "$TARGET not found at $TARGET_PATH/$ARCH_PATH/$BIN!"
     fi
   fi
 done
