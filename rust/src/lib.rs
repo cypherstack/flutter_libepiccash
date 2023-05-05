@@ -2130,10 +2130,12 @@ impl Task for Listener {
             ensure_wallet!(wlt, wallet);
             while !cancel_tok.cancelled() {
                 let listener = EpicboxListenChannel::new().unwrap();
+                let mut reconnections = 0;
                 listener.listen(
                     wallet.clone(),
                     Arc::new(Mutex::new(sek_key.clone())),
-                    epicbox_conf.clone()
+                    epicbox_conf.clone(),
+                    &mut reconnections,
                 ).expect("TODO: Error Listening on Epicbox");
                 spins += 1;
             }
