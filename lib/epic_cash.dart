@@ -43,9 +43,13 @@ typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
 typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
     Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>);
 
-typedef EpicboxListen = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef EpicboxListenerStart = Pointer<Void> Function(
+    Pointer<Utf8>, Pointer<Utf8>);
+typedef EpicboxListenerStartFFI = Pointer<Void> Function(
+    Pointer<Utf8>, Pointer<Utf8>);
 
-typedef EpicboxListenFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef EpicboxListenerStop = Pointer<Utf8> Function(Pointer<Void>);
+typedef EpicboxListenerStopFFI = Pointer<Utf8> Function(Pointer<Void>);
 
 typedef GetTransactions = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>);
 typedef GetTransactionsFFI = Pointer<Utf8> Function(
@@ -139,14 +143,25 @@ Future<String> scanOutPuts(
   ).toDartString();
 }
 
-final EpicboxListen _epicboxListen = epicCashNative
-    .lookup<NativeFunction<EpicboxListenFFI>>("run_listener")
+final EpicboxListenerStart _epicboxListenerStart = epicCashNative
+    .lookup<NativeFunction<EpicboxListenerStartFFI>>(
+        "rust_epicbox_listener_start")
     .asFunction();
 
-Future<String> epicboxListen(String wallet, String epicboxConfig) async {
-  return _epicboxListen(
+Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
+  return _epicboxListenerStart(
     wallet.toNativeUtf8(),
     epicboxConfig.toNativeUtf8(),
+  );
+}
+
+final EpicboxListenerStop _epicboxListenerStop = epicCashNative
+    .lookup<NativeFunction<EpicboxListenerStopFFI>>("_listener_cancel")
+    .asFunction();
+
+String epicboxListenerStop(Pointer<Void> handler) {
+  return _epicboxListenerStop(
+    handler,
   ).toDartString();
 }
 
