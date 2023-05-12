@@ -151,9 +151,11 @@ extern crate simplelog;
 
 use log::Level;
 use android_logger::Config as AndroidConfig;
-use ffi_helpers::{export_task, Task};
+use ffi_helpers::{export_task, Task, update_last_error};
+use ffi_helpers::error_handling::{clear_last_error, last_error_length};
 use ffi_helpers::task::{CancellationToken, TaskHandle};
 use serde_json::json;
+use stack_epic_wallet_controller::command::cancel;
 use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
 use stack_test_epicboxlib::utils::crypto::{Hex, sign_challenge};
 
@@ -1892,8 +1894,9 @@ impl Task for Listener {
     type Output = usize;
 
     fn run(&self, cancel_tok: &CancellationToken) -> Result<Self::Output, anyhow::Error> {
-        let mut spins = 0;
-
+        let mut reconnections = 0;
+        let mut result = 0;
+        debug!("RUST START LISTENER {}", "");
         unsafe {
             let epicbox_conf = serde_json::from_str::<EpicboxConfig>(&self.epicbox_config.as_str()).unwrap();
             let wallet_data = &self.wallet_data;
@@ -1901,18 +1904,48 @@ impl Task for Listener {
             let sek_key = wallet_data.clone().1;
             ensure_wallet!(wlt, wallet);
             while !cancel_tok.cancelled() {
-                let listener = EpicboxListenChannel::new().unwrap();
-                let mut reconnections = 0;
-                listener.listen(
+                let listen_channel = EpicboxListenChannel::new().unwrap();
+
+                result = match  listen_channel.listen(
                     wallet.clone(),
                     Arc::new(Mutex::new(sek_key.clone())),
                     epicbox_conf.clone(),
                     &mut reconnections,
-                ).expect("TODO: Error Listening on Epicbox");
-                spins += 1;
+                ){
+                    Ok(()) => {
+                        debug!("{}", "CONNECTS OK");
+                        1
+                    }, Err(err) => {
+                        debug!("ERROR CONNECTING {}", err.to_string());
+                        0
+                    }
+                };
+                // let mut reconnections = 0;
+
+                // match listener.listen(
+                //     wallet.clone(),
+                //     Arc::new(Mutex::new(sek_key.clone())),
+                //     epicbox_conf.clone(),
+                //     &mut reconnections,
+                // ) {
+                //     Ok(()) => {
+                //         pri
+                //     },
+                //     Error => {
+                //
+                //     }
+                // }
+                // let start_listen = listener.listen(
+                //     wallet.clone(),
+                //     Arc::new(Mutex::new(sek_key.clone())),
+                //     epicbox_conf.clone(),
+                //     &mut reconnections,
+                // ).unwrap();
+
+                debug!("RUST START LISTENER RESULT {:?}", result);
             }
         }
-        Ok(spins)
+        Ok(result)
     }
 }
 
@@ -1932,6 +1965,7 @@ pub unsafe extern "C" fn rust_epicbox_listener_start(
     wallet: *const c_char,
     epicbox_config: *const c_char,
 ) -> *mut c_void {
+    debug!("{}","STARTING WALLET LISTENER ");
     let wallet_ptr = CStr::from_ptr(wallet);
     let epicbox_config = CStr::from_ptr(epicbox_config);
     let epicbox_config = epicbox_config.to_str().unwrap();
@@ -1943,7 +1977,13 @@ pub unsafe extern "C" fn rust_epicbox_listener_start(
         epicbox_config: epicbox_config.parse().unwrap()
     };
 
+    // let run_result = listen.run();
+
+    // debug!("{}", "START LISTENER");
+
     let handler = listener_spawn(&listen);
+    let progress = listener_poll(handler);
+    debug!("STARTING WALLET LISTENER PROGRESS IS {:?}", progress);
     let handler_value = handler.read();
     let boxed_handler = Box::new(handler_value);
     Box::into_raw(boxed_handler) as *mut _
@@ -1959,3 +1999,21 @@ pub unsafe extern "C" fn _listener_cancel(handler: *mut c_void) -> *const c_char
     std::mem::forget(error_msg_ptr);
     ptr
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_listener_poll(handler: *mut c_void) -> *const c_char {
+    let handle = handler as *mut TaskHandle<usize>;
+    clear_last_error();
+    let task_progress = listener_poll(handle);
+    debug!("LISTENER PRogress IS {:?}", last_error_length());
+    // listener_cancel(handle);
+    // debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
+    // let task_progress = listener_poll(handle);
+    // debug!("LISTENER PROGRESS NOW IS {:?}", task_progress);
+    let error_msg = format!("{}", "");
+    let error_msg_ptr = CString::new(error_msg).unwrap();
+    let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+    std::mem::forget(error_msg_ptr);
+    ptr
+}
+
