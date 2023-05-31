@@ -1,5 +1,7 @@
 #!/bin/bash
 
+sudo apt install clang -y
+
 rustup target add x86_64-pc-windows-gnu
 
 mkdir build
