@@ -2,7 +2,7 @@
 ## Dependencies
 Run `deps.sh` (may need to alter permissions like with `chmod +x *.sh`) to install x86_64-w64-mingw32-gcc or run
 ```sh
-sudo apt-get install gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
+sudo apt-get install clang gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
 ```
 
 ## Building for Windows
