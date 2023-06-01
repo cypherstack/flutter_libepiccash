@@ -1,9 +1,10 @@
 
-# Rust
-## Install Rust
-https://www.rust-lang.org/tools/install
+# `flutter_libepiccash`
+## Dependencies
+### Rust
+Install Rust: https://www.rust-lang.org/tools/install
 
-## Install `cargo-ndk`
+### `cargo-ndk`
 ```sh
 cargo install cargo-ndk
 ```
