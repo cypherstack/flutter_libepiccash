@@ -12,7 +12,7 @@ if [ ! -f "$VERSIONS_FILE" ]; then
     cp $EXAMPLE_VERSIONS_FILE $VERSIONS_FILE
 fi
 COMMIT=$(git log -1 --pretty=format:"%H")
-OS="LINUX"
+OS="WINDOWS"
 sed -i "/\/\*${OS}_VERSION/c\\/\*${OS}_VERSION\*\/ const ${OS}_VERSION = \"$COMMIT\";" $VERSIONS_FILE
 cp -r ../../rust build/rust
 cd build/rust
