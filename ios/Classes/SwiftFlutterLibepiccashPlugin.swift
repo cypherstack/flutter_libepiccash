@@ -33,7 +33,8 @@ public class SwiftFlutterLibepiccashPlugin: NSObject, FlutterPlugin {
     rust_create_tx("const char *wallet",
                    "const char *amount",
                    "const char *to_address",
-                   "const char *secret_key_index", "const char *epicbox_config", "const char *min_confirmations");
+                   "const char *secret_key_index", "const char *epicbox_config",
+                   "const char *minimum_confirmations", "const char *note");
     rust_txs_get("const char *wallet",
                  "const char *refresh_from_node");
     rust_tx_cancel("const char *wallet", "const char *tx_id");
