@@ -4,3 +4,6 @@
 [submodule "rust/epic"]
 	path = rust/epic
 	url = https://github.com/EpicCash/epic.git
+[submodule "rust/epicbox"]
+	path = rust/epicbox
+	url = https://github.com/EpicCash/epicbox.git

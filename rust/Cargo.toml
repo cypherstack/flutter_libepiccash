@@ -39,7 +39,7 @@ epic_wallet_util = { version = "3.3.6", path = "epic-wallet/util" }
 epic_wallet_controller = { version = "3.3.6", path = "epic-wallet/controller" }
 
 # Epic box for posting slates and getting epic addresses
-stack_test_epicboxlib = "1.0.3"
+epicboxlib = { version = "1.0.1", path = "epicbox/epicboxlib" }
 
 url = "2.1.0"
 futures = "0.3.15"
