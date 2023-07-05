@@ -6,4 +6,4 @@
 	url = https://github.com/EpicCash/epic.git
 [submodule "rust/epicbox"]
 	path = rust/epicbox
-	url = https://github.com/EpicCash/epicbox.git
+	url = https://github.com/sneurlax/epicbox.git
