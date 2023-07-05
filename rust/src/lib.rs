@@ -77,6 +77,15 @@ macro_rules! ensure_wallet (
     )
 );
 
+macro_rules! cstr {
+    ($ptr:expr) => {
+        cstr!($ptr, 0);
+    };
+    ($ptr:expr, $error:expr) => {
+        error!(CStr::from_ptr($ptr).to_str(), $error)
+    };
+}
+
 
 macro_rules! ensure_handler (
     ($handler_ptr:expr, $handler:ident) => (
@@ -200,7 +209,7 @@ pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
 }
 
 
-fn _get_mnemonic() -> Result<*const c_char, stack_epic_keychain::mnemonic::Error> {
+fn _get_mnemonic() -> Result<*const c_char, mnemonic::Error> {
     let mut wallet_phrase = "".to_string();
     match mnemonic() {
         Ok(phrase) => {
@@ -536,22 +545,18 @@ pub unsafe extern "C" fn rust_create_tx(
     to_address: *const c_char,
     secret_key_index: *const c_char,
     epicbox_config: *const c_char,
-    min_confirmations: *const c_char,
+    confirmations: *const c_char,
+    note: *const c_char
 ) -> *const c_char {
-    let wallet_ptr = CStr::from_ptr(wallet);
-    let minimum_confirmations = CStr::from_ptr(min_confirmations);
-    let minimum_confirmations: u64 = minimum_confirmations.to_str().unwrap().to_string().parse().unwrap();
-    let amount = CStr::from_ptr(amount);
-    let c_address = CStr::from_ptr(to_address);
-    let key_index = CStr::from_ptr(secret_key_index);
-    let epicbox_config = CStr::from_ptr(epicbox_config);
 
-    let amount: u64 = amount.to_str().unwrap().to_string().parse().unwrap();
-    let address = c_address.to_str().unwrap();
-    let key_index: u32 = key_index.to_str().unwrap().to_string().parse().unwrap();
-    let epicbox_config = epicbox_config.to_str().unwrap();
+    let wallet_data = CStr::from_ptr(wallet).to_str().unwrap();
+    let min_confirmations: u64 = CStr::from_ptr(confirmations).to_str().unwrap().to_string().parse().unwrap();
+    let amount: u64 = CStr::from_ptr(amount).to_str().unwrap().to_string().parse().unwrap();
+    let address = CStr::from_ptr(to_address).to_str().unwrap();
+    let note = CStr::from_ptr(note).to_str().unwrap();
+    let key_index: u32 = CStr::from_ptr(secret_key_index).to_str().unwrap().parse().unwrap();
+    let epicbox_config = CStr::from_ptr(epicbox_config).to_str().unwrap();
 
-    let wallet_data = wallet_ptr.to_str().unwrap();
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
 
     let listen = Listener {
@@ -575,7 +580,8 @@ pub unsafe extern "C" fn rust_create_tx(
         address,
         key_index,
         epicbox_config,
-        minimum_confirmations,
+        min_confirmations,
+        note
     ) {
         Ok(slate) => {
             //Spawn listener again
@@ -601,6 +607,7 @@ fn _create_tx(
     secret_key_index: u32,
     epicbox_config: &str,
     minimum_confirmations: u64,
+    note: &str
 ) -> Result<*const c_char, Error> {
     let  mut message = String::from("");
     match tx_create(
@@ -610,7 +617,8 @@ fn _create_tx(
         minimum_confirmations,
         false,
         epicbox_config,
-        address) {
+        address,
+        note) {
         Ok(slate) => {
             let empty_json = format!(r#"{{"slate_msg": ""}}"#);
             let create_response = (&slate, &empty_json);
@@ -1254,7 +1262,7 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
 /*
     Create a new wallet seed
 */
-pub fn mnemonic() -> Result<String, stack_epic_keychain::mnemonic::Error> {
+pub fn mnemonic() -> Result<String, mnemonic::Error> {
     let seed = create_seed(32);
     match mnemonic::from_entropy(&seed) {
         Ok(mnemonic_str) => {
@@ -1339,7 +1347,7 @@ pub fn get_chain_height(config: &str) -> Result<u64, Error> {
     let config = match Config::from_str(&config.to_string()) {
         Ok(config) => {
             config
-        }, Err(e) => {
+        }, Err(_e) => {
             return Err(Error::from(ErrorKind::GenericError(format!(
                 "{}",
                 "Unable to get wallet config"
@@ -1555,12 +1563,11 @@ pub fn tx_create(
     minimum_confirmations: u64,
     selection_strategy_is_use_all: bool,
     epicbox_config: &str,
-    address: &str
+    address: &str,
+    note: &str,
 ) -> Result<String, Error> {
     let owner_api = Owner::new(wallet.clone());
-    debug!("EPIC BOX CONFIG IS {}", epicbox_config.clone());
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
-
 
     owner_api.set_epicbox_config(Some(epicbox_conf));
     let init_send_args = InitTxSendArgs {
@@ -1578,10 +1585,11 @@ pub fn tx_create(
         max_outputs: 500,
         num_change_outputs: 1,
         selection_strategy_is_use_all,
-        message: None,
         send_args: Some(init_send_args),
+        message: Some(note.to_string()),
         ..Default::default()
     };
+
 
     match owner_api.init_send_tx(keychain_mask.as_ref(), args) {
         Ok(slate)=> {
@@ -1657,7 +1665,7 @@ fn check_middleware(
                     && s.version_info.block_header_version
                     < slate_versions::EPIC_BLOCK_HEADER_VERSION
                 {
-                    Err(stack_epic_wallet_libwallet::ErrorKind::Compatibility(
+                    Err(ErrorKind::Compatibility(
                         "Incoming Slate is not compatible with this wallet. \
 						 Please upgrade the node or use a different one."
                             .to_string(),
@@ -1691,7 +1699,7 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<(Wallet, Option<
     let config = match Config::from_str(&config_json.to_string()) {
         Ok(config) => {
             config
-        }, Err(e) => {
+        }, Err(_e) => {
             return Err(Error::from(ErrorKind::GenericError(format!(
                 "{}",
                 "Unable to get wallet config"
@@ -1831,7 +1839,7 @@ pub fn tx_send_http(
     address: &str,
 ) -> Result<String, Error>{
     let api = Owner::new(wallet.clone());
-    let initSendArgs = InitTxSendArgs {
+    let init_send_args = InitTxSendArgs {
         method: "http".to_string(),
         dest: address.to_string(),
         finalize: true,
@@ -1847,7 +1855,7 @@ pub fn tx_send_http(
         num_change_outputs: 1,
         selection_strategy_is_use_all,
         message: Some(message.to_string()),
-        send_args: Some(initSendArgs),
+        send_args: Some(init_send_args),
         ..Default::default()
     };
 
