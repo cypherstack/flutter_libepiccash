@@ -1,0 +1,6 @@
+[submodule "rust/epic-wallet"]
+	path = rust/epic-wallet
+	url = https://github.com/EpicCash/epic-wallet.git
+[submodule "rust/epic"]
+	path = rust/epic
+	url = https://github.com/EpicCash/epic.git
