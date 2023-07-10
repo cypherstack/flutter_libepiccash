@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use stack_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
 use stack_epic_wallet_config::{WalletConfig, EpicboxConfig};
+use stack_epic_wallet_libwallet::EpicboxAddress;
 use stack_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
 use stack_epic_wallet_libwallet::api_impl::owner;
 use stack_epic_wallet_impls::{DefaultLCProvider, DefaultWalletImpl, EpicboxListenChannel, HTTPNodeClient};
@@ -20,13 +21,13 @@ use ws::{
 };
 
 use stack_epic_keychain::mnemonic;
-use stack_epic_wallet_util::stack_epic_core::global::ChainTypes;
+use stack_epic_wallet_util::epic_core::global::ChainTypes;
 use stack_epic_util::file::get_first_line;
-use stack_epic_wallet_util::stack_epic_util::ZeroingString;
+use stack_epic_wallet_util::epic_util::ZeroingString;
 use stack_epic_util::Mutex;
 use stack_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, Error, ErrorKind, TxLogEntry, TxLogEntryType};
 
-use stack_epic_wallet_util::stack_epic_keychain::{Keychain, ExtKeychain};
+use stack_epic_wallet_util::epic_keychain::{Keychain, ExtKeychain};
 
 use stack_epic_util::secp::rand::Rng;
 
@@ -35,7 +36,6 @@ use stack_epic_util::secp::{Secp256k1};
 
 use stack_epic_wallet_controller::command;
 
-use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
 use android_logger::FilterBuilder;
 use std::{env, thread};
 use std::time::Duration;
@@ -164,7 +164,6 @@ use ffi_helpers::{export_task, Task};
 use ffi_helpers::task::{CancellationToken, TaskHandle};
 use serde_json::json;
 use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
-use stack_test_epicboxlib::utils::crypto::{Hex, sign_challenge};
 
 /*
     Create a new wallet
@@ -986,7 +985,7 @@ pub fn get_wallet_address(
 ) -> String {
 
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
     let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
     format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain)
 }
@@ -1183,7 +1182,7 @@ pub fn get_wallet_info(
     refresh_from_node: bool,
     min_confirmations: u64
 ) -> Result<WalletInfoFormatted, Error> {
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
 
     match api.retrieve_summary_info(keychain_mask.as_ref(), refresh_from_node, min_confirmations) {
         Ok((_, wallet_summary)) => {
@@ -1535,7 +1534,7 @@ pub fn txs_get(
     keychain_mask: Option<SecretKey>,
     refresh_from_node: bool,
 ) -> Result<String, Error> {
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
     let txs = match api.retrieve_txs(
         keychain_mask.as_ref(),
         refresh_from_node,
@@ -1566,7 +1565,7 @@ pub fn tx_create(
     address: &str,
     note: &str,
 ) -> Result<String, Error> {
-    let owner_api = Owner::new(wallet.clone());
+    let owner_api = Owner::new(wallet.clone(), None);
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
 
     owner_api.set_epicbox_config(Some(epicbox_conf));
@@ -1624,7 +1623,7 @@ pub fn tx_create(
     Cancel tx by id
 */
 pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id: Uuid) -> Result<String, Error> {
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
     match  api.cancel_tx(keychain_mask.as_ref(), None, Some(tx_slate_id)) {
         Ok(_) => {
             Ok("cancelled".to_owned())
@@ -1638,7 +1637,7 @@ pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id:
     Get transaction by slate id
 */
 pub fn tx_get(wallet: &Wallet, refresh_from_node: bool, tx_slate_id: &str) -> Result<String, Error> {
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
     let uuid = Uuid::parse_str(tx_slate_id).map_err(|e| ErrorKind::GenericError(e.to_string())).unwrap();
     let txs = api.retrieve_txs(None, refresh_from_node, None, Some(uuid)).unwrap();
     Ok(serde_json::to_string(&txs.1).unwrap())
@@ -1812,7 +1811,7 @@ pub fn delete_wallet(config: Config) -> Result<String, Error> {
     };
     //First close the wallet
     if let Ok(_) = close_wallet(&wallet) {
-        let api = Owner::new(wallet.clone());
+        let api = Owner::new(wallet.clone(), None);
         match api.delete_wallet(None) {
             Ok(_) => {
                 result.push_str("deleted");
@@ -1838,7 +1837,7 @@ pub fn tx_send_http(
     amount: u64,
     address: &str,
 ) -> Result<String, Error>{
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
     let init_send_args = InitTxSendArgs {
         method: "http".to_string(),
         dest: address.to_string(),
