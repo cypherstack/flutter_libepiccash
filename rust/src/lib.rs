@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use stack_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
 use stack_epic_wallet_config::{WalletConfig, EpicboxConfig};
-use stack_epic_wallet_libwallet::EpicboxAddress;
+use stack_epic_wallet_libwallet::{Address, AddressType, EpicboxAddress};
 use stack_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
 use stack_epic_wallet_libwallet::api_impl::owner;
 use stack_epic_wallet_impls::{DefaultLCProvider, DefaultWalletImpl, EpicboxListenChannel, HTTPNodeClient};
@@ -559,7 +559,7 @@ pub unsafe extern "C" fn rust_create_tx(
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
 
     let listen = Listener {
-        wallet_data: tuple_wallet_data.clone(),
+        wallet_ptr_str: wallet_data.to_string(),
         epicbox_config: epicbox_config.parse().unwrap()
     };
 
@@ -782,7 +782,6 @@ fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
     let mut chain_height = "".to_string();
     match get_chain_height(&str_config) {
         Ok(chain_tip) => {
-            debug!("CHAIN_HEIGHT {}", chain_tip);
             chain_height.push_str(&chain_tip.to_string());
         },
         Err(e) => {
@@ -1413,7 +1412,7 @@ pub fn wallet_scan_outputs(
         None => 0,
     };
 
-    let last_block = start_height + number_of_blocks_to_scan;
+    let last_block = start_height.clone() + number_of_blocks_to_scan;
     let end_height: u64 = match last_block.cmp(&tip) {
         Ordering::Less => {
             last_block
@@ -1452,7 +1451,7 @@ pub fn wallet_scan_outputs(
                         return Err(err);
                     }
                 };
-                match batch.save_last_confirmed_height(&parent_key_id, info.height) {
+                match batch.save_last_confirmed_height(&parent_key_id, info.clone().height) {
                     Ok(_) => {
                         ()
                     }
@@ -1501,31 +1500,30 @@ pub fn tx_strategies(
     let mut result = vec![];
     wallet_lock!(wallet, w);
 
-    for selection_strategy_is_use_all in vec![false].into_iter() {
-        let args = InitTxArgs {
-            src_acct_name: None,
-            amount,
-            minimum_confirmations,
-            max_outputs: 500,
-            num_change_outputs: 1,
-            estimate_only: Some(true),
-            message: None,
-            ..Default::default()
-        };
+    let args = InitTxArgs {
+        src_acct_name: None,
+        amount,
+        minimum_confirmations,
+        max_outputs: 500,
+        num_change_outputs: 1,
+        estimate_only: Some(true),
+        message: None,
+        ..Default::default()
+    };
 
-        match owner::init_send_tx(&mut **w, keychain_mask.as_ref(), args, true) {
-            Ok(slate) => {
-                result.push(Strategy {
-                    selection_strategy_is_use_all,
-                    total: slate.amount,
-                    fee: slate.fee,
+    match owner::init_send_tx(&mut **w, keychain_mask.as_ref(), args, true) {
+        Ok(slate) => {
+            result.push(Strategy {
+                selection_strategy_is_use_all: false,
+                total: slate.amount,
+                fee: slate.fee,
 
-                });
-            }, Err(e) => {
-                return Err(e);
-            }
+            });
+        }, Err(e) => {
+            return Err(e);
         }
     }
+
     Ok(serde_json::to_string(&result).unwrap())
 }
 
@@ -1786,13 +1784,15 @@ pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
     Ok("Wallet has been closed".to_owned())
 }
 
-pub fn validate_address(address: &str) -> bool {
-    let address = EpicboxAddress::from_str(address);
-    match address {
-        Ok(_) => {
-            true
-        },
-        _ => {
+pub fn validate_address(str_address: &str) -> bool {
+    match EpicboxAddress::from_str(str_address) {
+        Ok(addr) => {
+            if addr.address_type() == AddressType::Epicbox {
+                return true;
+            }
+            false
+        }
+        Err(_) => {
             false
         }
     }
@@ -1890,7 +1890,8 @@ pub fn tx_send_http(
 
 #[derive(Debug, Clone)]
 pub struct Listener {
-    pub wallet_data: (i64, Option<SecretKey>),
+    pub wallet_ptr_str: String,
+    // pub wallet_data: (i64, Option<SecretKey>),
     pub epicbox_config: String
 }
 
@@ -1901,11 +1902,19 @@ impl Task for Listener {
     fn run(&self, cancel_tok: &CancellationToken) -> Result<Self::Output, anyhow::Error> {
         let mut spins = 0;
 
+        let wallet_data_str = &self.wallet_ptr_str;
+        // let wallet_data = wallet_ptr.to_str().unwrap();
+        let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data_str).unwrap();
+        let wlt = tuple_wallet_data.0;
+        let sek_key = tuple_wallet_data.1;
+
+        // let wallet_data = &self.wallet_data;
+        // let wlt = wallet_data.clone().0;
         unsafe {
             let epicbox_conf = serde_json::from_str::<EpicboxConfig>(&self.epicbox_config.as_str()).unwrap();
-            let wallet_data = &self.wallet_data;
-            let wlt = wallet_data.clone().0;
-            let sek_key = wallet_data.clone().1;
+            // let wallet_data = &self.wallet_data;
+            // let wlt = wallet_data.0;
+            // let sek_key = wallet_data.clone().1;
             ensure_wallet!(wlt, wallet);
             while !cancel_tok.cancelled() {
                 let listener = EpicboxListenChannel::new().unwrap();
@@ -1944,9 +1953,9 @@ pub unsafe extern "C" fn rust_epicbox_listener_start(
     let epicbox_config = epicbox_config.to_str().unwrap();
 
     let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+    // let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
     let listen = Listener {
-        wallet_data: tuple_wallet_data,
+        wallet_ptr_str: wallet_data.to_string(),
         epicbox_config: epicbox_config.parse().unwrap()
     };
 
