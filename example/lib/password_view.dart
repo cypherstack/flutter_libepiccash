@@ -1,10 +1,7 @@
-import 'dart:io';
-
 // import 'package:epic_wallet/backup_key_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash_example/mnemonic_view.dart';
 import 'package:numeric_keyboard/numeric_keyboard.dart';
-import 'dart:convert';
 
 class PasswordView extends StatelessWidget {
   PasswordView({Key? key, required this.name}) : super(key: key);
@@ -34,7 +31,6 @@ class PasswordView extends StatelessWidget {
   }
 
 // This widget is the root of your application.
-
 }
 
 class EpicPasswordView extends StatefulWidget {

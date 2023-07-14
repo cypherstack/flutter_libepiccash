@@ -1,17 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_libepiccash_example/recover_view.dart';
 import 'dart:async';
-
-import 'package:path_provider/path_provider.dart';
-import 'dart:io' as io;
-import 'dart:ffi';
-import 'dart:typed_data';
-import 'package:flutter/services.dart';
-import 'package:flutter_libepiccash/flutter_libepiccash.dart';
 import 'dart:convert';
-import 'package:ffi/ffi.dart';
-import 'package:flutter_libepiccash/epic_cash.dart';
+import 'dart:io';
+import 'dart:io' as io;
+
+import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash_example/wallet_name.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -109,9 +103,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     String strConf = json.encode(config);
 
-    String addressInfo = getAddressInfo();
-    print("Address Info is");
-    print(addressInfo);
+    // String addressInfo = getAddressInfo();
+    // print("Address Info is");
+    // print(addressInfo);
     // final Pointer<Utf8> configPointer = strConf.toNativeUtf8();
 
     // final height = getChainHeight(strConf);

@@ -33,6 +33,8 @@ android/src/main/jniLibs/
 rust/default/
 ios/include/
 ios/libs/
+macos/include/
+macos/libs/
 rust/libepic_cash_wallet.h
 lib/git_versions.dart
 
