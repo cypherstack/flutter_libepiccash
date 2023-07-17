@@ -1,11 +1,17 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'dart:io' as io;
-
 import 'package:flutter/material.dart';
-import 'package:flutter_libepiccash_example/wallet_name.dart';
-import 'package:path_provider/path_provider.dart';
+// import 'package:flutter_libepiccash_example/recover_view.dart';
+import 'dart:async';
+
+// import 'package:path_provider/path_provider.dart';
+import 'dart:io' as io;
+import 'dart:ffi';
+import 'dart:typed_data';
+import 'package:flutter/services.dart';
+import 'package:flutter_libepiccash/flutter_libepiccash.dart';
+import 'dart:convert';
+import 'package:ffi/ffi.dart';
+import 'package:flutter_libepiccash/epic_cash.dart';
+// import 'package:flutter_libepiccash_example/wallet_name.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +26,8 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    String mnemonic = walletMnemonic();
+    print("MNEMONIC IS $mnemonic");
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -61,48 +69,48 @@ class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   final greeting = "";
 
-  Future<String> createFolder(String folderName) async {
-    Directory appDocDir = (await getApplicationDocumentsDirectory());
-    if (Platform.isIOS) {
-      appDocDir = (await getLibraryDirectory());
-    }
-    String appDocPath = appDocDir.path;
-    print(appDocPath);
-
-    Directory _appDocDir = (await getApplicationDocumentsDirectory());
-    if (Platform.isIOS) {
-      _appDocDir = (await getLibraryDirectory());
-    }
-    final io.Directory _appDocDirFolder =
-        io.Directory('${_appDocDir.path}/$folderName/');
-
-    if (await _appDocDirFolder.exists()) {
-      //if folder already exists return path
-      return _appDocDirFolder.path;
-    } else {
-      //if folder not exists create folder and then return its path
-      final io.Directory _appDocDirNewFolder =
-          await _appDocDirFolder.create(recursive: true);
-      return _appDocDirNewFolder.path;
-    }
-  }
+  // Future<String> createFolder(String folderName) async {
+  //   Directory appDocDir = (await getApplicationDocumentsDirectory());
+  //   if (Platform.isIOS) {
+  //     appDocDir = (await getLibraryDirectory());
+  //   }
+  //   String appDocPath = appDocDir.path;
+  //   print(appDocPath);
+  //
+  //   Directory _appDocDir = (await getApplicationDocumentsDirectory());
+  //   if (Platform.isIOS) {
+  //     _appDocDir = (await getLibraryDirectory());
+  //   }
+  //   final io.Directory _appDocDirFolder =
+  //       io.Directory('${_appDocDir.path}/$folderName/');
+  //
+  //   if (await _appDocDirFolder.exists()) {
+  //     //if folder already exists return path
+  //     return _appDocDirFolder.path;
+  //   } else {
+  //     //if folder not exists create folder and then return its path
+  //     final io.Directory _appDocDirNewFolder =
+  //         await _appDocDirFolder.create(recursive: true);
+  //     return _appDocDirNewFolder.path;
+  //   }
+  // }
 
   void _incrementCounter() {
     // final String nameStr = "John Smith";
     // final Pointer<Utf8> charPointer = nameStr.toNativeUtf8();
     // print("- Calling rust_greeting with argument:  $charPointer");
 
-    var config = {};
-    config["wallet_dir"] =
-        "/data/user/0/com.example.flutter_libepiccash_example/app_flutter/test/";
-    config["check_node_api_http_addr"] = "http://95.216.215.107:3413";
-    config["chain"] = "mainnet";
-    config["account"] = "default";
-    config["api_listen_port"] = 3413;
-    config["api_listen_interface"] = "95.216.215.107";
-
-    String strConf = json.encode(config);
-
+    // var config = {};
+    // config["wallet_dir"] =
+    //     "/data/user/0/com.example.flutter_libepiccash_example/app_flutter/test/";
+    // config["check_node_api_http_addr"] = "http://95.216.215.107:3413";
+    // config["chain"] = "mainnet";
+    // config["account"] = "default";
+    // config["api_listen_port"] = 3413;
+    // config["api_listen_interface"] = "95.216.215.107";
+    //
+    // String strConf = json.encode(config);
+    //
     // String addressInfo = getAddressInfo();
     // print("Address Info is");
     // print(addressInfo);
@@ -204,66 +212,9 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Container(
-              margin: EdgeInsets.all(25),
-              child: MaterialButton(
-                child: Text(
-                  'CREATE NEW WALLET',
-                  style: TextStyle(fontSize: 20.0),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const WalletNameView(
-                              recover: false,
-                            )),
-                  );
-                },
-              ),
-            ),
-            Container(
-              margin: EdgeInsets.all(25),
-              child: MaterialButton(
-                child: Text(
-                  'RESTORE WALLET',
-                  style: TextStyle(fontSize: 20.0),
-                ),
-                color: Colors.pinkAccent,
-                textColor: Colors.black,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const WalletNameView(
-                              recover: true,
-                            )),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
+          // Center is a layout widget. It takes a single child and positions it
+          // in the middle of the parent.
+          ),
       floatingActionButton: FloatingActionButton(
         onPressed: _incrementCounter,
         tooltip: 'Increment',

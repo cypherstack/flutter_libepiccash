@@ -14,7 +14,7 @@ A new Flutter plugin project.
   s.author           = { 'Your Company' => 'email@example.com' }
 
   s.source           = { :path => '.' }
-  s.public_header_files = 'Classes**/*.h'
+  s.public_header_files = 'include**/*.h'
   s.source_files = 'Classes/**/*'
   s.static_framework = true
   s.vendored_libraries = "**/*.a"
