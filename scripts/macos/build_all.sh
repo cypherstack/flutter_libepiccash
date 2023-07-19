@@ -14,7 +14,8 @@ cd build/rust
 
 # building
 cbindgen src/lib.rs -l c > libepic_cash_wallet.h
-cargo lipo --release --targets aarch64-apple-darwin
+export MACOSX_DEPLOYMENT_TARGET=10.14
+cargo lipo --release --targets aarch64-apple-darwin,x86_64-apple-darwin
 
 # moving files to the ios project
 inc=../../../../macos/include
@@ -26,4 +27,4 @@ mkdir ${inc}
 mkdir ${libs}
 
 cp libepic_cash_wallet.h ${inc}
-cp target/aarch64-apple-darwin/release/libepic_cash_wallet.a ${libs}
+cp target/universal/release/libepic_cash_wallet.a ${libs}
