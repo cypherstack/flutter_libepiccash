@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use stack_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
 use stack_epic_wallet_config::{WalletConfig, EpicboxConfig};
+use stack_epic_wallet_libwallet::{Address, AddressType, EpicboxAddress};
 use stack_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
 use stack_epic_wallet_libwallet::api_impl::owner;
 use stack_epic_wallet_impls::{DefaultLCProvider, DefaultWalletImpl, EpicboxListenChannel, HTTPNodeClient};
@@ -20,13 +21,13 @@ use ws::{
 };
 
 use stack_epic_keychain::mnemonic;
-use stack_epic_wallet_util::stack_epic_core::global::ChainTypes;
+use stack_epic_wallet_util::epic_core::global::ChainTypes;
 use stack_epic_util::file::get_first_line;
-use stack_epic_wallet_util::stack_epic_util::ZeroingString;
+use stack_epic_wallet_util::epic_util::ZeroingString;
 use stack_epic_util::Mutex;
 use stack_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, Error, ErrorKind, TxLogEntry, TxLogEntryType};
 
-use stack_epic_wallet_util::stack_epic_keychain::{Keychain, ExtKeychain};
+use stack_epic_wallet_util::epic_keychain::{Keychain, ExtKeychain};
 
 use stack_epic_util::secp::rand::Rng;
 
@@ -35,7 +36,6 @@ use stack_epic_util::secp::{Secp256k1};
 
 use stack_epic_wallet_controller::command;
 
-use stack_test_epicboxlib::types::{EpicboxAddress, EpicboxMessage, TxProofErrorKind};
 use android_logger::FilterBuilder;
 use std::{env, thread};
 use std::time::Duration;
@@ -164,7 +164,6 @@ use ffi_helpers::{export_task, Task};
 use ffi_helpers::task::{CancellationToken, TaskHandle};
 use serde_json::json;
 use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
-use stack_test_epicboxlib::utils::crypto::{Hex, sign_challenge};
 
 /*
     Create a new wallet
@@ -560,7 +559,7 @@ pub unsafe extern "C" fn rust_create_tx(
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
 
     let listen = Listener {
-        wallet_data: tuple_wallet_data.clone(),
+        wallet_ptr_str: wallet_data.to_string(),
         epicbox_config: epicbox_config.parse().unwrap()
     };
 
@@ -783,7 +782,6 @@ fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
     let mut chain_height = "".to_string();
     match get_chain_height(&str_config) {
         Ok(chain_tip) => {
-            debug!("CHAIN_HEIGHT {}", chain_tip);
             chain_height.push_str(&chain_tip.to_string());
         },
         Err(e) => {
@@ -986,7 +984,7 @@ pub fn get_wallet_address(
 ) -> String {
 
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
     let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
     format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain)
 }
@@ -1183,7 +1181,7 @@ pub fn get_wallet_info(
     refresh_from_node: bool,
     min_confirmations: u64
 ) -> Result<WalletInfoFormatted, Error> {
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
 
     match api.retrieve_summary_info(keychain_mask.as_ref(), refresh_from_node, min_confirmations) {
         Ok((_, wallet_summary)) => {
@@ -1414,7 +1412,7 @@ pub fn wallet_scan_outputs(
         None => 0,
     };
 
-    let last_block = start_height + number_of_blocks_to_scan;
+    let last_block = start_height.clone() + number_of_blocks_to_scan;
     let end_height: u64 = match last_block.cmp(&tip) {
         Ordering::Less => {
             last_block
@@ -1453,7 +1451,7 @@ pub fn wallet_scan_outputs(
                         return Err(err);
                     }
                 };
-                match batch.save_last_confirmed_height(&parent_key_id, info.height) {
+                match batch.save_last_confirmed_height(&parent_key_id, info.clone().height) {
                     Ok(_) => {
                         ()
                     }
@@ -1502,31 +1500,30 @@ pub fn tx_strategies(
     let mut result = vec![];
     wallet_lock!(wallet, w);
 
-    for selection_strategy_is_use_all in vec![false].into_iter() {
-        let args = InitTxArgs {
-            src_acct_name: None,
-            amount,
-            minimum_confirmations,
-            max_outputs: 500,
-            num_change_outputs: 1,
-            estimate_only: Some(true),
-            message: None,
-            ..Default::default()
-        };
+    let args = InitTxArgs {
+        src_acct_name: None,
+        amount,
+        minimum_confirmations,
+        max_outputs: 500,
+        num_change_outputs: 1,
+        estimate_only: Some(true),
+        message: None,
+        ..Default::default()
+    };
 
-        match owner::init_send_tx(&mut **w, keychain_mask.as_ref(), args, true) {
-            Ok(slate) => {
-                result.push(Strategy {
-                    selection_strategy_is_use_all,
-                    total: slate.amount,
-                    fee: slate.fee,
+    match owner::init_send_tx(&mut **w, keychain_mask.as_ref(), args, true) {
+        Ok(slate) => {
+            result.push(Strategy {
+                selection_strategy_is_use_all: false,
+                total: slate.amount,
+                fee: slate.fee,
 
-                });
-            }, Err(e) => {
-                return Err(e);
-            }
+            });
+        }, Err(e) => {
+            return Err(e);
         }
     }
+
     Ok(serde_json::to_string(&result).unwrap())
 }
 
@@ -1535,7 +1532,7 @@ pub fn txs_get(
     keychain_mask: Option<SecretKey>,
     refresh_from_node: bool,
 ) -> Result<String, Error> {
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
     let txs = match api.retrieve_txs(
         keychain_mask.as_ref(),
         refresh_from_node,
@@ -1566,7 +1563,7 @@ pub fn tx_create(
     address: &str,
     note: &str,
 ) -> Result<String, Error> {
-    let owner_api = Owner::new(wallet.clone());
+    let owner_api = Owner::new(wallet.clone(), None);
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
 
     owner_api.set_epicbox_config(Some(epicbox_conf));
@@ -1624,7 +1621,7 @@ pub fn tx_create(
     Cancel tx by id
 */
 pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id: Uuid) -> Result<String, Error> {
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
     match  api.cancel_tx(keychain_mask.as_ref(), None, Some(tx_slate_id)) {
         Ok(_) => {
             Ok("cancelled".to_owned())
@@ -1638,7 +1635,7 @@ pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id:
     Get transaction by slate id
 */
 pub fn tx_get(wallet: &Wallet, refresh_from_node: bool, tx_slate_id: &str) -> Result<String, Error> {
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
     let uuid = Uuid::parse_str(tx_slate_id).map_err(|e| ErrorKind::GenericError(e.to_string())).unwrap();
     let txs = api.retrieve_txs(None, refresh_from_node, None, Some(uuid)).unwrap();
     Ok(serde_json::to_string(&txs.1).unwrap())
@@ -1787,13 +1784,15 @@ pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
     Ok("Wallet has been closed".to_owned())
 }
 
-pub fn validate_address(address: &str) -> bool {
-    let address = EpicboxAddress::from_str(address);
-    match address {
-        Ok(_) => {
-            true
-        },
-        _ => {
+pub fn validate_address(str_address: &str) -> bool {
+    match EpicboxAddress::from_str(str_address) {
+        Ok(addr) => {
+            if addr.address_type() == AddressType::Epicbox {
+                return true;
+            }
+            false
+        }
+        Err(_) => {
             false
         }
     }
@@ -1812,7 +1811,7 @@ pub fn delete_wallet(config: Config) -> Result<String, Error> {
     };
     //First close the wallet
     if let Ok(_) = close_wallet(&wallet) {
-        let api = Owner::new(wallet.clone());
+        let api = Owner::new(wallet.clone(), None);
         match api.delete_wallet(None) {
             Ok(_) => {
                 result.push_str("deleted");
@@ -1838,7 +1837,7 @@ pub fn tx_send_http(
     amount: u64,
     address: &str,
 ) -> Result<String, Error>{
-    let api = Owner::new(wallet.clone());
+    let api = Owner::new(wallet.clone(), None);
     let init_send_args = InitTxSendArgs {
         method: "http".to_string(),
         dest: address.to_string(),
@@ -1891,7 +1890,8 @@ pub fn tx_send_http(
 
 #[derive(Debug, Clone)]
 pub struct Listener {
-    pub wallet_data: (i64, Option<SecretKey>),
+    pub wallet_ptr_str: String,
+    // pub wallet_data: (i64, Option<SecretKey>),
     pub epicbox_config: String
 }
 
@@ -1902,11 +1902,19 @@ impl Task for Listener {
     fn run(&self, cancel_tok: &CancellationToken) -> Result<Self::Output, anyhow::Error> {
         let mut spins = 0;
 
+        let wallet_data_str = &self.wallet_ptr_str;
+        // let wallet_data = wallet_ptr.to_str().unwrap();
+        let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data_str).unwrap();
+        let wlt = tuple_wallet_data.0;
+        let sek_key = tuple_wallet_data.1;
+
+        // let wallet_data = &self.wallet_data;
+        // let wlt = wallet_data.clone().0;
         unsafe {
             let epicbox_conf = serde_json::from_str::<EpicboxConfig>(&self.epicbox_config.as_str()).unwrap();
-            let wallet_data = &self.wallet_data;
-            let wlt = wallet_data.clone().0;
-            let sek_key = wallet_data.clone().1;
+            // let wallet_data = &self.wallet_data;
+            // let wlt = wallet_data.0;
+            // let sek_key = wallet_data.clone().1;
             ensure_wallet!(wlt, wallet);
             while !cancel_tok.cancelled() {
                 let listener = EpicboxListenChannel::new().unwrap();
@@ -1945,9 +1953,9 @@ pub unsafe extern "C" fn rust_epicbox_listener_start(
     let epicbox_config = epicbox_config.to_str().unwrap();
 
     let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+    // let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
     let listen = Listener {
-        wallet_data: tuple_wallet_data,
+        wallet_ptr_str: wallet_data.to_string(),
         epicbox_config: epicbox_config.parse().unwrap()
     };
 

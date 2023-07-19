@@ -1,9 +1,6 @@
-import 'dart:ffi';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:ffi/ffi.dart';
-import 'package:flutter_libepiccash/epic_cash.dart';
 import 'package:flutter_libepiccash_example/init_transaction_view.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -83,7 +80,8 @@ class _EpicTransactionView extends State<EpicTransactionView> {
     String decodeConfig = json.decode(walletConfig);
     const refreshFromNode = 0;
 
-    String walletInfo = getWalletInfo(decodeConfig, password, refreshFromNode);
+    String walletInfo = "fixme";
+    //  getWalletInfo(decodeConfig, password, refreshFromNode);
     var data = json.decode(walletInfo);
 
     var total = data['total'].toString();
@@ -94,7 +92,9 @@ class _EpicTransactionView extends State<EpicTransactionView> {
 
     const minimumConfirmations = 10;
 
-    String transactions = getTransactions(decodeConfig, password, minimumConfirmations, refreshFromNode);
+    String transactions = "fixme";
+    // getTransactions(
+    //     decodeConfig, password, minimumConfirmations, refreshFromNode);
 
     print("List Transactions count");
     print(transactions);
@@ -119,8 +119,8 @@ class _EpicTransactionView extends State<EpicTransactionView> {
                     context,
                     MaterialPageRoute(
                         builder: (context) => InitTransactionView(
-                          password: password,
-                        )),
+                              password: password,
+                            )),
                   );
                 },
                 child: const Text("Init Transaction")),

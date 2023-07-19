@@ -1,11 +1,7 @@
-import 'dart:ffi';
-import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'dart:convert';
-import 'package:flutter_libepiccash/epic_cash.dart';
-import 'package:ffi/ffi.dart';
 
 class InitTransactionView extends StatelessWidget {
   const InitTransactionView({Key? key, required this.password})
@@ -72,10 +68,11 @@ class _EpicInitTransactionView extends State<EpicInitTransactionView> {
 
   String _initTransaction(String config, String password, int amount,
       String minimumConfirmations, String selectionStrategyUseAll) {
-    final String createTransactionStr = createTransaction(config, password,
-        amount, minimumConfirmations, selectionStrategyUseAll);
+    // final String createTransactionStr = createTransaction(config, password,
+    //     amount, minimumConfirmations, selectionStrategyUseAll);
 
-    return createTransactionStr;
+    // return createTransactionStr;
+    return "fixme";
   }
 
   void _setAmount(value) {
