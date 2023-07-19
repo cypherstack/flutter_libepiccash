@@ -57,7 +57,8 @@ public class FlutterLibepiccashPlugin: NSObject, FlutterPlugin {
       rust_epicbox_listener_start("const char *wallet",
                                            "const char *epicbox_config");
 
-//             _listener_cancel("const char *handler");
+       let handler  = UnsafeMutablePointer<Int>.allocate(capacity: 1);
+      _listener_cancel(handler);
             // ...
             // This code will force the bundler to use these functions, but will never be called
   }
