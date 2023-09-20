@@ -2,6 +2,10 @@
 ## Dependencies
 ### Rust
 Install Rust: https://www.rust-lang.org/tools/install
+```sh
+rustup install 1.68.0
+rustup default 1.68.0
+```
 
 ### `cargo-ndk`
 ```sh
