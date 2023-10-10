@@ -12,6 +12,8 @@ dependencies:
     sdk: flutter
   plugin_platform_interface: ^2.0.2
   ffi: ^2.0.2
+  decimal: ^2.1.0
+  mutex: ^3.0.0
 
 
 dev_dependencies:
