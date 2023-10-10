@@ -23,7 +23,6 @@ class BadEpicHttpAddressException implements Exception {
 /// Should all be static calls (no state stored in this class)
 ///
 abstract class LibEpiccash {
-  static final Mutex _mutex = Mutex();
   static final Mutex m = Mutex();
 
   ///
