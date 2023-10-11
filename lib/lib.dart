@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_libepiccash/epic_cash.dart' as lib_epiccash;
 import 'package:flutter_libepiccash/models/transaction.dart';
 import 'package:mutex/mutex.dart';
+import 'dart:ffi';
 
 class BadEpicHttpAddressException implements Exception {
   final String? message;
@@ -15,6 +16,10 @@ class BadEpicHttpAddressException implements Exception {
   String toString() {
     return "BadEpicHttpAddressException: $message";
   }
+}
+
+abstract class ListenerManager {
+  static Pointer<Void>? pointer;
 }
 
 ///
@@ -660,6 +665,23 @@ abstract class LibEpiccash {
       return data;
     } catch (e) {
       throw ("Error sending tx HTTP : ${e.toString()}");
+    }
+  }
+
+  static void startEpicboxListener({
+    required String wallet,
+    required String epicboxConfig,
+  }) {
+    try {
+      ListenerManager.pointer = lib_epiccash.epicboxListenerStart(wallet, epicboxConfig);
+    } catch(e) {
+      throw ("Error starting wallet listener ${e.toString()}");
+    }
+  }
+
+  static void stopEpicboxListener() {
+    if (ListenerManager.pointer != null) {
+      lib_epiccash.epicboxListenerStop(ListenerManager.pointer!);
     }
   }
 }
