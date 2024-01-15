@@ -3,8 +3,8 @@
 ### Rust
 Install Rust: https://www.rust-lang.org/tools/install
 ```sh
-rustup install 1.68.0
-rustup default 1.68.0
+rustup install 1.67.1
+rustup default 1.67.1
 ```
 
 ### `cargo-ndk`
