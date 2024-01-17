@@ -50,12 +50,21 @@ class Transaction {
   });
 
   factory Transaction.fromJson(dynamic json) {
-    print("THIS JSON IS $json");
+    // print("THIS JSON IS $json");
+    TransactionType txType = TransactionType.Unknown; // Default tx type.
+    try {
+      TransactionType txType =
+          TransactionType.values.byName(json['tx_type'] as String);
+    } catch (e) {
+      // Unknown tx type.
+      // print("ERROR $e");
+    }
+
     return Transaction(
       parentKeyId: json['parent_key_id'] as String,
       id: int.parse(json!['id'].toString()),
       txSlateId: json['tx_slate_id'] as String?,
-      txType: TransactionType.values.byName(json['tx_type'] as String),
+      txType: txType,
       creationTs: json['creation_ts'].toString(),
       confirmationTs: json['confirmation_ts'].toString(),
       confirmed: bool.parse(json['confirmed'].toString()),
@@ -121,5 +130,6 @@ enum TransactionType {
   TxSent,
   TxSentCancelled,
   ConfirmedCoinbase,
-  // UnconfirmedCoinbase, // This probably also exists.
+  UnconfirmedCoinbase,
+  Unknown,
 }
