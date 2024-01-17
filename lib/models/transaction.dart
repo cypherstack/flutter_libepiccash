@@ -121,5 +121,6 @@ enum TransactionType {
   TxSent,
   TxSentCancelled,
   ConfirmedCoinbase,
-  // UnconfirmedCoinbase, // This probably also exists.
+  UnconfirmedCoinbase,
+  Unknown,
 }
