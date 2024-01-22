@@ -188,24 +188,32 @@ abstract class LibEpiccash {
     required int startHeight,
     required int numberOfBlocks,
   }) async {
-    return int.parse(await m.protect(() async {
-      try {
-        return await compute(_scanOutputsWrapper, (
-        wallet: wallet,
-        startHeight: startHeight,
-        numberOfBlocks: numberOfBlocks,
-        ));
-      } catch (e) {
-        throw ("Error getting scanning outputs : ${e.toString()}");
+    try {
+      final result = await m.protect(() async {
+        return await compute(
+          _scanOutputsWrapper,
+          (
+            wallet: wallet,
+            startHeight: startHeight,
+            numberOfBlocks: numberOfBlocks,
+          ),
+        );
+      });
+      final response = int.tryParse(result);
+      if (response == null) {
+        throw Exception(result);
       }
-    }));
+      return response;
+    } catch (e) {
+      throw ("LibEpiccash.scanOutputs failed: ${e.toString()}");
+    }
   }
 
   ///
   /// Private function wrapper for create transactions
   ///
   static Future<String> _createTransactionWrapper(
-      ({
+    ({
       String wallet,
       int amount,
       String address,
