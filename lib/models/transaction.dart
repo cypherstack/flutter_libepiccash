@@ -50,10 +50,9 @@ class Transaction {
   });
 
   factory Transaction.fromJson(dynamic json) {
-    // print("THIS JSON IS $json");
     TransactionType txType = TransactionType.Unknown; // Default tx type.
     try {
-      TransactionType txType =
+      txType =
           TransactionType.values.byName(json['tx_type'] as String);
     } catch (e) {
       // Unknown tx type.
