@@ -3568,9 +3568,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_keychain"
-version = "3.4.2"
+version = "3.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7c355bcbd832e3e966dcef46334a96498a66880c90f0a09da23b7d8e4fa8e32"
+checksum = "f31c59e605b42dbe86b08475cc715fbf9c3fd2f16640bc24680d72f736831610"
 dependencies = [
  "blake2-rfc",
  "byteorder",
@@ -3658,9 +3658,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_util"
-version = "3.4.2"
+version = "3.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2614c0922ca5f1c8fac401f2928f559a2a46260c38e9df1b169d962f104c33c7"
+checksum = "b4efd8a0abbd1e52efabbfb066ddc11594b2db23d5e5df673f96e15ff54bdf6f"
 dependencies = [
  "backtrace",
  "base64 0.9.3",

@@ -5,27 +5,21 @@ use std::sync::Arc;
 use std::path::{Path};
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
-use rustc_serialize::json;
 use uuid::Uuid;
 
-use stack_epic_wallet_api::{self, Foreign, ForeignCheckMiddlewareFn, Owner};
+use stack_epic_wallet_api::{self, Owner};
 use stack_epic_wallet_config::{WalletConfig, EpicboxConfig};
 use stack_epic_wallet_libwallet::{Address, AddressType, EpicboxAddress};
 use stack_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
 use stack_epic_wallet_libwallet::api_impl::owner;
 use stack_epic_wallet_impls::{DefaultLCProvider, DefaultWalletImpl, EpicboxListenChannel, HTTPNodeClient};
 
-use ws::{
-    CloseCode, Message, Error as WsError, ErrorKind as WsErrorKind,
-    Result as WSResult, Sender, Handler
-};
-
 use stack_epic_keychain::mnemonic;
 use stack_epic_wallet_util::epic_core::global::ChainTypes;
 use stack_epic_util::file::get_first_line;
 use stack_epic_wallet_util::epic_util::ZeroingString;
 use stack_epic_util::Mutex;
-use stack_epic_wallet_libwallet::{address, scan, slate_versions, wallet_lock, NodeClient, NodeVersionInfo, Slate, WalletInst, WalletLCProvider, Error, ErrorKind, TxLogEntry, TxLogEntryType};
+use stack_epic_wallet_libwallet::{address, scan, wallet_lock, NodeClient, WalletInst, WalletLCProvider, Error, ErrorKind};
 
 use stack_epic_wallet_util::epic_keychain::{Keychain, ExtKeychain};
 
@@ -34,11 +28,7 @@ use stack_epic_util::secp::rand::Rng;
 use stack_epic_util::secp::key::{SecretKey, PublicKey};
 use stack_epic_util::secp::{Secp256k1};
 
-use stack_epic_wallet_controller::command;
-
 use android_logger::FilterBuilder;
-use std::{env, thread};
-use std::time::Duration;
 
 #[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
 pub struct Config {
@@ -50,10 +40,6 @@ pub struct Config {
     pub api_listen_interface: String
 }
 
-#[derive(Clone)]
-struct Client {
-    out: Sender,
-}
 
 type Wallet = Arc<
     Mutex<
@@ -74,23 +60,6 @@ macro_rules! ensure_wallet (
             println!("{}", "WALLET_IS_NOT_OPEN");
         }
         let $wallet = ($wallet_ptr as *mut Wallet).as_mut().unwrap();
-    )
-);
-
-macro_rules! cstr {
-    ($ptr:expr) => {
-        cstr!($ptr, 0);
-    };
-    ($ptr:expr, $error:expr) => {
-        error!(CStr::from_ptr($ptr).to_str(), $error)
-    };
-}
-
-
-macro_rules! ensure_handler (
-    ($handler_ptr:expr, $handler:ident) => (
-
-        let $handler = ($handler_ptr as *mut TaskHandle<usize>).as_mut().unwrap();
     )
 );
 
@@ -162,8 +131,6 @@ use log::Level;
 use android_logger::Config as AndroidConfig;
 use ffi_helpers::{export_task, Task};
 use ffi_helpers::task::{CancellationToken, TaskHandle};
-use serde_json::json;
-use stack_epic_wallet_libwallet::api_impl::owner::get_public_address;
 
 /*
     Create a new wallet
@@ -1639,42 +1606,6 @@ pub fn tx_get(wallet: &Wallet, refresh_from_node: bool, tx_slate_id: &str) -> Re
     let uuid = Uuid::parse_str(tx_slate_id).map_err(|e| ErrorKind::GenericError(e.to_string())).unwrap();
     let txs = api.retrieve_txs(None, refresh_from_node, None, Some(uuid)).unwrap();
     Ok(serde_json::to_string(&txs.1).unwrap())
-}
-
-/*
-    Check slate version
-*/
-fn check_middleware(
-    name: ForeignCheckMiddlewareFn,
-    node_version_info: Option<NodeVersionInfo>,
-    slate: Option<&Slate>,
-) -> Result<(), Error> {
-    match name {
-        // allow coinbases to be built regardless
-        ForeignCheckMiddlewareFn::BuildCoinbase => Ok(()),
-        _ => {
-            let mut bhv = 3;
-            if let Some(n) = node_version_info {
-                bhv = n.block_header_version;
-            }
-            if let Some(s) = slate {
-                if bhv > 4
-                    && s.version_info.block_header_version
-                    < slate_versions::EPIC_BLOCK_HEADER_VERSION
-                {
-                    Err(ErrorKind::Compatibility(
-                        "Incoming Slate is not compatible with this wallet. \
-						 Please upgrade the node or use a different one."
-                            .to_string(),
-                    ))?;
-
-                    // Err(ErrorKind::Compatibility("Incoming Slate is not compatible with this wallet. \
-                    // Please upgrade the node or use a different one.".to_string())).unwrap().expect("TODO: panic message");
-                }
-            }
-            Ok(())
-        }
-    }
 }
 
 pub fn convert_deci_to_nano(amount: f64) -> u64 {
