@@ -31,7 +31,7 @@ use stack_epic_util::secp::{Secp256k1};
 
 use android_logger::FilterBuilder;
 
-#[derive(Serialize, Deserialize, Clone, RustcEncodable, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config {
     pub wallet_dir: String,
     pub check_node_api_http_addr: String,
