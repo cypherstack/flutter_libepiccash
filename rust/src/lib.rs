@@ -19,7 +19,8 @@ use stack_epic_wallet_util::epic_core::global::ChainTypes;
 use stack_epic_util::file::get_first_line;
 use stack_epic_wallet_util::epic_util::ZeroingString;
 use stack_epic_util::Mutex;
-use stack_epic_wallet_libwallet::{address, scan, wallet_lock, NodeClient, WalletInst, WalletLCProvider, Error, ErrorKind};
+use stack_epic_wallet_libwallet::{address, scan, wallet_lock, NodeClient, WalletInst, WalletLCProvider, Error};
+use stack_epic_wallet_controller::Error as OtherError;
 
 use stack_epic_wallet_util::epic_keychain::{Keychain, ExtKeychain};
 
@@ -204,25 +205,25 @@ fn _wallet_init(
 
     let str_password = match password.to_str() {
         Ok(str_pass) => {str_pass}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+            Error::from(OtherError::GenericError(format!("{}", e.to_string())))
         )}
     };
 
     let str_config = match config.to_str() {
         Ok(str_conf) => {str_conf}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+            Error::from(OtherError::GenericError(format!("{}", e.to_string())))
         )}
     };
 
     let phrase = match mnemonic.to_str() {
         Ok(str_phrase) => {str_phrase}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+            Error::from(OtherError::GenericError(format!("{}", e.to_string())))
         )}
     };
 
     let str_name = match name.to_str() {
         Ok(str_name) => {str_name}, Err(e) => {return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", e.to_string())))
+            Error::from(OtherError::GenericError(format!("{}", e.to_string())))
         )}
     };
 
@@ -415,7 +416,7 @@ fn _recover_from_mnemonic(
         Ok(config) => {
             config
         }, Err(err) => {
-            return Err(Error::from(ErrorKind::GenericError(format!(
+            return Err(Error::from(OtherError::GenericError(format!(
                 "Wallet config error : {}",
                 err.to_string()
             ))))
@@ -677,7 +678,7 @@ pub unsafe extern "C" fn rust_tx_cancel(
     let wallet_ptr = CStr::from_ptr(wallet);
     let tx_id = CStr::from_ptr(tx_id);
     let tx_id = tx_id.to_str().unwrap();
-    let uuid = Uuid::parse_str(tx_id).map_err(|e| ErrorKind::GenericError(e.to_string())).unwrap();
+    let uuid = Uuid::parse_str(tx_id).map_err(|e| OtherError::GenericError(e.to_string())).unwrap();
 
     let wallet_data = wallet_ptr.to_str().unwrap();
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
@@ -953,7 +954,7 @@ pub fn get_wallet_address(
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
     let api = Owner::new(wallet.clone(), None);
     let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
-    format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain)
+    format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain.as_deref().unwrap_or(""))
 }
 
 #[no_mangle]
@@ -1040,7 +1041,7 @@ pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> 
         Ok(config) => {
             config
         }, Err(e) => {
-            return  Err(Error::from(ErrorKind::GenericError(format!(
+            return  Err(Error::from(OtherError::GenericError(format!(
                 "Error getting wallet config: {}",
                 e.to_string()
             ))));
@@ -1116,7 +1117,7 @@ pub fn get_wallet_secret_key_pair(
         }
         Err(err) => {
             return Err(Error::from(
-                ErrorKind::GenericError(
+                OtherError::GenericError(
                     format!("{}", err.to_string())
                 )
             ));
@@ -1259,7 +1260,7 @@ fn get_wallet(config: &Config) -> Result<Wallet, Error> {
         }
     };
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
-    let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
+    let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret).unwrap();
     let wallet =  match inst_wallet::<
         DefaultLCProvider<HTTPNodeClient, ExtKeychain>,
         HTTPNodeClient,
@@ -1313,7 +1314,7 @@ pub fn get_chain_height(config: &str) -> Result<u64, Error> {
         Ok(config) => {
             config
         }, Err(_e) => {
-            return Err(Error::from(ErrorKind::GenericError(format!(
+            return Err(Error::from(OtherError::GenericError(format!(
                 "{}",
                 "Unable to get wallet config"
             ))))
@@ -1329,7 +1330,7 @@ pub fn get_chain_height(config: &str) -> Result<u64, Error> {
     };
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret);
-    let chain_tip = match node_client.chain_height() {
+    let chain_tip = match node_client?.chain_height() {
         Ok(tip) => {
             tip
         }
@@ -1363,7 +1364,7 @@ pub fn wallet_scan_outputs(
     };
 
     if tip == 0 {
-        return Err(Error::from(ErrorKind::GenericError(format!(
+        return Err(Error::from(OtherError::GenericError(format!(
             "{}",
             "Unable to scan, could not determine chain height"
         ))));
@@ -1603,7 +1604,7 @@ pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id:
 */
 pub fn tx_get(wallet: &Wallet, refresh_from_node: bool, tx_slate_id: &str) -> Result<String, Error> {
     let api = Owner::new(wallet.clone(), None);
-    let uuid = Uuid::parse_str(tx_slate_id).map_err(|e| ErrorKind::GenericError(e.to_string())).unwrap();
+    let uuid = Uuid::parse_str(tx_slate_id).map_err(|e| OtherError::GenericError(e.to_string())).unwrap();
     let txs = api.retrieve_txs(None, refresh_from_node, None, Some(uuid)).unwrap();
     Ok(serde_json::to_string(&txs.1).unwrap())
 }
@@ -1628,7 +1629,7 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<(Wallet, Option<
         Ok(config) => {
             config
         }, Err(_e) => {
-            return Err(Error::from(ErrorKind::GenericError(format!(
+            return Err(Error::from(OtherError::GenericError(format!(
                 "{}",
                 "Unable to get wallet config"
             ))))
@@ -1694,7 +1695,7 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<(Wallet, Option<
     if opened {
         Ok((wallet, secret_key))
     } else {
-        Err(Error::from(ErrorKind::WalletSeedDoesntExist))
+        Err(Error::from(OtherError::WalletSeedDoesntExist))
     }
 }
 
@@ -1708,7 +1709,7 @@ pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
         }
         false => {
             return Err(
-                Error::from(ErrorKind::WalletSeedDoesntExist)
+                Error::from(OtherError::WalletSeedDoesntExist)
             );
         }
     }
@@ -1753,7 +1754,7 @@ pub fn delete_wallet(config: Config) -> Result<String, Error> {
         };
     } else {
         return Err(
-            Error::from(ErrorKind::GenericError(format!("{}", "Error closing wallet")))
+            Error::from(OtherError::GenericError(format!("{}", "Error closing wallet")))
         );
     }
     Ok(result)
