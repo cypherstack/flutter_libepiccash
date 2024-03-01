@@ -3663,9 +3663,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "stack_epic_api"
-version = "3.5.3"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7af80071941fd22e8619170208d949e9c71c2c69760e5b0958c26a163920c650"
+checksum = "f6f47126ab82379499282a75557c6f2e8dd6da988f5c52c1c85f21958361ddb3"
 dependencies = [
  "bigint",
  "bytes 0.5.6",
@@ -3699,9 +3699,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_chain"
-version = "3.5.3"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5bff7e86302942d93ac21beb6340ae50f90729bbf268d1614e049578a397350"
+checksum = "64f12c3933ce52b25fbd79a208d28f13606ad826b8cb9ac943c128ada2a9da77"
 dependencies = [
  "bigint",
  "bit-vec",
@@ -3725,9 +3725,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_core"
-version = "3.5.3"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e41029d768418399fe44c8eaa8c0d6d00205f126f5416be7dbd6ac75fec1257a"
+checksum = "e9275a150f9c8208111b0a82ed68c88f3f15b74f0e110e79f91c4ba5ea4a911e"
 dependencies = [
  "bigint",
  "blake2-rfc",
@@ -3758,9 +3758,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_keychain"
-version = "3.5.2"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f31c59e605b42dbe86b08475cc715fbf9c3fd2f16640bc24680d72f736831610"
+checksum = "907e57824ea3a4218612246360515acf5d2afbe1859c93526cc506e9cea20497"
 dependencies = [
  "blake2-rfc",
  "byteorder",
@@ -3782,9 +3782,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_p2p"
-version = "3.5.3"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fcb22be4fb7e94bcee31bb0891ea13f56d59db194e1f9bf6087884c4108455c"
+checksum = "879b1754f3c8ba59de3b222a39b0c1d97daf3990e3b1bf259b47ed541a001323"
 dependencies = [
  "bitflags 1.3.2",
  "bytes 0.4.12",
@@ -3806,9 +3806,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_pool"
-version = "3.5.3"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba37c751f0d491ad901490658feebde7c39061e8f37b8efcda2c0f966568902f"
+checksum = "c0184885a484f7e5ad3e3c7d9ffa380a6e5926ef1e478889a892d555a3a678cb"
 dependencies = [
  "blake2-rfc",
  "chrono",
@@ -3826,9 +3826,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_store"
-version = "3.5.3"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f1b0b4056b1785b5d7037a299356b31f2d17747fa4043104e071b147dce3e1f"
+checksum = "c85a06f322911dc88a63136ecd2cca7c883a7983316d94549ab651928ced7298"
 dependencies = [
  "byteorder",
  "croaring",
@@ -3848,9 +3848,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_util"
-version = "3.5.2"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4efd8a0abbd1e52efabbfb066ddc11594b2db23d5e5df673f96e15ff54bdf6f"
+checksum = "2abdbeed56a95d9749ba929747e0e63f9a1010f2d5cbc3f6073303695843e9a2"
 dependencies = [
  "backtrace",
  "base64 0.9.3",
@@ -3870,9 +3870,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_wallet_api"
-version = "3.5.2"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b31ef57ab1f8206a7898ca741818dfdaa47920dfad85ca0133ac31d76218699"
+checksum = "68f00c5c326e0d8913f6d0dccdec5e854a8dba84f2b1365e304123d08faf9c23"
 dependencies = [
  "base64 0.9.3",
  "chrono",
@@ -3895,9 +3895,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_wallet_config"
-version = "3.5.2"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7da6451da05ad1e60a54c13a4f20fec81d9341d74d25b0a5f6d6ae3db8e41414"
+checksum = "0e8848ebaa93d7df92cabf677565a1d504e5103045daa252e0485ad8e25ab198"
 dependencies = [
  "dirs 1.0.5",
  "rand 0.5.6",
@@ -3909,9 +3909,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_wallet_controller"
-version = "3.5.2"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "508f04e36a7a05706c0f55d3f35806536955da1cf81de2690858c1e8a196e62b"
+checksum = "02a70179f47c9638bc9d35b4e97e791e6a9a5c757131555c9e88bcf542e50aae"
 dependencies = [
  "chrono",
  "easy-jsonrpc-mw",
@@ -3940,9 +3940,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_wallet_impls"
-version = "3.5.2"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5600d3070e959c8df41cb75a86036bb7558d6d2adf6a69ea5faf05ef43267cd2"
+checksum = "d0c707dc55e5c1ed5de90240669288331911e3a3474a1e0ff5148ba81adb24e5"
 dependencies = [
  "bitvec",
  "blake2-rfc",
@@ -3984,9 +3984,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_wallet_libwallet"
-version = "3.5.2"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d09ee93ef47ad3f72db5032ab15304c657080376136b07f7b5ff2db859bb8b7"
+checksum = "aa96c67faab202f3585b0c35148e86a3ed65c20691f652d84dbd99fd35444f18"
 dependencies = [
  "aead",
  "blake2-rfc",
@@ -4018,9 +4018,9 @@ dependencies = [
 
 [[package]]
 name = "stack_epic_wallet_util"
-version = "3.5.2"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88c0a43d35e7beeb10f581fd1f4afb7d019aa5c6c3bb737e5355acbd5e3c8d78"
+checksum = "dbe23adce1eae52444438c409de16cb63094f74e5d442d437fa3a6ec6c6fcaac"
 dependencies = [
  "dirs 1.0.5",
  "rand 0.5.6",
