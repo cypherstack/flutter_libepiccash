@@ -44,5 +44,7 @@ scripts/ios/flutter_libepiccash_bins/
 scripts/android/flutter_libepiccash_bins/
 scripts/windows/flutter_libepiccash_bins/
 scripts/macos/flutter_libepiccash_bins/
+scripts/android/cache/
 
 linux/bin/
+
