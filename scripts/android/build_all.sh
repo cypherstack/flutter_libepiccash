@@ -1,6 +1,9 @@
 #!/bin/bash
 
 . ./config.sh
+
+cd ${WORKDIR}
+
 rm -r ../../android/src/main/jniLibs/
 echo ''$(git log -1 --pretty=format:"%H")' '$(date) >> build/git_commit_version.txt
 VERSIONS_FILE=../../lib/git_versions.dart
