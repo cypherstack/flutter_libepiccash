@@ -14,4 +14,3 @@ export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
 # Hacky fix which we will probably have to revisit and fix later.
 export ANDROID_NDK_ROOT=~/Android/Sdk/ndk/21.1.6352462
 export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin:$PATH
-    ./Configure android-arm64 -D__ANDROID_API__=21
