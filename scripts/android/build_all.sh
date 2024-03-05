@@ -3,6 +3,7 @@
 . ./config.sh
 
 cd ${WORKDIR}
+echo ${WORKDIR}
 
 rm -r ../../android/src/main/jniLibs/
 echo ''$(git log -1 --pretty=format:"%H")' '$(date) >> build/git_commit_version.txt
@@ -14,8 +15,9 @@ fi
 COMMIT=$(git log -1 --pretty=format:"%H")
 OS="ANDROID"
 sed -i "/\/\*${OS}_VERSION/c\\/\*${OS}_VERSION\*\/ const ${OS}_VERSION = \"$COMMIT\";" $VERSIONS_FILE
-cp -r ../../rust build/rust
-cd build/rust
+
+cp -r ../../../rust rust
+cd rust
 rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 
 # TODO Investigate why x86 does not build
