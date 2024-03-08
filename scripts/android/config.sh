@@ -2,10 +2,10 @@
 
 export WORKDIR="$(pwd)/"build
 export CACHEDIR="$(pwd)/"cache
-export ANDROID_NDK_API=25c
+export ANDROID_NDK_API=20b
 # r21e also works and was the preferred before.
-export ANDROID_NDK_SHA256="769ee342ea75f80619d985c2da990c48b3d8eaf45f48783a2d48870d04b46108"
-export ANDROID_NDK_URL=https://dl.google.com/android/repository/android-ndk-r${ANDROID_NDK_API}-linux.zip
+export ANDROID_NDK_SHA256="8381c440fe61fcbb01e209211ac01b519cd6adf51ab1c2281d5daad6ca4c8c8c"
+export ANDROID_NDK_URL=https://dl.google.com/android/repository/android-ndk-r${ANDROID_NDK_API}-linux-x86_64.zip
 # Some NDK versions end in -linux.zip, some in -linux_x86_64.zip.
 export ANDROID_NDK_ZIP=${CACHEDIR}/android-ndk-r${ANDROID_NDK_API}-linux.zip
 export ANDROID_NDK_ROOT=${WORKDIR}/android-ndk-r${ANDROID_NDK_API}
