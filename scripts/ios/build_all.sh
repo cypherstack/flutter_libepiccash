@@ -12,6 +12,8 @@ sed -i '' "/\/\*${OS}_VERSION/c\\/\*${OS}_VERSION\*\/ const ${OS}_VERSION = \"$C
 cp -r ../../rust build/rust
 cd build/rust
 
+rustup target add aarch64-apple-ios x86_64-apple-ios
+
 # building
 cbindgen src/lib.rs -l c > libepic_cash_wallet.h
 cargo lipo --release
