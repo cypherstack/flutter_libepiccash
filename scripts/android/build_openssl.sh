@@ -1,29 +1,22 @@
 #!/bin/bash
 
-mkdir openssl
-
 . ./config.sh
-OPENSSL_SHA256="83c7329fe52c850677d75e5d0b0ca245309b97e8ecbcfdc1dfdc4ab9fac35b39"
+OPENSSL_VERSION="1.1.1q"
+OPENSSL_SHA256="d7939ce614029cdff0b6c20f0e2e5703158a489a72b2507b8bd51bf8c8fd10ca"
 OPENSSL_DIR=${WORKDIR}/openssl
-OPENSSL_GZIP=${CACHEDIR}/openssl-3.2.1.tar.gz
+OPENSSL_GZIP=${CACHEDIR}/openssl-${OPENSSL_VERSION}.tar.gz
 
 # shellcheck disable=SC2164
-cd $WORKDIR
+cd "${WORKDIR}"
 if [ ! -e "$OPENSSL_GZIP" ]; then
-  curl https://www.openssl.org/source/openssl-3.2.1.tar.gz -o "${OPENSSL_GZIP}"
+  curl https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o "${OPENSSL_GZIP}"
 fi
 echo $OPENSSL_SHA256 "$OPENSSL_GZIP" | sha256sum -c || exit 1
-mkdir -p ${OPENSSL_DIR}
-tar -xvzf $OPENSSL_GZIP -C ${OPENSSL_DIR}
+mkdir -p "${OPENSSL_DIR}"
+tar -xvzf "$OPENSSL_GZIP" -C "${OPENSSL_DIR}"
+
+# needed for when rust tries to build openssl-sys
+export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin:$PATH
 
 # shellcheck disable=SC2164
-cd ${OPENSSL_DIR}/openssl-3.2.1
-archs=(android-arm android-arm64 android-x86_64)
-
-# shellcheck disable=SC2068
-for arch in ${archs[@]}; do
-    # Hacky fix which we will probably have to revisit later.
-    export ANDROID_NDK_ROOT=~/Android/Sdk/ndk/21.1.6352462
-    export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$ANDROID_NDK_ROOT/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin:$PATH
-    ./Configure android-arm64 -D__ANDROID_API__=21
-done
+cd "${WORKDIR}"/..
