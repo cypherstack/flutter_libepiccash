@@ -1,12 +1,15 @@
 #!/bin/bash
 
+. ./install_ndk.sh
+. ./build_openssl.sh
 . ./config.sh
 
-cd ${WORKDIR}
-echo ${WORKDIR}
+# shellcheck disable=SC2164
+cd "${WORKDIR}"
+echo "${WORKDIR}"
 
-rm -r ../../android/src/main/jniLibs/
-echo ''$(git log -1 --pretty=format:"%H")' '$(date) >> build/git_commit_version.txt
+rm -r ../../../android/src/main/jniLibs/
+echo ''$(git log -1 --pretty=format:"%H")' '$(date) >> git_commit_version.txt
 VERSIONS_FILE=../../../lib/git_versions.dart
 EXAMPLE_VERSIONS_FILE=../../../lib/git_versions_example.dart
 if [ ! -f "$VERSIONS_FILE" ]; then
@@ -17,6 +20,7 @@ OS="ANDROID"
 sed -i "/\/\*${OS}_VERSION/c\\/\*${OS}_VERSION\*\/ const ${OS}_VERSION = \"$COMMIT\";" $VERSIONS_FILE
 
 cp -r ../../../rust rust
+# shellcheck disable=SC2164
 cd rust
 rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 
