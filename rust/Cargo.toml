@@ -32,7 +32,7 @@ stack_epic_util = "3.6.0"
 stack_epic_core = "3.6.0"
 
 stack_epic_wallet_api = "3.6.0"
-stack_epic_wallet_impls = "3.6.0"
+stack_epic_wallet_impls = { path = "../../../../../../../epic-wallet/impls" }
 stack_epic_wallet_libwallet = "3.6.0"
 stack_epic_wallet_config = "3.6.0"
 stack_epic_wallet_util = "3.6.0"
