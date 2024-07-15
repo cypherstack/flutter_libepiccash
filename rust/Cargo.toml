@@ -31,17 +31,17 @@ stack_epic_keychain = "3.6.0"
 stack_epic_util = "3.6.0"
 stack_epic_core = "3.6.0"
 
-stack_epic_wallet_api = "3.6.0"
-stack_epic_wallet_impls = "3.6.0"
-stack_epic_wallet_libwallet = "3.6.0"
-stack_epic_wallet_config = "3.6.0"
-stack_epic_wallet_util = "3.6.0"
-stack_epic_wallet_controller = "3.6.0"
+stack_epic_wallet_api = { path = "epic-wallet/api" }
+stack_epic_wallet_impls = { path = "epic-wallet/impls" }
+stack_epic_wallet_libwallet = { path = "epic-wallet/libwallet" }
+stack_epic_wallet_config = { path = "epic-wallet/config" }
+stack_epic_wallet_util = { path = "epic-wallet/util" }
+stack_epic_wallet_controller = { path = "epic-wallet/controller" }
 
 url = "2.1.0"
 futures = "0.3.15"
-tokio-tungstenite = "0.10.0"
-tungstenite = { version = "0.10", default-features = false }
+tokio-tungstenite = "0.21.0"
+tungstenite = { version = "0.21", default-features = false }
 tokio = { version = "0.2.0", features = ["full"]}
 websocket = "0.21.1"
 ws = "0.9.2"
