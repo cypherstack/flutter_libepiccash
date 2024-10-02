@@ -9,7 +9,7 @@ OPENSSL_GZIP=${CACHEDIR}/openssl-${OPENSSL_VERSION}.tar.gz
 # shellcheck disable=SC2164
 cd "${WORKDIR}"
 if [ ! -e "$OPENSSL_GZIP" ]; then
-  curl https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o "${OPENSSL_GZIP}"
+  curl -L https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -o "${OPENSSL_GZIP}"
 fi
 echo $OPENSSL_SHA256 "$OPENSSL_GZIP" | sha256sum -c || exit 1
 mkdir -p "${OPENSSL_DIR}"
