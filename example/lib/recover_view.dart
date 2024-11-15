@@ -12,24 +12,18 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class RecoverWalletView extends StatelessWidget {
   RecoverWalletView({Key? key, required this.name}) : super(key: key);
   final String name;
-  // This widget is the root of your application.
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Wallet Name',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Recover Wallet'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      home: EpicRecoverWalletView(title: 'Recover from mnemonic', name: name),
+      body: EpicRecoverWalletView(title: 'Recover from mnemonic', name: name),
     );
   }
 }
@@ -157,9 +151,11 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
 
     return Scaffold(
         appBar: AppBar(
-          // Here we take the value from the MyHomePage object that was created by
-          // the App.build method, and use it to set our appbar title.
           title: Text(widget.title),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
         body: Form(
           key: _formKey,

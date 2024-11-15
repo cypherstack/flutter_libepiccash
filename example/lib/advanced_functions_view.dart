@@ -117,6 +117,10 @@ class _AdvancedFunctionsHomeState extends State<AdvancedFunctionsHome> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Center(
         child: Column(

@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Epic Wallet',
+      title: 'flutter_libepiccash/example',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: const MainMenu(),
     );
