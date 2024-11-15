@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'advanced_functions_view.dart';
 import 'init_transaction_view.dart';
 import 'mnemonic_view.dart';
 import 'transaction_view.dart';
@@ -95,6 +96,17 @@ class MainMenu extends StatelessWidget {
                 );
               },
               child: const Text('Initiate Transaction'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdvancedFunctionsView(),
+                  ),
+                );
+              },
+              child: const Text('Advanced Functions'),
             ),
           ],
         ),
