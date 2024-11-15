@@ -59,83 +59,106 @@ class EpicTransactionView extends StatefulWidget {
 class _EpicTransactionView extends State<EpicTransactionView> {
   String walletConfig = "";
   final storage = const FlutterSecureStorage();
+  bool isLoading = true;
+  Map<String, dynamic> walletData = {};
+  List<dynamic> transactionsList = [];
 
   Future<void> _getWalletConfig() async {
-    var config = await storage.read(key: "config");
-    String strConf = json.encode(config);
+    try {
+      var config = await storage.read(key: "config");
+      if (config == null || config.isEmpty) {
+        throw Exception("Wallet configuration not found.");
+      }
 
-    setState(() {
-      walletConfig = strConf;
-    });
+      setState(() {
+        walletConfig = config;
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Error loading wallet configuration: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
-  final _formKey = GlobalKey<FormState>();
+  @override
+  void initState() {
+    super.initState();
+    _getWalletConfig();
+  }
+
   @override
   Widget build(BuildContext context) {
-    _getWalletConfig();
-    String password = widget.password;
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-    // print("Wallet Config");
-    // print(json.decode(walletConfig));
-    String decodeConfig = json.decode(walletConfig);
-    const refreshFromNode = 0;
+    try {
+      // Decode walletConfig safely
+      Map<String, dynamic> config = json.decode(walletConfig);
 
-    String walletInfo = "fixme";
-    //  getWalletInfo(decodeConfig, password, refreshFromNode);
-    var data = json.decode(walletInfo);
+      // Dummy wallet info for demonstration
+      String walletInfo = json.encode({
+        "total": 1000,
+        "amount_awaiting_finalization": 100,
+        "amount_awaiting_confirmation": 50,
+        "amount_currently_spendable": 850,
+        "amount_locked": 0
+      });
+      walletData = json.decode(walletInfo);
 
-    var total = data['total'].toString();
-    var awaitingFinalisation = data['amount_awaiting_finalization'].toString();
-    var awaitingConfirmation = data['amount_awaiting_confirmation'].toString();
-    var spendable = data['amount_currently_spendable'].toString();
-    var locked = data['amount_locked'].toString();
-
-    const minimumConfirmations = 10;
-
-    String transactions = "fixme";
-    // getTransactions(
-    //     decodeConfig, password, minimumConfirmations, refreshFromNode);
-
-    print("List Transactions count");
-    print(transactions);
+      // Dummy transactions list for demonstration
+      String transactions = json.encode([
+        {"id": 1, "amount": 100, "status": "confirmed"},
+        {"id": 2, "amount": 50, "status": "pending"}
+      ]);
+      transactionsList = json.decode(transactions);
+    } catch (e) {
+      print("Error parsing wallet data: $e");
+      return Center(child: Text("Failed to load wallet data."));
+    }
 
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
+      appBar: AppBar(title: Text(widget.title)),
       body: Center(
         child: Column(
           children: <Widget>[
-            Text("Total Amount : $total"),
-            Text("Amount Awaiting Finalization : $awaitingFinalisation"),
-            Text("Amount Awaiting Confirmation : $awaitingConfirmation"),
-            Text("Amount Currently Spendable : $spendable"),
-            Text("Amount Locked : $locked"),
+            Text("Total Amount : ${walletData['total']}"),
+            Text(
+                "Awaiting Finalization : ${walletData['amount_awaiting_finalization']}"),
+            Text(
+                "Awaiting Confirmation : ${walletData['amount_awaiting_confirmation']}"),
+            Text("Spendable : ${walletData['amount_currently_spendable']}"),
+            Text("Locked : ${walletData['amount_locked']}"),
             ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => InitTransactionView(
-                              password: password,
-                            )),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => InitTransactionView(
+                      password: widget.password,
+                    ),
+                  ),
+                );
+              },
+              child: const Text("Init Transaction"),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: transactionsList.length,
+                itemBuilder: (context, index) {
+                  var transaction = transactionsList[index];
+                  return ListTile(
+                    title: Text("Transaction ID: ${transaction['id']}"),
+                    subtitle: Text(
+                        "Amount: ${transaction['amount']} - Status: ${transaction['status']}"),
                   );
                 },
-                child: const Text("Init Transaction")),
-            // Expanded(
-            //   child: ListView.builder(
-            //     itemCount: transactions.length,
-            //     itemBuilder: (context, index) {
-            //       return ListTile(
-            //         title: Text(transactions),
-            //       );
-            //     },
-            //   ),
-            // ),
-
-            // Add TextFormFields and ElevatedButton here.
+              ),
+            ),
           ],
         ),
       ),

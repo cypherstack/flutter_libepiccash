@@ -1,16 +1,11 @@
-import 'dart:ffi';
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_libepiccash_example/main.dart';
-import 'package:flutter_libepiccash_example/password_view.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_libepiccash/flutter_libepiccash.dart';
-import 'dart:convert';
-import 'package:ffi/ffi.dart';
 import 'package:flutter_libepiccash/epic_cash.dart';
 import 'package:flutter_libepiccash_example/transaction_view.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:path_provider/path_provider.dart';
 
 class MnemonicView extends StatelessWidget {
   MnemonicView({Key? key, required this.name, required this.password})
@@ -85,60 +80,54 @@ class _EpicMnemonicView extends State<EpicMnemonicView> {
   // }
 
   String walletDirectory = "";
+
   Future<String> createFolder(String folderName) async {
-    Directory appDocDir = (await getApplicationDocumentsDirectory());
-    if (Platform.isIOS) {
-      appDocDir = (await getLibraryDirectory());
-    }
+    Directory appDocDir = await getApplicationDocumentsDirectory();
     String appDocPath = appDocDir.path;
-    print("Doc path is $appDocPath");
 
-    final Directory _appDocDir = await getApplicationDocumentsDirectory();
-    final Directory _appDocDirFolder =
-        Directory('${_appDocDir.path}/$folderName/');
+    print("App Document Directory Path: $appDocPath");
 
-    if (await _appDocDirFolder.exists()) {
-      //if folder already exists return path
+    final Directory folderDir = Directory('${appDocDir.path}/$folderName');
+
+    if (await folderDir.exists()) {
       return "directory_exists";
     } else {
-      //if folder not exists create folder and then return its path
-      final Directory _appDocDirNewFolder =
-          await _appDocDirFolder.create(recursive: true);
-
-      setState(() {
-        walletDirectory = _appDocDirNewFolder.path;
-      });
-      return _appDocDirNewFolder.path;
+      try {
+        final Directory newFolder = await folderDir.create(recursive: true);
+        return newFolder.path;
+      } catch (e) {
+        print("Error creating folder: $e");
+        return "error";
+      }
     }
   }
 
-  Future<String> _getWalletConfig(name) async {
-    var config = {};
-    // TODO: make robust path finder for IOS and Android
-    // although getApplicationDocumentsDirectory should be enough for both.
-    if (Platform.isIOS) {
-      config["wallet_dir"] =
-          "${(await getLibraryDirectory()).path}/epiccash/$name/";
-      print("wallet dir ${config["wallet_dir"]}");
-    } else {
-      config["wallet_dir"] =
-          "/data/user/0/com.example.flutter_libepiccash_example/app_flutter/$name/";
-    }
-    config["check_node_api_http_addr"] = "http://95.216.215.107:3413";
-    config["chain"] = "mainnet";
-    config["account"] = "default";
-    config["api_listen_port"] = 3413;
-    config["api_listen_interface"] = "95.216.215.107";
+  Future<String> _getWalletConfig(String name) async {
+    Directory appDocDir = await getApplicationDocumentsDirectory();
+    String walletDir = '${appDocDir.path}/flutter_libepiccash/$name';
 
-    String strConf = json.encode(config);
-    return strConf;
+    var config = {
+      "wallet_dir": walletDir,
+      "check_node_api_http_addr": "http://95.216.215.107:3413",
+      "chain": "mainnet",
+      "account": "default",
+      "api_listen_port": 3413,
+      "api_listen_interface": "0.0.0.0"
+    };
+
+    print("Wallet config: $config");
+
+    return json.encode(config);
   }
 
-  bool _createWalletFolder(name) {
-    // String nameToLower = name.
+  bool _createWalletFolder(String name) {
     createFolder(name.toLowerCase()).then((value) {
-      if (value == "directory_exists") {
-        return false;
+      if (value == "error") {
+        print("Failed to create wallet directory. Check permissions.");
+      } else if (value == "directory_exists") {
+        print("Wallet directory already exists.");
+      } else {
+        print("Wallet directory created at: $value");
       }
     });
     return true;
