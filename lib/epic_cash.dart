@@ -175,17 +175,34 @@ final CreateTransaction _createTransaction = epicCashNative
     .lookup<NativeFunction<CreateTransactionFFI>>("rust_create_tx")
     .asFunction();
 
-Future<String> createTransaction(String wallet, int amount, String address,
-    int secretKey, String epicboxConfig, int minimumConfirmations, String note) async {
-  return _createTransaction(
-    wallet.toNativeUtf8(),
-    amount.toString().toNativeUtf8().cast<Int8>(),
-    address.toNativeUtf8(),
-    secretKey.toString().toNativeUtf8().cast<Int8>(),
-    epicboxConfig.toNativeUtf8(),
-    minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
-    note.toNativeUtf8(),
-  ).toDartString();
+Future<String> createTransaction(
+    String wallet,
+    int amount,
+    String address,
+    int secretKey,
+    String epicboxConfig,
+    int minimumConfirmations,
+    String note) async {
+  try {
+    final result = await _createTransaction(
+      wallet.toNativeUtf8(),
+      amount.toString().toNativeUtf8().cast<Int8>(),
+      address.toNativeUtf8(),
+      secretKey.toString().toNativeUtf8().cast<Int8>(),
+      epicboxConfig.toNativeUtf8(),
+      minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
+      note.toNativeUtf8(),
+    ).toDartString();
+
+    // TODO: Update error handling to return error objects instead of a string with "ERROR" in it.
+    if (result.toUpperCase().contains("ERROR")) {
+      throw Exception("Error creating transaction: $result");
+    }
+
+    return result;
+  } catch (e) {
+    throw Exception("Error in createTransaction: $e");
+  }
 }
 
 final GetTransactions _getTransactions = epicCashNative
@@ -212,8 +229,20 @@ final GetChainHeight _getChainHeight = epicCashNative
     .asFunction();
 
 int getChainHeight(String config) {
-  String latestHeight = _getChainHeight(config.toNativeUtf8()).toDartString();
-  return int.parse(latestHeight);
+  try {
+    String response = _getChainHeight(config.toNativeUtf8()).toDartString();
+    print("Chain height response: $response");
+
+    if (response.toUpperCase().contains("ERROR")) {
+      throw Exception("Error from get_chain_height: $response");
+    }
+
+    int height = int.parse(response);
+    return height;
+  } catch (e) {
+    print("Error in getChainHeight: $e");
+    throw Exception("Failed to retrieve chain height: $e");
+  }
 }
 
 final AddressInfo _addressInfo = epicCashNative
