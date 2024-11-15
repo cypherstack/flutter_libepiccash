@@ -42,9 +42,10 @@ class _AdvancedFunctionsHomeState extends State<AdvancedFunctionsHome> {
           resultMessage = "No wallet configuration found.";
         });
       }
-    } catch (e) {
+    } catch (e, s) {
       setState(() {
-        resultMessage = "Error loading wallet config: $e";
+        resultMessage = "Error loading wallet config: $e\n$s";
+        print(resultMessage);
       });
     }
   }
@@ -55,9 +56,10 @@ class _AdvancedFunctionsHomeState extends State<AdvancedFunctionsHome> {
       setState(() {
         resultMessage = "Address Info: $addressInfo";
       });
-    } catch (e) {
+    } catch (e, s) {
       setState(() {
-        resultMessage = "Error retrieving address info: $e";
+        resultMessage = "Error retrieving address info: $e\n$s";
+        print(resultMessage);
       });
     }
   }
@@ -68,9 +70,10 @@ class _AdvancedFunctionsHomeState extends State<AdvancedFunctionsHome> {
       setState(() {
         resultMessage = "Chain Height: $height";
       });
-    } catch (e) {
+    } catch (e, s) {
       setState(() {
-        resultMessage = "Error retrieving chain height: $e";
+        resultMessage = "Error retrieving chain height: $e\n$s";
+        print(resultMessage);
       });
     }
   }
@@ -81,9 +84,10 @@ class _AdvancedFunctionsHomeState extends State<AdvancedFunctionsHome> {
       setState(() {
         resultMessage = "Scan Outputs Result: $result";
       });
-    } catch (e) {
+    } catch (e, s) {
       setState(() {
-        resultMessage = "Error scanning outputs: $e";
+        resultMessage = "Error scanning outputs: $e\n$s";
+        print(resultMessage);
       });
     }
   }
@@ -94,9 +98,10 @@ class _AdvancedFunctionsHomeState extends State<AdvancedFunctionsHome> {
       setState(() {
         resultMessage = "Delete Wallet Result: $result";
       });
-    } catch (e) {
+    } catch (e, s) {
       setState(() {
-        resultMessage = "Error deleting wallet: $e";
+        resultMessage = "Error deleting wallet: $e\n$s";
+        print(resultMessage);
       });
     }
   }
