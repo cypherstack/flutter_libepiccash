@@ -68,7 +68,7 @@ cd scripts/ios
 
 # Windows
 ## Dependencies
-Run `scripts/windows/deps.sh` (may need to alter permissions like with `chmod +x *.sh`) to install x86_64-w64-mingw32-gcc and clang or run
+Run `scripts/windows/deps.sh` in WSL (may need to alter permissions like with `chmod +x *.sh`) to install `x86_64-w64-mingw32-gcc` and `clang` or run
 ```sh
 sudo apt-get install clang gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
 ```
