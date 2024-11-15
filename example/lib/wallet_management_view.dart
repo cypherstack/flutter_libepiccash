@@ -3,10 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'init_transaction_view.dart';
-import 'mnemonic_view.dart';
-import 'recover_view.dart';
 import 'transaction_view.dart';
+import 'wallet_name.dart';
 
 class WalletManagementView extends StatefulWidget {
   const WalletManagementView({Key? key}) : super(key: key);
@@ -16,135 +14,129 @@ class WalletManagementView extends StatefulWidget {
 }
 
 class _WalletManagementViewState extends State<WalletManagementView> {
-  List<String> wallets = [];
-  String? selectedWallet;
+  final List<String> _wallets = [];
+
+  Future<List<String>> _getWalletDirectories() async {
+    try {
+      // Get the application documents directory.
+      Directory appDir = await getApplicationDocumentsDirectory();
+      // Create a "wallets" folder if it does not exist.
+      final walletsDir = Directory('${appDir.path}/wallets');
+      if (!await walletsDir.exists()) {
+        await walletsDir.create(recursive: true);
+      }
+
+      // Verify if wallet directories are stored under "wallets" folder.
+      final walletDirs = walletsDir.listSync().whereType<Directory>();
+      return walletDirs.map((dir) => dir.path.split('/').last).toList();
+    } catch (e) {
+      print("Error reading wallet directories: $e");
+      return [];
+    }
+  }
+
+  Future<void> _refreshWallets() async {
+    final wallets = await _getWalletDirectories();
+    setState(() {
+      _wallets.clear();
+      _wallets.addAll(wallets);
+    });
+  }
+
+  Future<void> _promptPasswordAndNavigate(
+      BuildContext context, String walletName) async {
+    final TextEditingController _passwordController = TextEditingController();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Enter Password'),
+          content: TextField(
+            controller: _passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(hintText: 'Password'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.pop(context, null);
+              },
+            ),
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.pop(context, _passwordController.text);
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null && result.isNotEmpty) {
+      // Navigate to TransactionView with the wallet name and entered password
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TransactionView(
+            walletName: walletName,
+            password: result,
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _loadWallets();
-  }
-
-  Future<void> _loadWallets() async {
-    try {
-      final Directory appDocDir = await getApplicationDocumentsDirectory();
-      final Directory walletDir = Directory('${appDocDir.path}/wallets');
-      if (!await walletDir.exists()) {
-        await walletDir.create(recursive: true);
-      }
-      setState(() {
-        wallets = walletDir
-            .listSync()
-            .where((entity) => entity is Directory)
-            .map((entity) => entity.path.split('/').last)
-            .toList();
-      });
-    } catch (e) {
-      print("Error loading wallets: $e");
-    }
-  }
-
-  void _setSelectedWallet(String wallet) {
-    setState(() {
-      selectedWallet = wallet;
-    });
-  }
-
-  void _createWallet() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MnemonicView(
-          name: '',
-          password:
-              '', // Handle password directly within the wallet creation flow.
-        ),
-      ),
-    ).then((_) => _loadWallets());
-  }
-
-  void _recoverWallet() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RecoverWalletView(
-          name: '',
-        ),
-      ),
-    ).then((_) => _loadWallets());
+    _refreshWallets();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Wallet Management')),
+      appBar: AppBar(title: const Text('Manage Wallets')),
       body: Column(
         children: [
-          ListTile(
-            title: const Text('Available Wallets'),
-            subtitle: Text(wallets.isEmpty
-                ? 'No wallets found. Create or recover a wallet to get started.'
-                : '${wallets.length} wallet(s) available.'),
-          ),
           Expanded(
-            child: ListView.builder(
-              itemCount: wallets.length,
-              itemBuilder: (context, index) {
-                final wallet = wallets[index];
-                return ListTile(
-                  title: Text(wallet),
-                  trailing: selectedWallet == wallet
-                      ? const Icon(Icons.check_circle, color: Colors.green)
-                      : null,
-                  onTap: () => _setSelectedWallet(wallet),
-                );
-              },
-            ),
-          ),
-          const Divider(),
-          ListTile(
-            title: const Text('Actions'),
+            child: _wallets.isEmpty
+                ? const Center(child: Text("No wallets found."))
+                : ListView.builder(
+                    itemCount: _wallets.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(_wallets[index]),
+                        onTap: () {
+                          _promptPasswordAndNavigate(context, _wallets[index]);
+                        },
+                      );
+                    },
+                  ),
           ),
           ElevatedButton(
-            onPressed: _createWallet,
-            child: const Text('Create New Wallet'),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const WalletNameView(recover: false),
+                ),
+              ).then((_) => _refreshWallets());
+            },
+            child: const Text('Create Wallet'),
           ),
           ElevatedButton(
-            onPressed: _recoverWallet,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const WalletNameView(recover: true),
+                ),
+              ).then((_) => _refreshWallets());
+            },
             child: const Text('Recover Wallet'),
-          ),
-          ElevatedButton(
-            onPressed: selectedWallet != null
-                ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => TransactionView(
-                          walletName: selectedWallet!,
-                          password:
-                              '', // Assume password handling within views.
-                        ),
-                      ),
-                    );
-                  }
-                : null,
-            child: const Text('View Transactions'),
-          ),
-          ElevatedButton(
-            onPressed: selectedWallet != null
-                ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => InitTransactionView(
-                          password:
-                              '', // Assume password handling within views.
-                        ),
-                      ),
-                    );
-                  }
-                : null,
-            child: const Text('Initiate Transaction'),
           ),
         ],
       ),

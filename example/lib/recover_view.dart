@@ -1,10 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash/epic_cash.dart';
 import 'package:flutter_libepiccash_example/transaction_view.dart';
+import 'package:flutter_libepiccash_example/util.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'epicbox_config.dart';
 
@@ -47,45 +45,19 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
   final storage = new FlutterSecureStorage();
 
   String walletDirectory = "";
-  Future<String> createFolder(String folderName) async {
-    Directory appDocDir = (await getApplicationDocumentsDirectory());
-    if (Platform.isIOS) {
-      appDocDir = (await getLibraryDirectory());
-    }
-    String appDocPath = appDocDir.path;
-    print("Doc path is $appDocPath");
-
-    Directory _appDocDir = (await getApplicationDocumentsDirectory());
-    if (Platform.isIOS) {
-      _appDocDir = (await getLibraryDirectory());
-    }
-    final Directory _appDocDirFolder =
-        Directory('${_appDocDir.path}/$folderName/');
-
-    if (await _appDocDirFolder.exists()) {
-      //if folder already exists return path
-      return "directory_exists";
-    } else {
-      //if folder not exists create folder and then return its path
-      final Directory _appDocDirNewFolder =
-          await _appDocDirFolder.create(recursive: true);
-
-      setState(() {
-        walletDirectory = _appDocDirNewFolder.path;
-      });
-      return _appDocDirNewFolder.path;
-    }
-  }
 
   Future<String> _getWalletConfig(String name) async {
     return await EpicboxConfig.getDefaultConfig(name);
   }
 
-  bool _createWalletFolder(name) {
-    // String nameToLower = name.
+  bool _createWalletFolder(String name) {
     createFolder(name.toLowerCase()).then((value) {
-      if (value == "directory_exists") {
-        return false;
+      if (value == "error") {
+        print("Failed to create wallet directory. Check permissions.");
+      } else if (value == "directory_exists") {
+        print("Wallet directory already exists.");
+      } else {
+        print("Wallet directory created at: $value");
       }
     });
     return true;
