@@ -1,109 +1,146 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_libepiccash/epic_cash.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-class AdvancedFunctionsView extends StatefulWidget {
+class AdvancedFunctionsView extends StatelessWidget {
   const AdvancedFunctionsView({Key? key}) : super(key: key);
 
   @override
-  State<AdvancedFunctionsView> createState() => _AdvancedFunctionsViewState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Advanced Wallet Functions',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const AdvancedFunctionsHome(title: 'Advanced Functions'),
+    );
+  }
 }
 
-class _AdvancedFunctionsViewState extends State<AdvancedFunctionsView> {
-  String result = "";
+class AdvancedFunctionsHome extends StatefulWidget {
+  const AdvancedFunctionsHome({Key? key, required this.title})
+      : super(key: key);
 
-  Future<void> createFolder(String folderName) async {
-    // Mock implementation of folder creation
-    setState(() {
-      result = "Folder '$folderName' created successfully!";
-    });
+  final String title;
+
+  @override
+  State<AdvancedFunctionsHome> createState() => _AdvancedFunctionsHomeState();
+}
+
+class _AdvancedFunctionsHomeState extends State<AdvancedFunctionsHome> {
+  final storage = const FlutterSecureStorage();
+  String walletConfig = "";
+  String resultMessage = "Perform actions to see results here.";
+
+  Future<void> _loadWalletConfig() async {
+    try {
+      var config = await storage.read(key: "config");
+      if (config != null && config.isNotEmpty) {
+        setState(() {
+          walletConfig = config;
+        });
+      } else {
+        setState(() {
+          resultMessage = "No wallet configuration found.";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        resultMessage = "Error loading wallet config: $e";
+      });
+    }
   }
 
-  Future<void> getAddressInfo() async {
-    // Mock FFI call to getAddressInfo
-    setState(() {
-      result = "Address Info: {\"address\": \"epic_address_sample\"}";
-    });
+  Future<void> _getAddressInfo() async {
+    try {
+      String addressInfo = getAddressInfo(walletConfig, 0, "{}");
+      setState(() {
+        resultMessage = "Address Info: $addressInfo";
+      });
+    } catch (e) {
+      setState(() {
+        resultMessage = "Error retrieving address info: $e";
+      });
+    }
   }
 
-  Future<void> getChainHeight() async {
-    // Mock FFI call to getChainHeight
-    setState(() {
-      result = "Chain Height: 123456";
-    });
+  Future<void> _getChainHeight() async {
+    try {
+      int height = getChainHeight(walletConfig);
+      setState(() {
+        resultMessage = "Chain Height: $height";
+      });
+    } catch (e) {
+      setState(() {
+        resultMessage = "Error retrieving chain height: $e";
+      });
+    }
   }
 
-  Future<void> walletInfo() async {
-    // Mock FFI call to walletInfo
-    setState(() {
-      result = "Wallet Info: {\"balance\": 1000, \"spendable\": 800}";
-    });
+  Future<void> _scanOutputs() async {
+    try {
+      String result = await scanOutPuts(walletConfig, 0, 100);
+      setState(() {
+        resultMessage = "Scan Outputs Result: $result";
+      });
+    } catch (e) {
+      setState(() {
+        resultMessage = "Error scanning outputs: $e";
+      });
+    }
   }
 
-  Future<void> createTransaction() async {
-    // Mock FFI call to createTransaction
-    setState(() {
-      result = "Transaction created: {\"tx_id\": \"tx12345\"}";
-    });
+  Future<void> _deleteWallet() async {
+    try {
+      String result = await deleteWallet("example", walletConfig);
+      setState(() {
+        resultMessage = "Delete Wallet Result: $result";
+      });
+    } catch (e) {
+      setState(() {
+        resultMessage = "Error deleting wallet: $e";
+      });
+    }
   }
 
-  Future<void> cancelTransaction() async {
-    // Mock FFI call to cancelTransaction
-    setState(() {
-      result = "Transaction canceled successfully.";
-    });
-  }
-
-  Future<void> receiveTransaction() async {
-    // Mock FFI call to receiveTransaction
-    setState(() {
-      result = "Transaction received successfully.";
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadWalletConfig();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Advanced Functions')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      appBar: AppBar(
+        title: Text(widget.title),
+      ),
+      body: Center(
         child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                children: [
-                  ElevatedButton(
-                    onPressed: () => createFolder("epic_folder"),
-                    child: const Text("Create Folder"),
-                  ),
-                  ElevatedButton(
-                    onPressed: getAddressInfo,
-                    child: const Text("Get Address Info"),
-                  ),
-                  ElevatedButton(
-                    onPressed: getChainHeight,
-                    child: const Text("Get Chain Height"),
-                  ),
-                  ElevatedButton(
-                    onPressed: walletInfo,
-                    child: const Text("Get Wallet Info"),
-                  ),
-                  ElevatedButton(
-                    onPressed: createTransaction,
-                    child: const Text("Create Transaction"),
-                  ),
-                  ElevatedButton(
-                    onPressed: cancelTransaction,
-                    child: const Text("Cancel Transaction"),
-                  ),
-                  ElevatedButton(
-                    onPressed: receiveTransaction,
-                    child: const Text("Receive Transaction"),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
+          children: <Widget>[
             Text(
-              "Result: $result",
+              "Wallet Config Loaded: ${walletConfig.isNotEmpty ? 'Yes' : 'No'}",
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _getAddressInfo,
+              child: const Text("Get Address Info"),
+            ),
+            ElevatedButton(
+              onPressed: _getChainHeight,
+              child: const Text("Get Chain Height"),
+            ),
+            ElevatedButton(
+              onPressed: _scanOutputs,
+              child: const Text("Scan Outputs"),
+            ),
+            ElevatedButton(
+              onPressed: _deleteWallet,
+              child: const Text("Delete Wallet"),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              resultMessage,
+              textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16),
             ),
           ],
