@@ -4,10 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash_example/init_transaction_view.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-class TransactionView extends StatelessWidget {
-  TransactionView({Key? key, required this.password}) : super(key: key);
+import 'epicbox_config.dart';
 
+class TransactionView extends StatelessWidget {
   final String password;
+  final String walletName;
+
+  TransactionView({Key? key, required this.password, required this.walletName})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +26,7 @@ class TransactionView extends StatelessWidget {
       body: EpicTransactionView(
         title: 'Transactions',
         password: password,
+        walletName: walletName,
       ),
     );
   }
@@ -29,10 +34,14 @@ class TransactionView extends StatelessWidget {
 
 class EpicTransactionView extends StatefulWidget {
   final String password;
+  final String walletName;
 
-  const EpicTransactionView(
-      {Key? key, required this.title, required this.password})
-      : super(key: key);
+  const EpicTransactionView({
+    Key? key,
+    required this.title,
+    required this.password,
+    required this.walletName,
+  }) : super(key: key);
 
   final String title;
 
@@ -49,10 +58,12 @@ class _EpicTransactionView extends State<EpicTransactionView> {
 
   Future<void> _getWalletConfig() async {
     try {
-      var config = await storage.read(key: "config");
-      if (config == null || config.isEmpty) {
-        throw Exception("Wallet configuration not found.");
-      }
+      // Used to use secure storage as in:
+      // var config = await storage.read(key: "config");
+      // if (config == null || config.isEmpty) {
+      //   throw Exception("Wallet configuration not found.");
+      // }
+      String config = await EpicboxConfig.getDefaultConfig(widget.walletName);
 
       setState(() {
         walletConfig = config;

@@ -1,13 +1,12 @@
-import 'dart:ffi';
 import 'dart:io';
-import 'dart:convert';
-import 'package:ffi/ffi.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash/epic_cash.dart';
 import 'package:flutter_libepiccash_example/transaction_view.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:path_provider/path_provider.dart';
+
+import 'epicbox_config.dart';
 
 class RecoverWalletView extends StatelessWidget {
   RecoverWalletView({Key? key, required this.name}) : super(key: key);
@@ -34,15 +33,6 @@ class EpicRecoverWalletView extends StatefulWidget {
       : super(key: key);
 
   final String name;
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -87,18 +77,8 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
     }
   }
 
-  String _getWalletConfig(name) {
-    var config = {};
-    config["wallet_dir"] =
-        "/data/user/0/com.example.flutter_libepiccash_example/app_flutter/$name/";
-    config["check_node_api_http_addr"] = "http://95.216.215.107:3413";
-    config["chain"] = "mainnet";
-    config["account"] = "default";
-    config["api_listen_port"] = 3413;
-    config["api_listen_interface"] = "95.216.215.107";
-
-    String strConf = json.encode(config);
-    return strConf;
+  Future<String> _getWalletConfig(String name) async {
+    return await EpicboxConfig.getDefaultConfig(name);
   }
 
   bool _createWalletFolder(name) {
@@ -190,31 +170,25 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
                 },
               ),
               ElevatedButton(
-                onPressed: () {
-                  // Validate returns true if the form is valid, or false otherwise.
+                onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    String walletMnemonic = mnemonic;
-                    String walletPassword = password;
-                    String walletConfig = _getWalletConfig(name);
+                    String walletConfig = await _getWalletConfig(name);
 
-                    // String strConf = json.encode(walletConfig);
                     String recover =
                         recoverWallet(walletConfig, password, mnemonic, name);
 
                     if (recover == "recovered") {
-                      _storeConfig(walletConfig);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (context) => TransactionView(
                                   password: password,
+                                  walletName: name,
                                 )),
                       );
                     } else {
                       _setRecoverError(recover);
                     }
-                    //Store config and password in secure storage since we will need them again
-
                   }
                 },
                 child: const Text('Next'),
@@ -223,11 +197,5 @@ class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
             ],
           ),
         ));
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
   }
 }

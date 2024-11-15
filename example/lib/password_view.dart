@@ -1,4 +1,3 @@
-// import 'package:epic_wallet/backup_key_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash_example/mnemonic_view.dart';
 import 'package:numeric_keyboard/numeric_keyboard.dart';

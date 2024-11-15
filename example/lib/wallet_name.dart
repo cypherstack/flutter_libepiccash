@@ -21,7 +21,7 @@ class WalletNameView extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => RecoverWalletView(name: 'example'),
+                builder: (context) => RecoverWalletView(name: 'walletName'),
               ),
             );
           },

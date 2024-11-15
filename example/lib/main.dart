@@ -63,8 +63,8 @@ class MainMenu extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => MnemonicView(
-                      name: 'example',
-                      password: 'password123',
+                      name: 'walletName',
+                      password: 'walletPassword',
                     ),
                   ),
                 );
@@ -77,7 +77,8 @@ class MainMenu extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => TransactionView(
-                      password: 'password123',
+                      walletName: 'walletName',
+                      password: 'walletPassword',
                     ),
                   ),
                 );

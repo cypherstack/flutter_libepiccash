@@ -1,8 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash/epic_cash.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'epicbox_config.dart';
 
 class InitTransactionView extends StatelessWidget {
   const InitTransactionView({Key? key, required this.password})
@@ -44,30 +44,28 @@ class _EpicInitTransactionView extends State<EpicInitTransactionView> {
   var initTxResponse = "";
 
   Future<void> _getWalletConfig() async {
-    var config = await storage.read(key: "config");
-    String strConf = json.encode(config);
-
-    setState(() {
-      walletConfig = strConf;
-    });
+    walletConfig = await EpicboxConfig.getDefaultConfig('walletName');
   }
 
   String _initTransaction(String config, String password, int amount,
       String minimumConfirmations, String selectionStrategyUseAll) {
-    // final String createTransactionStr = createTransaction(config, password,
-    //     amount, minimumConfirmations, selectionStrategyUseAll);
-
-    // return createTransactionStr;
-    return "fixme";
+    try {
+      return createTransaction(
+        config,
+        amount,
+        '',
+        0, // Assuming default secretKeyIndex = 0
+        '{}', // Assuming no specific epicboxConfig
+        int.parse(minimumConfirmations),
+        '', // Assuming no note
+      ).toString();
+    } catch (e) {
+      return "Error initiating transaction: $e";
+    }
   }
 
   void _setAmount(value) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
       amount = amount + value;
     });
   }
@@ -108,24 +106,21 @@ class _EpicInitTransactionView extends State<EpicInitTransactionView> {
                 },
               ),
               ElevatedButton(
-                onPressed: () {
-                  print("Amount is $amount");
-                  String password = widget.password;
-                  // Validate returns true if the form is valid, or false otherwise.
+                onPressed: () async {
                   if (_formKey.currentState!.validate()) {
-                    print("Amount is $amount");
-                    print("Password is  $password");
+                    String walletConfig =
+                        await EpicboxConfig.getDefaultConfig('walletName');
+
                     const minimumConfirmations = "10";
                     const selectionStrategyUseAll = "0";
 
-                    String decodeConfig = json.decode(walletConfig);
-
                     String transaction = _initTransaction(
-                        decodeConfig,
-                        password,
-                        int.parse(amount),
-                        minimumConfirmations,
-                        selectionStrategyUseAll);
+                      walletConfig,
+                      widget.password,
+                      int.parse(amount),
+                      minimumConfirmations,
+                      selectionStrategyUseAll,
+                    );
                     _setInitTxResponse(transaction);
                   }
                 },
