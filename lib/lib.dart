@@ -115,10 +115,16 @@ abstract class LibEpiccash {
   /// Private function wrapper for wallet balances
   ///
   static Future<String> _walletBalancesWrapper(
-    ({String wallet, int refreshFromNode, int minimumConfirmations}) data,
-  ) async {
+      ({
+        String wallet,
+        int refreshFromNode,
+        int minimumConfirmations
+      }) data) async {
     return lib_epiccash.getWalletInfo(
-        data.wallet, data.refreshFromNode, data.minimumConfirmations);
+      data.wallet,
+      data.refreshFromNode,
+      data.minimumConfirmations,
+    );
   }
 
   ///
@@ -171,8 +177,7 @@ abstract class LibEpiccash {
   /// Private function wrapper for scanning output function
   ///
   static Future<String> _scanOutputsWrapper(
-    ({String wallet, int startHeight, int numberOfBlocks}) data,
-  ) async {
+      ({String wallet, int startHeight, int numberOfBlocks}) data) async {
     return lib_epiccash.scanOutPuts(
       data.wallet,
       data.startHeight,

@@ -6,11 +6,11 @@ import 'package:ffi/ffi.dart';
 final DynamicLibrary epicCashNative = io.Platform.isWindows
     ? DynamicLibrary.open("libepic_cash_wallet.dll")
     : io.Platform.environment.containsKey('FLUTTER_TEST')
-    ? DynamicLibrary.open(
-    'crypto_plugins/flutter_libepiccash/scripts/linux/build/libepic_cash_wallet.so')
-    : io.Platform.isAndroid || io.Platform.isLinux
-    ? DynamicLibrary.open('libepic_cash_wallet.so')
-    : DynamicLibrary.process();
+        ? DynamicLibrary.open(
+            'crypto_plugins/flutter_libepiccash/scripts/linux/build/libepic_cash_wallet.so')
+        : io.Platform.isAndroid || io.Platform.isLinux
+            ? DynamicLibrary.open('libepic_cash_wallet.so')
+            : DynamicLibrary.process();
 
 typedef WalletMnemonic = Pointer<Utf8> Function();
 typedef WalletMnemonicFFI = Pointer<Utf8> Function();
@@ -40,8 +40,13 @@ typedef ScanOutPutsFFI = Pointer<Utf8> Function(
 
 typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
     Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
-typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
-    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>,
+typedef CreateTransactionFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>,
+    Pointer<Int8>,
+    Pointer<Utf8>,
+    Pointer<Int8>,
+    Pointer<Utf8>,
+    Pointer<Int8>,
     Pointer<Utf8>);
 
 typedef EpicboxListenerStart = Pointer<Void> Function(
@@ -103,7 +108,7 @@ final WalletInit _initWallet = epicCashNative
 String initWallet(
     String config, String mnemonic, String password, String name) {
   return _initWallet(config.toNativeUtf8(), mnemonic.toNativeUtf8(),
-      password.toNativeUtf8(), name.toNativeUtf8())
+          password.toNativeUtf8(), name.toNativeUtf8())
       .toDartString();
 }
 
@@ -114,9 +119,9 @@ final WalletInfo _walletInfo = epicCashNative
 Future<String> getWalletInfo(
     String wallet, int refreshFromNode, int min_confirmations) async {
   return _walletInfo(
-      wallet.toNativeUtf8(),
-      refreshFromNode.toString().toNativeUtf8().cast<Int8>(),
-      min_confirmations.toString().toNativeUtf8().cast<Int8>())
+          wallet.toNativeUtf8(),
+          refreshFromNode.toString().toNativeUtf8().cast<Int8>(),
+          min_confirmations.toString().toNativeUtf8().cast<Int8>())
       .toDartString();
 }
 
@@ -127,7 +132,7 @@ final RecoverWallet _recoverWallet = epicCashNative
 String recoverWallet(
     String config, String password, String mnemonic, String name) {
   return _recoverWallet(config.toNativeUtf8(), password.toNativeUtf8(),
-      mnemonic.toNativeUtf8(), name.toNativeUtf8())
+          mnemonic.toNativeUtf8(), name.toNativeUtf8())
       .toDartString();
 }
 
@@ -146,7 +151,7 @@ Future<String> scanOutPuts(
 
 final EpicboxListenerStart _epicboxListenerStart = epicCashNative
     .lookup<NativeFunction<EpicboxListenerStartFFI>>(
-    "rust_epicbox_listener_start")
+        "rust_epicbox_listener_start")
     .asFunction();
 
 Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
@@ -189,7 +194,7 @@ final GetTransactions _getTransactions = epicCashNative
 
 Future<String> getTransactions(String wallet, int refreshFromNode) async {
   return _getTransactions(wallet.toNativeUtf8(),
-      refreshFromNode.toString().toNativeUtf8().cast<Int8>())
+          refreshFromNode.toString().toNativeUtf8().cast<Int8>())
       .toDartString();
 }
 
@@ -217,9 +222,9 @@ final AddressInfo _addressInfo = epicCashNative
 
 String getAddressInfo(String wallet, int index, String epicboxConfig) {
   return _addressInfo(
-      wallet.toNativeUtf8(),
-      index.toString().toNativeUtf8().cast<Int8>(),
-      epicboxConfig.toNativeUtf8())
+          wallet.toNativeUtf8(),
+          index.toString().toNativeUtf8().cast<Int8>(),
+          epicboxConfig.toNativeUtf8())
       .toDartString();
 }
 
@@ -238,9 +243,9 @@ final TransactionFees _transactionFees = epicCashNative
 Future<String> getTransactionFees(
     String wallet, int amount, int minimumConfirmations) async {
   return _transactionFees(
-      wallet.toNativeUtf8(),
-      amount.toString().toNativeUtf8().cast<Int8>(),
-      minimumConfirmations.toString().toNativeUtf8().cast<Int8>())
+          wallet.toNativeUtf8(),
+          amount.toString().toNativeUtf8().cast<Int8>(),
+          minimumConfirmations.toString().toNativeUtf8().cast<Int8>())
       .toDartString();
 }
 
@@ -274,16 +279,11 @@ Future<String> txHttpSend(
     int amount,
     String address) async {
   return _txHttpSend(
-      wallet.toNativeUtf8(),
-      selectionStrategyIsAll.toString().toNativeUtf8().cast<Int8>(),
-      minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
-      message.toNativeUtf8(),
-      amount.toString().toNativeUtf8().cast<Int8>(),
-      address.toNativeUtf8())
+          wallet.toNativeUtf8(),
+          selectionStrategyIsAll.toString().toNativeUtf8().cast<Int8>(),
+          minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
+          message.toNativeUtf8(),
+          amount.toString().toNativeUtf8().cast<Int8>(),
+          address.toNativeUtf8())
       .toDartString();
 }
-
-
-
-
-
