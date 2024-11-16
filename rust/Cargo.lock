@@ -186,12 +186,6 @@ dependencies = [
 
 [[package]]
 name = "base64"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b41b7ea54a0c9d92199de89e20e58d49f02f8e699814ef3fdf266f6f748d15c7"
-
-[[package]]
-name = "base64"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
@@ -952,7 +946,7 @@ dependencies = [
  "stack_epic_wallet_util",
  "tokio 0.2.25",
  "tokio-tungstenite",
- "tungstenite 0.10.1",
+ "tungstenite",
  "url 2.5.0",
  "uuid 0.7.4",
  "websocket",
@@ -1467,7 +1461,7 @@ dependencies = [
  "httparse",
  "httpdate 0.3.2",
  "itoa 0.4.8",
- "pin-project 1.1.4",
+ "pin-project",
  "socket2 0.3.19",
  "tokio 0.2.25",
  "tower-service",
@@ -1649,15 +1643,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0c10553d664a4d0bcff9f4215d0aac67a639cc68ef660840afe309b807bc9f5"
 dependencies = [
  "generic-array 0.14.7",
-]
-
-[[package]]
-name = "input_buffer"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19a8a95243d5a0398cae618ec29477c6e3cb631152be5c19481f80bc71559754"
-dependencies = [
- "bytes 0.5.6",
 ]
 
 [[package]]
@@ -2563,31 +2548,11 @@ dependencies = [
 
 [[package]]
 name = "pin-project"
-version = "0.4.30"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ef0f924a5ee7ea9cbcea77529dba45f8a9ba9f622419fe3386ca581a3ae9d5a"
-dependencies = [
- "pin-project-internal 0.4.30",
-]
-
-[[package]]
-name = "pin-project"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0302c4a0442c456bd56f841aee5c3bfd17967563f6fadc9ceb9f9c23cf3807e0"
 dependencies = [
- "pin-project-internal 1.1.4",
-]
-
-[[package]]
-name = "pin-project-internal"
-version = "0.4.30"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "851c8d0ce9bebe43790dedfc86614c23494ac9f423dd618d3a61fc693eafe61e"
-dependencies = [
- "proc-macro2 1.0.78",
- "quote 1.0.35",
- "syn 1.0.109",
+ "pin-project-internal",
 ]
 
 [[package]]
@@ -3871,8 +3836,6 @@ dependencies = [
 [[package]]
 name = "stack_epic_wallet_api"
 version = "3.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68f00c5c326e0d8913f6d0dccdec5e854a8dba84f2b1365e304123d08faf9c23"
 dependencies = [
  "base64 0.9.3",
  "chrono",
@@ -3896,8 +3859,6 @@ dependencies = [
 [[package]]
 name = "stack_epic_wallet_config"
 version = "3.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e8848ebaa93d7df92cabf677565a1d504e5103045daa252e0485ad8e25ab198"
 dependencies = [
  "dirs 1.0.5",
  "rand 0.5.6",
@@ -3910,8 +3871,6 @@ dependencies = [
 [[package]]
 name = "stack_epic_wallet_controller"
 version = "3.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02a70179f47c9638bc9d35b4e97e791e6a9a5c757131555c9e88bcf542e50aae"
 dependencies = [
  "chrono",
  "easy-jsonrpc-mw",
@@ -3933,7 +3892,7 @@ dependencies = [
  "term 0.5.2",
  "thiserror",
  "tokio 1.36.0",
- "tungstenite 0.21.0",
+ "tungstenite",
  "url 1.7.2",
  "uuid 0.7.4",
 ]
@@ -3941,8 +3900,6 @@ dependencies = [
 [[package]]
 name = "stack_epic_wallet_impls"
 version = "3.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0c707dc55e5c1ed5de90240669288331911e3a3474a1e0ff5148ba81adb24e5"
 dependencies = [
  "bitvec",
  "blake2-rfc",
@@ -3977,7 +3934,7 @@ dependencies = [
  "thiserror",
  "timer",
  "tokio 0.2.25",
- "tungstenite 0.21.0",
+ "tungstenite",
  "uuid 0.7.4",
  "x25519-dalek",
 ]
@@ -3985,8 +3942,6 @@ dependencies = [
 [[package]]
 name = "stack_epic_wallet_libwallet"
 version = "3.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa96c67faab202f3585b0c35148e86a3ed65c20691f652d84dbd99fd35444f18"
 dependencies = [
  "aead",
  "blake2-rfc",
@@ -4012,15 +3967,13 @@ dependencies = [
  "strum",
  "strum_macros",
  "thiserror",
- "tungstenite 0.21.0",
+ "tungstenite",
  "uuid 0.7.4",
 ]
 
 [[package]]
 name = "stack_epic_wallet_util"
 version = "3.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbe23adce1eae52444438c409de16cb63094f74e5d442d437fa3a6ec6c6fcaac"
 dependencies = [
  "dirs 1.0.5",
  "rand 0.5.6",
@@ -4626,15 +4579,14 @@ dependencies = [
 
 [[package]]
 name = "tokio-tungstenite"
-version = "0.10.1"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8b8fe88007ebc363512449868d7da4389c9400072a3f666f212c7280082882a"
+checksum = "c83b561d025642014097b66e6c1bb422783339e0909e4429cde4749d1990bc38"
 dependencies = [
- "futures 0.3.30",
+ "futures-util",
  "log 0.4.20",
- "pin-project 0.4.30",
- "tokio 0.2.25",
- "tungstenite 0.10.1",
+ "tokio 1.36.0",
+ "tungstenite",
 ]
 
 [[package]]
@@ -4739,7 +4691,7 @@ version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97d095ae15e245a057c8e8451bab9b3ee1e1f68e9ba2b4fbc18d0ac5237835f2"
 dependencies = [
- "pin-project 1.1.4",
+ "pin-project",
  "tracing",
 ]
 
@@ -4754,25 +4706,6 @@ name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
-
-[[package]]
-name = "tungstenite"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfea31758bf674f990918962e8e5f07071a3161bd7c4138ed23e416e1ac4264e"
-dependencies = [
- "base64 0.11.0",
- "byteorder",
- "bytes 0.5.6",
- "http 0.2.11",
- "httparse",
- "input_buffer",
- "log 0.4.20",
- "rand 0.7.3",
- "sha-1",
- "url 2.5.0",
- "utf-8",
-]
 
 [[package]]
 name = "tungstenite"

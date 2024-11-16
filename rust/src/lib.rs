@@ -620,7 +620,13 @@ pub unsafe extern "C" fn rust_txs_get(
     };
 
     let wallet_data = c_wallet.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+    let tuple_wallet_data: (i64, Option<SecretKey>) = match serde_json::from_str(wallet_data) {
+        Ok(data) => data,
+        Err(e) => {
+            println!("ERROR: Failed to parse wallet data: {}", e);
+            return std::ptr::null();
+        }
+    };
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
 
