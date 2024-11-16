@@ -6,7 +6,8 @@ import 'package:path_provider/path_provider.dart';
 Future<String> createFolder(String folderName) async {
   try {
     Directory appDocDir = await getApplicationDocumentsDirectory();
-    String walletsPath = '${appDocDir.path}/wallets';
+    String walletsPath =
+        '${appDocDir.path}/flutter_libepiccash/example/wallets';
     final walletsDir = Directory(walletsPath);
 
     if (!await walletsDir.exists()) {

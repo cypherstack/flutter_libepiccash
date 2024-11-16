@@ -29,7 +29,6 @@ class WalletNameView extends StatelessWidget {
             ElevatedButton(
               onPressed: () async {
                 if (_controller.text.isNotEmpty) {
-                  // Guarantee wallet directory structure.
                   final walletPath = await createFolder(_controller.text);
                   if (walletPath == "directory_exists" ||
                       walletPath != "error") {
@@ -38,7 +37,6 @@ class WalletNameView extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => MnemonicView(
                           name: _controller.text,
-                          password: '', // Handled in MnemonicView
                         ),
                       ),
                     );

@@ -21,7 +21,8 @@ class _WalletManagementViewState extends State<WalletManagementView> {
       // Get the application documents directory.
       Directory appDir = await getApplicationDocumentsDirectory();
       // Create a "wallets" folder if it does not exist.
-      final walletsDir = Directory('${appDir.path}/wallets');
+      final walletsDir =
+          Directory('${appDir.path}/flutter_libepiccash/example/wallets');
       if (!await walletsDir.exists()) {
         await walletsDir.create(recursive: true);
       }
