@@ -6,11 +6,11 @@ import 'package:ffi/ffi.dart';
 final DynamicLibrary epicCashNative = io.Platform.isWindows
     ? DynamicLibrary.open("libepic_cash_wallet.dll")
     : io.Platform.environment.containsKey('FLUTTER_TEST')
-    ? DynamicLibrary.open(
-    'crypto_plugins/flutter_libepiccash/scripts/linux/build/libepic_cash_wallet.so')
-    : io.Platform.isAndroid || io.Platform.isLinux
-    ? DynamicLibrary.open('libepic_cash_wallet.so')
-    : DynamicLibrary.process();
+        ? DynamicLibrary.open(
+            'crypto_plugins/flutter_libepiccash/scripts/linux/build/libepic_cash_wallet.so')
+        : io.Platform.isAndroid || io.Platform.isLinux
+            ? DynamicLibrary.open('libepic_cash_wallet.so')
+            : DynamicLibrary.process();
 
 typedef WalletMnemonic = Pointer<Utf8> Function();
 typedef WalletMnemonicFFI = Pointer<Utf8> Function();
@@ -40,8 +40,13 @@ typedef ScanOutPutsFFI = Pointer<Utf8> Function(
 
 typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
     Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
-typedef CreateTransactionFFI = Pointer<Utf8> Function(Pointer<Utf8>,
-    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>,
+typedef CreateTransactionFFI = Pointer<Utf8> Function(
+    Pointer<Utf8>,
+    Pointer<Int8>,
+    Pointer<Utf8>,
+    Pointer<Int8>,
+    Pointer<Utf8>,
+    Pointer<Int8>,
     Pointer<Utf8>);
 
 typedef EpicboxListenerStart = Pointer<Void> Function(
@@ -93,7 +98,17 @@ final WalletMnemonic _walletMnemonic = epicCashNative
     .asFunction();
 
 String walletMnemonic() {
-  return _walletMnemonic().toDartString();
+  Pointer<Utf8>? ptr;
+  try {
+    ptr = _walletMnemonic();
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final WalletInit _initWallet = epicCashNative
@@ -101,10 +116,31 @@ final WalletInit _initWallet = epicCashNative
     .asFunction();
 
 String initWallet(
-    String config, String mnemonic, String password, String name) {
-  return _initWallet(config.toNativeUtf8(), mnemonic.toNativeUtf8(),
-      password.toNativeUtf8(), name.toNativeUtf8())
-      .toDartString();
+  String config,
+  String mnemonic,
+  String password,
+  String name,
+) {
+  Pointer<Utf8>? ptr;
+  final configPtr = config.toNativeUtf8();
+  final mnemonicPtr = mnemonic.toNativeUtf8();
+  final passwordPtr = password.toNativeUtf8();
+  final namePtr = name.toNativeUtf8();
+
+  try {
+    ptr = _initWallet(configPtr, mnemonicPtr, passwordPtr, namePtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(configPtr);
+    malloc.free(mnemonicPtr);
+    malloc.free(passwordPtr);
+    malloc.free(namePtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final WalletInfo _walletInfo = epicCashNative
@@ -112,12 +148,33 @@ final WalletInfo _walletInfo = epicCashNative
     .asFunction();
 
 Future<String> getWalletInfo(
-    String wallet, int refreshFromNode, int min_confirmations) async {
-  return _walletInfo(
-      wallet.toNativeUtf8(),
-      refreshFromNode.toString().toNativeUtf8().cast<Int8>(),
-      min_confirmations.toString().toNativeUtf8().cast<Int8>())
-      .toDartString();
+  String wallet,
+  int refreshFromNode,
+  int min_confirmations,
+) async {
+  Pointer<Utf8>? ptr;
+  final walletPtr = wallet.toNativeUtf8();
+  final refreshFromNodePtr =
+      refreshFromNode.toString().toNativeUtf8().cast<Int8>();
+  final minConfPtr = min_confirmations.toString().toNativeUtf8().cast<Int8>();
+
+  try {
+    ptr = _walletInfo(
+      walletPtr,
+      refreshFromNodePtr,
+      minConfPtr,
+    );
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(refreshFromNodePtr);
+    malloc.free(minConfPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final RecoverWallet _recoverWallet = epicCashNative
@@ -125,10 +182,31 @@ final RecoverWallet _recoverWallet = epicCashNative
     .asFunction();
 
 String recoverWallet(
-    String config, String password, String mnemonic, String name) {
-  return _recoverWallet(config.toNativeUtf8(), password.toNativeUtf8(),
-      mnemonic.toNativeUtf8(), name.toNativeUtf8())
-      .toDartString();
+  String config,
+  String password,
+  String mnemonic,
+  String name,
+) {
+  Pointer<Utf8>? ptr;
+  final configPtr = config.toNativeUtf8();
+  final passwordPtr = password.toNativeUtf8();
+  final mnemonicPtr = mnemonic.toNativeUtf8();
+  final namePtr = name.toNativeUtf8();
+
+  try {
+    ptr = _recoverWallet(configPtr, passwordPtr, mnemonicPtr, namePtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(configPtr);
+    malloc.free(passwordPtr);
+    malloc.free(mnemonicPtr);
+    malloc.free(namePtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final ScanOutPuts _scanOutPuts = epicCashNative
@@ -136,24 +214,52 @@ final ScanOutPuts _scanOutPuts = epicCashNative
     .asFunction();
 
 Future<String> scanOutPuts(
-    String wallet, int startHeight, int numberOfBlocks) async {
-  return _scanOutPuts(
-    wallet.toNativeUtf8(),
-    startHeight.toString().toNativeUtf8().cast<Int8>(),
-    numberOfBlocks.toString().toNativeUtf8().cast<Int8>(),
-  ).toDartString();
+  String wallet,
+  int startHeight,
+  int numberOfBlocks,
+) async {
+  Pointer<Utf8>? ptr;
+  final walletPtr = wallet.toNativeUtf8();
+  final startHeightPtr = startHeight.toString().toNativeUtf8().cast<Int8>();
+  final numberOfBlocksPtr =
+      numberOfBlocks.toString().toNativeUtf8().cast<Int8>();
+
+  try {
+    ptr = _scanOutPuts(
+      walletPtr,
+      startHeightPtr,
+      numberOfBlocksPtr,
+    );
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(startHeightPtr);
+    malloc.free(numberOfBlocksPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final EpicboxListenerStart _epicboxListenerStart = epicCashNative
     .lookup<NativeFunction<EpicboxListenerStartFFI>>(
-    "rust_epicbox_listener_start")
+        "rust_epicbox_listener_start")
     .asFunction();
 
 Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
-  return _epicboxListenerStart(
-    wallet.toNativeUtf8(),
-    epicboxConfig.toNativeUtf8(),
-  );
+  final walletPtr = wallet.toNativeUtf8();
+  final epicboxConfigPtr = epicboxConfig.toNativeUtf8();
+
+  try {
+    return _epicboxListenerStart(walletPtr, epicboxConfigPtr);
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(epicboxConfigPtr);
+  }
 }
 
 final EpicboxListenerStop _epicboxListenerStop = epicCashNative
@@ -161,26 +267,68 @@ final EpicboxListenerStop _epicboxListenerStop = epicCashNative
     .asFunction();
 
 String epicboxListenerStop(Pointer<Void> handler) {
-  return _epicboxListenerStop(
-    handler,
-  ).toDartString();
+  Pointer<Utf8>? ptr;
+
+  try {
+    ptr = _epicboxListenerStop(handler);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final CreateTransaction _createTransaction = epicCashNative
     .lookup<NativeFunction<CreateTransactionFFI>>("rust_create_tx")
     .asFunction();
 
-Future<String> createTransaction(String wallet, int amount, String address,
-    int secretKey, String epicboxConfig, int minimumConfirmations, String note) async {
-  return _createTransaction(
-    wallet.toNativeUtf8(),
-    amount.toString().toNativeUtf8().cast<Int8>(),
-    address.toNativeUtf8(),
-    secretKey.toString().toNativeUtf8().cast<Int8>(),
-    epicboxConfig.toNativeUtf8(),
-    minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
-    note.toNativeUtf8(),
-  ).toDartString();
+Future<String> createTransaction(
+  String wallet,
+  int amount,
+  String address,
+  int secretKey,
+  String epicboxConfig,
+  int minimumConfirmations,
+  String note,
+) async {
+  Pointer<Utf8>? ptr;
+  final walletPtr = wallet.toNativeUtf8();
+  final amountPtr = amount.toString().toNativeUtf8().cast<Int8>();
+  final addressPtr = address.toNativeUtf8();
+  final secretKeyPtr = secretKey.toString().toNativeUtf8().cast<Int8>();
+  final epicboxConfigPtr = epicboxConfig.toNativeUtf8();
+  final minConfPtr =
+      minimumConfirmations.toString().toNativeUtf8().cast<Int8>();
+  final notePtr = note.toNativeUtf8();
+
+  try {
+    ptr = _createTransaction(
+      walletPtr,
+      amountPtr,
+      addressPtr,
+      secretKeyPtr,
+      epicboxConfigPtr,
+      minConfPtr,
+      notePtr,
+    );
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(amountPtr);
+    malloc.free(addressPtr);
+    malloc.free(secretKeyPtr);
+    malloc.free(epicboxConfigPtr);
+    malloc.free(minConfPtr);
+    malloc.free(notePtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final GetTransactions _getTransactions = epicCashNative
@@ -188,9 +336,23 @@ final GetTransactions _getTransactions = epicCashNative
     .asFunction();
 
 Future<String> getTransactions(String wallet, int refreshFromNode) async {
-  return _getTransactions(wallet.toNativeUtf8(),
-      refreshFromNode.toString().toNativeUtf8().cast<Int8>())
-      .toDartString();
+  Pointer<Utf8>? ptr;
+  final walletPtr = wallet.toNativeUtf8();
+  final refreshFromNodePtr =
+      refreshFromNode.toString().toNativeUtf8().cast<Int8>();
+
+  try {
+    ptr = _getTransactions(walletPtr, refreshFromNodePtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(refreshFromNodePtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final CancelTransaction _cancelTransaction = epicCashNative
@@ -198,8 +360,22 @@ final CancelTransaction _cancelTransaction = epicCashNative
     .asFunction();
 
 String cancelTransaction(String wallet, String transactionId) {
-  return _cancelTransaction(wallet.toNativeUtf8(), transactionId.toNativeUtf8())
-      .toDartString();
+  Pointer<Utf8>? ptr;
+  final walletPtr = wallet.toNativeUtf8();
+  final transactionIdPtr = transactionId.toNativeUtf8();
+
+  try {
+    ptr = _cancelTransaction(walletPtr, transactionIdPtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(transactionIdPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final GetChainHeight _getChainHeight = epicCashNative
@@ -207,8 +383,21 @@ final GetChainHeight _getChainHeight = epicCashNative
     .asFunction();
 
 int getChainHeight(String config) {
-  String latestHeight = _getChainHeight(config.toNativeUtf8()).toDartString();
-  return int.parse(latestHeight);
+  Pointer<Utf8>? ptr;
+  final configPtr = config.toNativeUtf8();
+
+  try {
+    ptr = _getChainHeight(configPtr);
+    final latestHeight = ptr.toDartString();
+    return int.parse(latestHeight);
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(configPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final AddressInfo _addressInfo = epicCashNative
@@ -216,11 +405,24 @@ final AddressInfo _addressInfo = epicCashNative
     .asFunction();
 
 String getAddressInfo(String wallet, int index, String epicboxConfig) {
-  return _addressInfo(
-      wallet.toNativeUtf8(),
-      index.toString().toNativeUtf8().cast<Int8>(),
-      epicboxConfig.toNativeUtf8())
-      .toDartString();
+  Pointer<Utf8>? ptr;
+  final walletPtr = wallet.toNativeUtf8();
+  final indexPtr = index.toString().toNativeUtf8().cast<Int8>();
+  final epicboxConfigPtr = epicboxConfig.toNativeUtf8();
+
+  try {
+    ptr = _addressInfo(walletPtr, indexPtr, epicboxConfigPtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(indexPtr);
+    malloc.free(epicboxConfigPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final ValidateAddress _validateSendAddress = epicCashNative
@@ -228,7 +430,20 @@ final ValidateAddress _validateSendAddress = epicCashNative
     .asFunction();
 
 String validateSendAddress(String address) {
-  return _validateSendAddress(address.toNativeUtf8()).toDartString();
+  Pointer<Utf8>? ptr;
+  final addressPtr = address.toNativeUtf8();
+
+  try {
+    ptr = _validateSendAddress(addressPtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(addressPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final TransactionFees _transactionFees = epicCashNative
@@ -236,12 +451,29 @@ final TransactionFees _transactionFees = epicCashNative
     .asFunction();
 
 Future<String> getTransactionFees(
-    String wallet, int amount, int minimumConfirmations) async {
-  return _transactionFees(
-      wallet.toNativeUtf8(),
-      amount.toString().toNativeUtf8().cast<Int8>(),
-      minimumConfirmations.toString().toNativeUtf8().cast<Int8>())
-      .toDartString();
+  String wallet,
+  int amount,
+  int minimumConfirmations,
+) async {
+  Pointer<Utf8>? ptr;
+  final walletPtr = wallet.toNativeUtf8();
+  final amountPtr = amount.toString().toNativeUtf8();
+  final minConfPtr = minimumConfirmations.toString().toNativeUtf8();
+
+  try {
+    ptr = _transactionFees(
+        walletPtr, amountPtr.cast<Int8>(), minConfPtr.cast<Int8>());
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(amountPtr);
+    malloc.free(minConfPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final DeleteWallet _deleteWallet = epicCashNative
@@ -249,8 +481,21 @@ final DeleteWallet _deleteWallet = epicCashNative
     .asFunction();
 
 Future<String> deleteWallet(String wallet, String config) async {
-  return _deleteWallet(wallet.toNativeUtf8(), config.toNativeUtf8())
-      .toDartString();
+  Pointer<Utf8>? ptr;
+  final configPtr = config.toNativeUtf8();
+  final walletPtr = wallet.toNativeUtf8();
+  try {
+    ptr = _deleteWallet(walletPtr, configPtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(configPtr);
+    malloc.free(walletPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final OpenWallet _openWallet = epicCashNative
@@ -258,8 +503,21 @@ final OpenWallet _openWallet = epicCashNative
     .asFunction();
 
 String openWallet(String config, String password) {
-  return _openWallet(config.toNativeUtf8(), password.toNativeUtf8())
-      .toDartString();
+  Pointer<Utf8>? ptr;
+  final configPtr = config.toNativeUtf8();
+  final pwPtr = password.toNativeUtf8();
+  try {
+    ptr = _openWallet(configPtr, pwPtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(configPtr);
+    malloc.free(pwPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
 
 final TxHttpSend _txHttpSend = epicCashNative
@@ -267,23 +525,46 @@ final TxHttpSend _txHttpSend = epicCashNative
     .asFunction();
 
 Future<String> txHttpSend(
-    String wallet,
-    int selectionStrategyIsAll,
-    int minimumConfirmations,
-    String message,
-    int amount,
-    String address) async {
-  return _txHttpSend(
-      wallet.toNativeUtf8(),
-      selectionStrategyIsAll.toString().toNativeUtf8().cast<Int8>(),
-      minimumConfirmations.toString().toNativeUtf8().cast<Int8>(),
-      message.toNativeUtf8(),
-      amount.toString().toNativeUtf8().cast<Int8>(),
-      address.toNativeUtf8())
-      .toDartString();
+  String wallet,
+  int selectionStrategyIsAll,
+  int minimumConfirmations,
+  String message,
+  int amount,
+  String address,
+) async {
+  Pointer<Utf8>? ptr;
+
+  final walletPtr = wallet.toNativeUtf8();
+  final stratPtr =
+      selectionStrategyIsAll.toString().toNativeUtf8().cast<Int8>();
+  final minConfsPtr =
+      minimumConfirmations.toString().toNativeUtf8().cast<Int8>();
+  final messagePtr = message.toNativeUtf8();
+  final amountPtr = amount.toString().toNativeUtf8().cast<Int8>();
+  final addressPtr = address.toNativeUtf8();
+
+  try {
+    ptr = _txHttpSend(
+      walletPtr,
+      stratPtr,
+      minConfsPtr,
+      messagePtr,
+      amountPtr,
+      addressPtr,
+    );
+
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(stratPtr);
+    malloc.free(minConfsPtr);
+    malloc.free(messagePtr);
+    malloc.free(amountPtr);
+    malloc.free(addressPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
 }
-
-
-
-
-
