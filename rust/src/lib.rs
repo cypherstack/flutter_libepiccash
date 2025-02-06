@@ -14,7 +14,7 @@ use stack_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
 use stack_epic_wallet_libwallet::api_impl::owner;
 use stack_epic_wallet_impls::{DefaultLCProvider, DefaultWalletImpl, EpicboxListenChannel, HTTPNodeClient};
 
-use stack_epic_keychain::mnemonic;
+use stack_epic_keychain::mnemonic as other_mnemonic;
 use stack_epic_wallet_util::epic_core::global::ChainTypes;
 use stack_epic_util::file::get_first_line;
 use stack_epic_wallet_util::epic_util::ZeroingString;
@@ -31,16 +31,13 @@ use stack_epic_util::secp::{Secp256k1};
 
 use android_logger::FilterBuilder;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Config {
-    pub wallet_dir: String,
-    pub check_node_api_http_addr: String,
-    pub chain: String,
-    pub account: Option<String>,
-    pub api_listen_port: u16,
-    pub api_listen_interface: String
-}
-
+pub mod config;
+use crate::config::Config;
+use crate::config::create_wallet_config;
+pub mod mnemonic;
+use crate::mnemonic::mnemonic;
+use crate::mnemonic::create_seed;
+use crate::mnemonic::_get_mnemonic;
 
 type Wallet = Arc<
     Mutex<
@@ -72,56 +69,6 @@ fn init_logger() {
             .with_tag("libepiccash")
             .with_filter(FilterBuilder::new().parse("debug,epic-cash-wallet::crate=super").build()),
     );
-}
-
-impl Config {
-    fn from_str(json: &str) -> Result<Self, serde_json::error::Error> {
-        let result = match  serde_json::from_str::<Config>(json) {
-            Ok(config) => {
-                config
-            }, Err(err) => {
-                return  Err(err);
-            }
-        };
-        Ok(result)
-    }
-}
-
-/*
-    Create Wallet config
-*/
-fn create_wallet_config(config: Config) -> Result<WalletConfig, Error> {
-    let chain_type = match config.chain.as_ref() {
-        "mainnet" => ChainTypes::Mainnet,
-        "floonet" => ChainTypes::Floonet,
-        "usertesting" => ChainTypes::UserTesting,
-        "automatedtesting" => ChainTypes::AutomatedTesting,
-        _ => ChainTypes::Floonet,
-    };
-
-    let api_secret_path = config.wallet_dir.clone() + "/.api_secret";
-    let api_listen_port = config.api_listen_port;
-
-    Ok(WalletConfig {
-        chain_type: Some(chain_type),
-        api_listen_interface: config.api_listen_interface,
-        api_listen_port,
-        api_secret_path: None,
-        node_api_secret_path: if Path::new(&api_secret_path).exists() {
-            Some(api_secret_path)
-        } else {
-            None
-        },
-        check_node_api_http_addr: config.check_node_api_http_addr,
-        data_file_dir: config.wallet_dir,
-        tls_certificate_file: None,
-        tls_certificate_key: None,
-        dark_background_color_scheme: Some(true),
-        keybase_notify_ttl: Some(1440),
-        no_commit_cache: Some(false),
-        owner_api_include_foreign: Some(false),
-        owner_api_listen_port: Some(WalletConfig::default_owner_api_listen_port()),
-    })
 }
 
 #[macro_use] extern crate log;
@@ -173,22 +120,6 @@ pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
         }
     };
     result
-}
-
-
-fn _get_mnemonic() -> Result<*const c_char, mnemonic::Error> {
-    let mut wallet_phrase = "".to_string();
-    match mnemonic() {
-        Ok(phrase) => {
-            wallet_phrase.push_str(&phrase);
-        },Err(e) => {
-            return Err(e);
-        }
-    }
-    let s = CString::new(wallet_phrase).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
 }
 
 fn _wallet_init(
@@ -1223,29 +1154,6 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
         }
     }
     Ok(())
-}
-
-/*
-    Create a new wallet seed
-*/
-pub fn mnemonic() -> Result<String, mnemonic::Error> {
-    let seed = create_seed(32);
-    match mnemonic::from_entropy(&seed) {
-        Ok(mnemonic_str) => {
-            Ok(mnemonic_str)
-        }, Err(e) => {
-            return  Err(e);
-        }
-    }
-}
-
-fn create_seed(seed_length: u64) -> Vec<u8> {
-    let mut seed: Vec<u8> = vec![];
-    let mut rng = thread_rng();
-    for _ in 0..seed_length {
-        seed.push(rng.gen());
-    }
-    seed
 }
 
 /*
