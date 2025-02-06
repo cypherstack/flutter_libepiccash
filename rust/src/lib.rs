@@ -2,8 +2,6 @@ use std::cmp::Ordering;
 use std::os::raw::{c_char};
 use std::ffi::{CString, CStr, c_void};
 use std::sync::Arc;
-use std::path::{Path};
-use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -14,8 +12,6 @@ use stack_epic_wallet_libwallet::api_impl::types::{InitTxArgs, InitTxSendArgs};
 use stack_epic_wallet_libwallet::api_impl::owner;
 use stack_epic_wallet_impls::{DefaultLCProvider, DefaultWalletImpl, EpicboxListenChannel, HTTPNodeClient};
 
-use stack_epic_keychain::mnemonic as other_mnemonic;
-use stack_epic_wallet_util::epic_core::global::ChainTypes;
 use stack_epic_util::file::get_first_line;
 use stack_epic_wallet_util::epic_util::ZeroingString;
 use stack_epic_util::Mutex;
@@ -23,8 +19,6 @@ use stack_epic_wallet_libwallet::{address, scan, wallet_lock, NodeClient, Wallet
 use stack_epic_wallet_controller::Error as EpicWalletControllerError;
 
 use stack_epic_wallet_util::epic_keychain::{Keychain, ExtKeychain};
-
-use stack_epic_util::secp::rand::Rng;
 
 use stack_epic_util::secp::key::{SecretKey, PublicKey};
 use stack_epic_util::secp::{Secp256k1};
@@ -207,7 +201,7 @@ fn _open_wallet(
     let str_password = c_password.to_str().unwrap();
 
     let mut result = String::from("");
-    match open_wallet(&str_config.clone(), str_password) {
+    match open_wallet(&str_config, str_password) {
         Ok(res) => {
             let wlt = res.0;
             let sek_key = res.1;
@@ -996,7 +990,7 @@ pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> 
             return  Err(e);
         }
     };
-    let rec_phrase = ZeroingString::from(phrase.clone());
+    let rec_phrase = ZeroingString::from(phrase);
     let result = match lc.create_wallet(
         Some(name),
         Some(rec_phrase),
