@@ -1986,4 +1986,50 @@ mod mnemonic_tests {
             }
         }
     }
+
+    // Test multiple mnemonic generations to ensure uniqueness.
+    #[test]
+    fn test_mnemonic_uniqueness() {
+        let mut phrases = HashSet::new();
+
+        // Generate multiple phrases and check that they're unique.
+        for i in 0..5 {
+            match mnemonic() {
+                Ok(phrase) => {
+                    assert!(!phrases.contains(&phrase),
+                            "Generated duplicate mnemonic on iteration {}", i);
+                    phrases.insert(phrase.clone());
+                    println!("Generated unique mnemonic {}: {}", i + 1, phrase);
+                },
+                Err(e) => {
+                    panic!("Failed to generate mnemonic on iteration {}: {:?}", i, e);
+                }
+            }
+        }
+    }
+
+    // Test that generated mnemonics can be parsed back into valid seeds.
+    #[test]
+    fn test_mnemonic_reversibility() {
+        use stack_epic_keychain::mnemonic::to_entropy;
+
+        match mnemonic() {
+            Ok(phrase) => {
+                // Try to convert mnemonic back to entropy.
+                match to_entropy(&phrase) {
+                    Ok(entropy) => {
+                        assert_eq!(entropy.len(), 32,
+                                   "Entropy from mnemonic should be 32 bytes");
+                        println!("Successfully verified mnemonic reversibility for: {}", phrase);
+                    },
+                    Err(e) => {
+                        panic!("Failed to convert mnemonic back to entropy: {:?}", e);
+                    }
+                }
+            },
+            Err(e) => {
+                panic!("Failed to generate mnemonic: {:?}", e);
+            }
+        }
+    }
 }
