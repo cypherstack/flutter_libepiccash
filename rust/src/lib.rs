@@ -2032,4 +2032,47 @@ mod mnemonic_tests {
             }
         }
     }
+    #[test]
+    fn test_mnemonic_vector() {
+        use stack_epic_keychain::mnemonic::to_entropy;
+
+        let mnemonic = "march journey switch frame cloud since course twice cement pen random snow volume warrior film traffic loan tomorrow speed surprise thought remember ill whip";
+
+        // Known correct values
+        let expected_bytes: [u8; 32] = [
+            135, 207, 15, 112, 174, 66, 191, 146,
+            76, 87, 90, 37, 52, 78, 198, 230,
+            207, 93, 238, 149, 151, 54, 131, 28,
+            135, 68, 109, 62, 15, 107, 92, 63
+        ];
+        let expected_hex = "87cf0f70ae42bf924c575a25344ec6e6cf5dee959736831c87446d3e0f6b5c3f";
+
+        match to_entropy(mnemonic) {
+            Ok(entropy) => {
+                println!("Testing mnemonic entropy matches expected values:");
+                println!("Mnemonic: {}", mnemonic);
+                println!("Entropy (bytes): {:?}", entropy);
+                println!("Entropy (hex): {}", hex::encode(&entropy));
+
+                // Verify exact byte values match
+                assert_eq!(
+                    entropy.as_slice(),
+                    expected_bytes.as_slice(),
+                    "Entropy bytes don't match expected values"
+                );
+
+                // Verify hex representation matches
+                assert_eq!(
+                    hex::encode(&entropy),
+                    expected_hex,
+                    "Hex representation doesn't match expected value"
+                );
+
+                println!("\nEntropy verification passed! ✓");
+            },
+            Err(e) => {
+                panic!("Failed to convert specific mnemonic to entropy: {:?}", e);
+            }
+        }
+    }
 }
