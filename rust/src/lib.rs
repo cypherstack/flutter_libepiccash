@@ -1932,4 +1932,30 @@ mod mnemonic_tests {
             println!("Successfully generated seed of length {}: {:?}", length, seed);
         }
     }
+
+    // Test the mnemonic() function.
+    #[test]
+    fn test_mnemonic_generation() {
+        match mnemonic() {
+            Ok(phrase) => {
+                // Verify the mnemonic is not empty.
+                assert!(!phrase.is_empty(), "Mnemonic phrase should not be empty");
+
+                // Split into words and verify word count (should be 24 words for 32 bytes entropy).
+                let words: Vec<&str> = phrase.split_whitespace().collect();
+                assert_eq!(words.len(), 24, "Mnemonic should contain 24 words");
+
+                // Verify all words are lowercase and contain only letters.
+                for word in &words {
+                    assert!(word.chars().all(|c| c.is_ascii_lowercase()),
+                            "Words should only contain lowercase letters");
+                }
+
+                println!("Successfully generated mnemonic phrase: {}", phrase);
+            },
+            Err(e) => {
+                panic!("Failed to generate mnemonic: {:?}", e);
+            }
+        }
+    }
 }
