@@ -1958,4 +1958,32 @@ mod mnemonic_tests {
             }
         }
     }
+
+    // Test the _get_mnemonic FFI function.
+    #[test]
+    fn test_get_mnemonic_ffi() {
+        unsafe {
+            match _get_mnemonic() {
+                Ok(c_str_ptr) => {
+                    // Convert C string pointer back to Rust string.
+                    let c_str = CStr::from_ptr(c_str_ptr);
+                    let phrase = c_str.to_str().expect("Invalid UTF-8 in mnemonic");
+
+                    // Verify the mnemonic is valid.
+                    assert!(!phrase.is_empty(), "Mnemonic phrase should not be empty");
+
+                    let words: Vec<&str> = phrase.split_whitespace().collect();
+                    assert_eq!(words.len(), 24, "Mnemonic should contain 24 words");
+
+                    println!("Successfully generated FFI mnemonic: {}", phrase);
+
+                    // Clean up the C string (since we're in a test).
+                    let _ = CString::from_raw(c_str_ptr as *mut i8);
+                },
+                Err(e) => {
+                    panic!("Failed to generate FFI mnemonic: {:?}", e);
+                }
+            }
+        }
+    }
 }
