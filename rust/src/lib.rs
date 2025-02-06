@@ -1907,3 +1907,29 @@ pub unsafe extern "C" fn _listener_cancel(handler: *mut c_void) -> *const c_char
     std::mem::forget(error_msg_ptr);
     ptr
 }
+
+#[cfg(test)]
+mod mnemonic_tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    // Test the create_seed function.
+    #[test]
+    fn test_create_seed() {
+        // Test with different seed lengths.
+        let lengths = [16, 24, 32];
+
+        for &length in lengths.iter() {
+            let seed = create_seed(length);
+
+            // Verify seed length.
+            assert_eq!(seed.len(), length as usize, "Seed length should match requested length");
+
+            // Verify seed contains random values (not all zeros).
+            let unique_bytes: HashSet<_> = seed.iter().collect();
+            assert!(unique_bytes.len() > 1, "Seed should contain random values");
+
+            println!("Successfully generated seed of length {}: {:?}", length, seed);
+        }
+    }
+}
