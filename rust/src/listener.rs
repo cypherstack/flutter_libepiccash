@@ -6,7 +6,7 @@ use stack_epic_util::secp::SecretKey;
 use stack_epic_wallet_config::EpicboxConfig;
 use stack_epic_wallet_impls::EpicboxListenChannel;
 
-use crate::Wallet;
+use crate::wallet::Wallet;
 
 #[derive(Debug, Clone)]
 pub struct Listener {
