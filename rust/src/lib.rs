@@ -5,16 +5,16 @@ use crate::ffi::get_mnemonic;
 use crate::ffi::wallet_init;
 use crate::ffi::rust_open_wallet;
 use crate::ffi::rust_wallet_balances;
-use crate::ffi::rust_wallet_scan_outputs;
-use crate::ffi::rust_create_tx;
-use crate::ffi::rust_txs_get;
-use crate::ffi::rust_tx_cancel;
-use crate::ffi::rust_get_chain_height;
-use crate::ffi::rust_epicbox_listener_start;
-use crate::ffi::_listener_cancel;
-use crate::ffi::rust_validate_address;
-use crate::ffi::rust_get_wallet_address;
-use crate::ffi::rust_get_tx_fees;
+// use crate::ffi::rust_wallet_scan_outputs;
+// use crate::ffi::rust_create_tx;
+// use crate::ffi::rust_txs_get;
+// use crate::ffi::rust_tx_cancel;
+// use crate::ffi::rust_get_chain_height;
+// use crate::ffi::rust_epicbox_listener_start;
+// use crate::ffi::_listener_cancel;
+// use crate::ffi::rust_validate_address;
+// use crate::ffi::rust_get_wallet_address;
+// use crate::ffi::rust_get_tx_fees;
 use crate::ffi::rust_delete_wallet;
 
 use android_logger::FilterBuilder;
@@ -58,7 +58,6 @@ mod test_vectors {
     use std::os::raw::c_char;
     use std::fs;
     use std::path::PathBuf;
-    use std::panic;
 
     /// Helper to convert a Rust string to a *const c_char
     unsafe fn str_to_cchar_ptr(s: &str) -> *const c_char {
@@ -131,7 +130,7 @@ mod test_vectors {
 
         let balances_ptr = unsafe {
             rust_wallet_balances(
-                unsafe { str_to_cchar_ptr(&wallet_ptr_cstr) },
+                str_to_cchar_ptr(&wallet_ptr_cstr),
                 refresh_str_ptr,
                 min_confirmations_str_ptr,
             )
@@ -144,7 +143,7 @@ mod test_vectors {
         // 7. Clean up: delete the wallet directory.
         let delete_ptr = unsafe {
             rust_delete_wallet(
-                unsafe { str_to_cchar_ptr(&wallet_ptr_cstr) },
+                str_to_cchar_ptr(&wallet_ptr_cstr),
                 config_ptr,
             )
         };
@@ -160,6 +159,7 @@ mod test_vectors {
     }
 
     /// A basic test that demonstrates creating a wallet & fetching balances WITH a node refresh
+    #[test]
     fn test_wallet_init_and_open_minimal() {
         use std::fs;
         use std::path::PathBuf;
