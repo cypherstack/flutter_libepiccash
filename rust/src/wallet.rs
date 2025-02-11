@@ -591,7 +591,7 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
 }
 
 /// Get a wallet.
-fn get_wallet(config: &Config) -> Result<Wallet, Error> {
+pub fn get_wallet(config: &Config) -> Result<Wallet, Error> {
     let wallet_config = match create_wallet_config(config.clone()) {
         Ok(conf) => {
             conf

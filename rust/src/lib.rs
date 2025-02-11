@@ -52,14 +52,21 @@ use android_logger::Config as AndroidConfig;
 pub mod ffi;
 
 #[cfg(test)]
-mod test_vectors {
+mod tests {
     use super::*;
     use std::ffi::{CStr, CString};
     use std::os::raw::c_char;
     use std::fs;
     use std::path::PathBuf;
 
-    /// Helper to convert a Rust string to a *const c_char
+    use crate::mnemonic::mnemonic;
+    use crate::wallet::validate_address;
+    use crate::wallet::get_chain_height;
+    use crate::wallet::get_wallet_info;
+    use crate::wallet::convert_deci_to_nano;
+    use crate::wallet::nano_to_deci;
+
+    /// Helper to convert a Rust string to a *const c_char.
     unsafe fn str_to_cchar_ptr(s: &str) -> *const c_char {
         let cstring = CString::new(s).expect("CString::new failed");
         let ptr = cstring.as_ptr();
@@ -178,7 +185,7 @@ mod test_vectors {
         "chain": "floonet",
         "account": "default",
         "api_listen_port": 3415,
-        "api_listen_interface": "127.0.0.1",
+        "api_listen_interface": "epiccash.stackwallet.com",
     })
             .to_string();
 
@@ -245,7 +252,7 @@ mod test_vectors {
         "chain": "floonet",
         "account": "default",
         "api_listen_port": 3415,
-        "api_listen_interface": "127.0.0.1",
+        "api_listen_interface": "epiccash.stackwallet.com",
     })
             .to_string();
 
@@ -292,5 +299,170 @@ mod test_vectors {
         let _ = fs::remove_dir_all(&test_dir);
 
         println!("--- END test_wallet_balances_no_refresh ---");
+    }
+
+    use serde_json::json;
+
+    /// A helper function to convert a Rust string to a *const c_char.
+    unsafe fn str_to_cchar(s: &str) -> *const c_char {
+        let cstring = CString::new(s).expect("CString::new failed");
+        let ptr = cstring.as_ptr();
+        std::mem::forget(cstring);
+        ptr
+    }
+
+    /// A helper function to setup a test directory.
+    fn setup_test_dir(name: &str) -> PathBuf {
+        let dir = PathBuf::from(format!("test_wallet_dir_{}", name));
+        let _ = fs::create_dir_all(&dir);
+        dir
+    }
+
+    /// A helper function to cleanup a test directory.
+    fn cleanup_test_dir(dir: &PathBuf) {
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    /// A helper function to create a test wallet configuration.
+    fn create_test_config(dir: &PathBuf) -> String {
+        json!({
+            "wallet_dir": dir.to_str().unwrap(),
+            "check_node_api_http_addr": "http://epiccash.stackwallet.com:3413",
+            "chain": "floonet",
+            "account": "default",
+            "api_listen_port": 3415,
+            "api_listen_interface": "epiccash.stackwallet.com",
+        }).to_string()
+    }
+
+    /// Test vectors for mnemonic generation.
+    #[test]
+    fn test_mnemonic_generation_with_vectors() {
+        println!("=== Mnemonic Generation Test Vectors ===");
+
+        // Test multiple mnemonic generations.
+        for i in 1..=3 {
+            match mnemonic() {
+                Ok(phrase) => {
+                    println!("Test Vector {i}:");
+                    println!("Generated Mnemonic: {}", phrase);
+
+                    // Get word count and characteristics.
+                    let words: Vec<&str> = phrase.split_whitespace().collect();
+                    println!("Word Count: {}", words.len());
+
+                    // Generate entropy from mnemonic.
+                    use stack_epic_keychain::mnemonic::to_entropy;
+                    match to_entropy(&phrase) {
+                        Ok(entropy) => {
+                            println!("Entropy (hex): {}", hex::encode(&entropy));
+                            println!("Entropy length: {} bytes", entropy.len());
+                        },
+                        Err(e) => println!("Entropy generation failed: {}", e),
+                    }
+                    println!("---");
+                },
+                Err(e) => println!("Failed to generate mnemonic {}: {:?}", i, e),
+            }
+        }
+    }
+
+    /// Test vectors for wallet creation.
+    #[test]
+    fn test_wallet_creation_vectors() {
+        println!("=== Wallet Creation Test Vectors ===");
+
+        let test_dir = setup_test_dir("creation");
+        let config_json = create_test_config(&test_dir);
+
+        unsafe {
+            // Generate test vectors for wallet creation.
+            let config_ptr = str_to_cchar(&config_json);
+            let password_ptr = str_to_cchar("test_password");
+            let name_ptr = str_to_cchar("test_wallet");
+
+            // Get a mnemonic.
+            let mnemonic_ptr = get_mnemonic();
+            let mnemonic = CStr::from_ptr(mnemonic_ptr).to_str().unwrap();
+            println!("Input Mnemonic: {}", mnemonic);
+
+            // Create wallet.
+            let result_ptr = wallet_init(
+                config_ptr,
+                str_to_cchar(mnemonic),
+                password_ptr,
+                name_ptr
+            );
+            let result = CStr::from_ptr(result_ptr).to_str().unwrap();
+            println!("Wallet Creation Result: {}", result);
+
+            // Try to open the wallet.
+            let open_result_ptr = rust_open_wallet(config_ptr, password_ptr);
+            let open_result = CStr::from_ptr(open_result_ptr).to_str().unwrap();
+            println!("Wallet Open Result: {}", open_result);
+        }
+
+        cleanup_test_dir(&test_dir);
+    }
+
+    /// Test vectors for address validation.
+    #[test]
+    fn test_address_validation_vectors() {
+        println!("=== Address Validation Test Vectors ===");
+
+        let test_addresses = [
+            "epic1xdp9qkz8tqhlqv4ryy5kv780kzfsxwjvlxjxkhz4vw9r6fz4hc5qzezyzj@epicbox.epic.tech",
+            "invalid_address",
+            "epic1abc@epicbox.epic.tech",
+            "@epicbox.epic.tech",
+            "epic1xdp9qkz8tqhlqv4ryy5kv780kzfsxwjvlxjxkhz4vw9r6fz4hc5qzezyzj",
+        ];
+        // TODO: Figure out why eg.
+        // "esXrtQYZzs7DveZV4pxmXr8nntSjEkmxLddCF4hoEjVUh9nQYP7j@epicbox.stackwallet.com" throws.
+
+        for address in &test_addresses {
+            println!("Testing address: {}", address);
+            let is_valid = validate_address(address);
+            println!("Validation result: {}", is_valid);
+        }
+    }
+
+    /// Test vectors for wallet info retrieval.
+    #[test]
+    fn test_chain_height_vectors() {
+        println!("=== Chain Height Test Vectors ===");
+
+        let test_dir = setup_test_dir("chain_height");
+        let config_json = create_test_config(&test_dir);
+
+        match get_chain_height(&config_json) {
+            Ok(height) => println!("Chain height: {}", height),
+            Err(e) => println!("Error getting chain height: {}", e),
+        }
+
+        cleanup_test_dir(&test_dir);
+    }
+
+    /// Test vectors for wallet info retrieval.
+    #[test]
+    fn test_nano_conversion_vectors() {
+        println!("=== Nano Conversion Test Vectors ===");
+
+        let test_values = [
+            0.00000001,
+            1.0,
+            123.45678,
+            9999.99999999,
+            0.123456789,
+        ];
+
+        for &value in &test_values {
+            println!("Original value (EPIC): {}", value);
+            let nano = convert_deci_to_nano(value);
+            println!("Converted to nano: {}", nano);
+            let back_to_epic = nano_to_deci(nano);
+            println!("Converted back to EPIC: {}", back_to_epic);
+            println!("---");
+        }
     }
 }
