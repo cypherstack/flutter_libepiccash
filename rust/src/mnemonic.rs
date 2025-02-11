@@ -169,8 +169,10 @@ mod mnemonic_tests {
         use stack_epic_keychain::mnemonic::to_entropy;
 
         let mnemonic = "march journey switch frame cloud since course twice cement pen random snow volume warrior film traffic loan tomorrow speed surprise thought remember ill whip";
+        // Alternate vector used elsewhere in tests or otherwise committed:
+        // let mnemonic = "give tube absurd fossil bike nurse huge neither equip claim tattoo fly stool gauge convince ask cat short bind original mule bundle feature tonight";
 
-        // Known correct values
+        // Known correct values:
         let expected_bytes: [u8; 32] = [
             135, 207, 15, 112, 174, 66, 191, 146,
             76, 87, 90, 37, 52, 78, 198, 230,

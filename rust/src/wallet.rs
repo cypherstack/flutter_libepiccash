@@ -516,10 +516,12 @@ pub fn get_wallet_info(
     refresh_from_node: bool,
     min_confirmations: u64
 ) -> Result<WalletInfoFormatted, Error> {
+    println!(">> get_wallet_info called with refresh_from_node={refresh_from_node}, min_confirmations={min_confirmations}");
     let api = Owner::new(wallet.clone(), None);
 
     match api.retrieve_summary_info(keychain_mask.as_ref(), refresh_from_node, min_confirmations) {
         Ok((_, wallet_summary)) => {
+            println!(">> raw wallet_summary: {wallet_summary:?}");
             Ok(WalletInfoFormatted {
                 last_confirmed_height: wallet_summary.last_confirmed_height,
                 minimum_confirmations: wallet_summary.minimum_confirmations,
@@ -531,10 +533,10 @@ pub fn get_wallet_info(
                 amount_locked: nano_to_deci(wallet_summary.amount_locked)
             })
         }, Err(e) => {
-            return  Err(e);
+            println!(">> get_wallet_info error: {e}");
+            Err(e)
         }
     }
-
 }
 
 pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, name: &str) -> Result<(), Error> {

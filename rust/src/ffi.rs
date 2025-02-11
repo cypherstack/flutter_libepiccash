@@ -237,27 +237,35 @@ fn _wallet_balances(
     refresh: bool,
     min_confirmations: u64,
 ) -> Result<*const c_char, Error> {
-    let mut wallet_info = "".to_string();
-    match get_wallet_info(
-        &wallet,
-        keychain_mask,
-        refresh,
-        min_confirmations
-    ) {
+    // Print arguments for debugging/test-vector use
+    println!(
+        ">> _wallet_balances called with refresh={refresh}, min_confirmations={min_confirmations}"
+    );
+
+    let mut wallet_info_str = String::new();
+
+    // Call get_wallet_info under the hood
+    match get_wallet_info(wallet, keychain_mask, refresh, min_confirmations) {
         Ok(info) => {
+            // Print intermediate data
+            println!(">> _wallet_balances got info: {:?}", info);
+
+            // Convert to JSON
             let str_wallet_info = serde_json::to_string(&info).unwrap();
-            wallet_info.push_str(&str_wallet_info);
-        },Err(e) => {
+            wallet_info_str.push_str(&str_wallet_info);
+        }
+        Err(e) => {
+            println!(">> _wallet_balances encountered error: {e}");
             return Err(e);
         }
     }
-    let s = CString::new(wallet_info).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+
+    // Convert final string result into a *const c_char
+    let s = CString::new(wallet_info_str).unwrap();
+    let p = s.as_ptr();
+    std::mem::forget(s); // Hand off responsibility to caller
     Ok(p)
 }
-
-
 
 #[no_mangle]
 pub unsafe extern "C"  fn rust_recover_from_mnemonic(
@@ -371,24 +379,35 @@ fn _wallet_scan_outputs(
     start_height: u64,
     number_of_blocks: u64
 ) -> Result<*const c_char, Error> {
-    let mut scan_result = String::from("");
+    // Print arguments for debugging/test-vector use
+    println!(
+        ">> _wallet_scan_outputs called with start_height={start_height}, number_of_blocks={number_of_blocks}"
+    );
+
+    let mut scan_result = String::new();
+
+    // Call wallet_scan_outputs under the hood
     match wallet_scan_outputs(
-        &wallet,
+        wallet,
         keychain_mask,
         Some(start_height),
         Some(number_of_blocks)
     ) {
-        Ok(scan) => {
-            scan_result.push_str(&scan);
+        Ok(scan_str) => {
+            // Print intermediate data
+            println!(">> _wallet_scan_outputs result: {scan_str}");
+            scan_result.push_str(&scan_str);
         },
         Err(err) => {
+            println!(">> _wallet_scan_outputs encountered error: {err}");
             return Err(err);
         },
     }
 
+    // Convert final string result into a *const c_char
     let s = CString::new(scan_result).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Hand off responsibility to caller
     Ok(p)
 }
 
@@ -1076,49 +1095,6 @@ mod mnemonic_tests {
             },
             Err(e) => {
                 panic!("Failed to generate mnemonic: {:?}", e);
-            }
-        }
-    }
-    #[test]
-    fn test_mnemonic_vector() {
-        use stack_epic_keychain::mnemonic::to_entropy;
-
-        let mnemonic = "march journey switch frame cloud since course twice cement pen random snow volume warrior film traffic loan tomorrow speed surprise thought remember ill whip";
-
-        // Known correct values
-        let expected_bytes: [u8; 32] = [
-            135, 207, 15, 112, 174, 66, 191, 146,
-            76, 87, 90, 37, 52, 78, 198, 230,
-            207, 93, 238, 149, 151, 54, 131, 28,
-            135, 68, 109, 62, 15, 107, 92, 63
-        ];
-        let expected_hex = "87cf0f70ae42bf924c575a25344ec6e6cf5dee959736831c87446d3e0f6b5c3f";
-
-        match to_entropy(mnemonic) {
-            Ok(entropy) => {
-                println!("Testing mnemonic entropy matches expected values:");
-                println!("Mnemonic: {}", mnemonic);
-                println!("Entropy (bytes): {:?}", entropy);
-                println!("Entropy (hex): {}", hex::encode(&entropy));
-
-                // Verify exact byte values match
-                assert_eq!(
-                    entropy.as_slice(),
-                    expected_bytes.as_slice(),
-                    "Entropy bytes don't match expected values"
-                );
-
-                // Verify hex representation matches
-                assert_eq!(
-                    hex::encode(&entropy),
-                    expected_hex,
-                    "Hex representation doesn't match expected value"
-                );
-
-                println!("\nEntropy verification passed! ✓");
-            },
-            Err(e) => {
-                panic!("Failed to convert specific mnemonic to entropy: {:?}", e);
             }
         }
     }
