@@ -164,6 +164,8 @@ mod mnemonic_tests {
             }
         }
     }
+
+    /// Test a specific mnemonic phrase against known entropy values.
     #[test]
     fn test_mnemonic_vector() {
         use stack_epic_keychain::mnemonic::to_entropy;
@@ -188,14 +190,14 @@ mod mnemonic_tests {
                 println!("Entropy (bytes): {:?}", entropy);
                 println!("Entropy (hex): {}", hex::encode(&entropy));
 
-                // Verify exact byte values match
+                // Verify exact byte values match.
                 assert_eq!(
                     entropy.as_slice(),
                     expected_bytes.as_slice(),
                     "Entropy bytes don't match expected values"
                 );
 
-                // Verify hex representation matches
+                // Verify hex representation matches.
                 assert_eq!(
                     hex::encode(&entropy),
                     expected_hex,

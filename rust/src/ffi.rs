@@ -40,6 +40,7 @@ use crate::init_logger;
 
 use ffi_helpers::task::TaskHandle;
 
+/// Initialize a new wallet via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn wallet_init(
     config: *const c_char,
@@ -54,7 +55,7 @@ pub unsafe extern "C" fn wallet_init(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -62,6 +63,7 @@ pub unsafe extern "C" fn wallet_init(
     result
 }
 
+/// Get a new mnemonic.
 #[no_mangle]
 pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
     let result = match _get_mnemonic() {
@@ -70,7 +72,7 @@ pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -78,6 +80,7 @@ pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
     result
 }
 
+/// A helper to initialize a new wallet.
 fn _wallet_init(
     config: *const c_char,
     mnemonic: *const c_char,
@@ -123,12 +126,12 @@ fn _wallet_init(
         }
     }
     let s = CString::new(create_msg).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
 }
 
-
+/// Open a wallet via FFI.
 #[no_mangle]
 pub unsafe extern "C"  fn rust_open_wallet(
     config: *const c_char,
@@ -144,7 +147,7 @@ pub unsafe extern "C"  fn rust_open_wallet(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -152,6 +155,7 @@ pub unsafe extern "C"  fn rust_open_wallet(
     result
 }
 
+/// A helper to open a wallet.
 fn _open_wallet(
     config: *const c_char,
     password: *const c_char,
@@ -178,16 +182,12 @@ fn _open_wallet(
     };
 
     let s = CString::new(result).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
 }
 
-
-/*
-    Get wallet info
-    This contains wallet balances
-*/
+/// Get wallet balances via FFI.
 #[no_mangle]
 pub unsafe extern "C"  fn rust_wallet_balances(
     wallet: *const c_char,
@@ -223,7 +223,7 @@ pub unsafe extern "C"  fn rust_wallet_balances(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -231,26 +231,27 @@ pub unsafe extern "C"  fn rust_wallet_balances(
     result
 }
 
+/// A helper to get wallet balances.
 fn _wallet_balances(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
     refresh: bool,
     min_confirmations: u64,
 ) -> Result<*const c_char, Error> {
-    // Print arguments for debugging/test-vector use
+    // Print arguments for debugging/test-vector use.
     println!(
         ">> _wallet_balances called with refresh={refresh}, min_confirmations={min_confirmations}"
     );
 
     let mut wallet_info_str = String::new();
 
-    // Call get_wallet_info under the hood
+    // Call get_wallet_info under the hood.
     match get_wallet_info(wallet, keychain_mask, refresh, min_confirmations) {
         Ok(info) => {
             // Print intermediate data
             println!(">> _wallet_balances got info: {:?}", info);
 
-            // Convert to JSON
+            // Convert to JSON.
             let str_wallet_info = serde_json::to_string(&info).unwrap();
             wallet_info_str.push_str(&str_wallet_info);
         }
@@ -260,13 +261,14 @@ fn _wallet_balances(
         }
     }
 
-    // Convert final string result into a *const c_char
+    // Convert final string result into a *const c_char.
     let s = CString::new(wallet_info_str).unwrap();
     let p = s.as_ptr();
-    std::mem::forget(s); // Hand off responsibility to caller
+    std::mem::forget(s); // Hand off responsibility to caller.
     Ok(p)
 }
 
+/// Recover a wallet from a mnemonic via FFI.
 #[no_mangle]
 pub unsafe extern "C"  fn rust_recover_from_mnemonic(
     config: *const c_char,
@@ -286,7 +288,7 @@ pub unsafe extern "C"  fn rust_recover_from_mnemonic(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -294,6 +296,7 @@ pub unsafe extern "C"  fn rust_recover_from_mnemonic(
     result
 }
 
+/// A helper to recover a wallet from a mnemonic.
 fn _recover_from_mnemonic(
     config: *const c_char,
     password: *const c_char,
@@ -330,11 +333,12 @@ fn _recover_from_mnemonic(
         }
     }
     let s = CString::new(recover_response).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
 }
 
+/// Validate an address via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn rust_wallet_scan_outputs(
     wallet: *const c_char,
@@ -365,7 +369,7 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -373,20 +377,21 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
     result
 }
 
+/// A helper to scan outputs.
 fn _wallet_scan_outputs(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
     start_height: u64,
     number_of_blocks: u64
 ) -> Result<*const c_char, Error> {
-    // Print arguments for debugging/test-vector use
+    // Print arguments for debugging/test-vector use.
     println!(
         ">> _wallet_scan_outputs called with start_height={start_height}, number_of_blocks={number_of_blocks}"
     );
 
     let mut scan_result = String::new();
 
-    // Call wallet_scan_outputs under the hood
+    // Call wallet_scan_outputs under the hood.
     match wallet_scan_outputs(
         wallet,
         keychain_mask,
@@ -394,7 +399,7 @@ fn _wallet_scan_outputs(
         Some(number_of_blocks)
     ) {
         Ok(scan_str) => {
-            // Print intermediate data
+            // Print intermediate data.
             println!(">> _wallet_scan_outputs result: {scan_str}");
             scan_result.push_str(&scan_str);
         },
@@ -404,13 +409,14 @@ fn _wallet_scan_outputs(
         },
     }
 
-    // Convert final string result into a *const c_char
+    // Convert final string result into a *const c_char.
     let s = CString::new(scan_result).unwrap();
     let p = s.as_ptr();
-    std::mem::forget(s); // Hand off responsibility to caller
+    std::mem::forget(s); // Hand off responsibility to caller.
     Ok(p)
 }
 
+/// Create a transaction via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn rust_create_tx(
     wallet: *const c_char,
@@ -457,13 +463,13 @@ pub unsafe extern "C" fn rust_create_tx(
         note
     ) {
         Ok(slate) => {
-            //Spawn listener again
+            // Spawn listener again.
             listener_spawn(&listen);
             slate
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -472,6 +478,7 @@ pub unsafe extern "C" fn rust_create_tx(
 
 }
 
+/// A helper to create a transaction.
 fn _create_tx(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -505,13 +512,14 @@ fn _create_tx(
     }
 
     let s = CString::new(message).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
 
 
 }
 
+/// Get transactions via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn rust_txs_get(
     wallet: *const c_char,
@@ -542,7 +550,7 @@ pub unsafe extern "C" fn rust_txs_get(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -550,6 +558,7 @@ pub unsafe extern "C" fn rust_txs_get(
     result
 }
 
+/// A helper to get transactions.
 fn _txs_get(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -570,17 +579,17 @@ fn _txs_get(
     }
 
     let s = CString::new(txs_result).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
 }
 
+/// Cancel a transaction via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn rust_tx_cancel(
     wallet: *const c_char,
     tx_id: *const c_char,
 ) -> *const c_char {
-
     let wallet_ptr = CStr::from_ptr(wallet);
     let tx_id = CStr::from_ptr(tx_id);
     let tx_id = tx_id.to_str().unwrap();
@@ -603,7 +612,7 @@ pub unsafe extern "C" fn rust_tx_cancel(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -611,6 +620,7 @@ pub unsafe extern "C" fn rust_tx_cancel(
     result
 }
 
+/// A helper to cancel a transaction.
 fn _tx_cancel(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -625,11 +635,12 @@ fn _tx_cancel(
         }
     }
     let s = CString::new(cancel_msg).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
 }
 
+/// Get chain height via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn rust_get_chain_height(
     config: *const c_char,
@@ -642,7 +653,7 @@ pub unsafe extern "C" fn rust_get_chain_height(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -650,6 +661,7 @@ pub unsafe extern "C" fn rust_get_chain_height(
     result
 }
 
+/// A helper to get chain height.
 fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
     let c_config = unsafe { CStr::from_ptr(config) };
     let str_config = c_config.to_str().unwrap();
@@ -664,18 +676,19 @@ fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
         },
     }
     let s = CString::new(chain_height).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
 }
 
+/// Delete a wallet via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn rust_delete_wallet(
     _wallet: *const c_char,
     config: *const c_char,
 ) -> *const c_char  {
     let c_conf = CStr::from_ptr(config);
-    let _config = Config::from_str(c_conf.to_str().unwrap()).unwrap(); // TODO handle error here
+    let _config = Config::from_str(c_conf.to_str().unwrap()).unwrap(); // TODO: handle error here.
 
     let result = match _delete_wallet(
         _config,
@@ -685,7 +698,7 @@ pub unsafe extern "C" fn rust_delete_wallet(
         }, Err(err) => {
             let error_msg = format!("Error deleting wallet from _delete_wallet in rust_delete_wallet {}", &err.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -693,6 +706,7 @@ pub unsafe extern "C" fn rust_delete_wallet(
     result
 }
 
+/// A helper to delete a wallet.
 fn _delete_wallet(
     config: Config,
 ) -> Result<*const c_char, Error> {
@@ -706,12 +720,13 @@ fn _delete_wallet(
         },
     }
     let s = CString::new(delete_result).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
 
 }
 
+/// Send a transaction via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn rust_tx_send_http(
     wallet: *const c_char,
@@ -757,7 +772,7 @@ pub unsafe extern "C" fn rust_tx_send_http(
         }, Err(err ) => {
             let error_msg = format!("Error {}", &err.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -765,6 +780,7 @@ pub unsafe extern "C" fn rust_tx_send_http(
     result
 }
 
+/// A helper to send a transaction.
 fn _tx_send_http(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -795,11 +811,12 @@ fn _tx_send_http(
         },
     }
     let s = CString::new(send_result).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
 }
 
+/// Get a wallet address via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn rust_get_wallet_address(
     wallet: *const c_char,
@@ -829,7 +846,7 @@ pub unsafe extern "C" fn rust_get_wallet_address(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -837,6 +854,7 @@ pub unsafe extern "C" fn rust_get_wallet_address(
     result
 }
 
+/// A helper to get a wallet address.
 fn _get_wallet_address(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -845,11 +863,12 @@ fn _get_wallet_address(
 ) -> Result<*const c_char, Error> {
     let address = get_wallet_address(&wallet, keychain_mask, index, epicbox_config);
     let s = CString::new(address).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
+    let p = s.as_ptr();
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
     Ok(p)
 }
 
+/// Get a wallet address.
 pub fn get_wallet_address(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -863,6 +882,7 @@ pub fn get_wallet_address(
     format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain.as_deref().unwrap_or(""))
 }
 
+/// Validate an address via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn rust_validate_address(
     address: *const c_char,
@@ -876,11 +896,12 @@ pub unsafe extern "C" fn rust_validate_address(
     };
 
     let s = CString::new(return_value.to_string()).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     p
 }
 
+/// Validate an address.
 #[no_mangle]
 pub unsafe extern "C" fn rust_get_tx_fees(
     wallet: *const c_char,
@@ -913,7 +934,7 @@ pub unsafe extern "C" fn rust_get_tx_fees(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+            let ptr = error_msg_ptr.as_ptr();
             std::mem::forget(error_msg_ptr);
             ptr
         }
@@ -921,6 +942,7 @@ pub unsafe extern "C" fn rust_get_tx_fees(
     result
 }
 
+/// A helper to get transaction fees.
 fn _get_tx_fees(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -936,11 +958,12 @@ fn _get_tx_fees(
         }
     }
     let s = CString::new(fees_data).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
+    let p = s.as_ptr();
+    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
 }
 
+/// Start a listener via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn rust_epicbox_listener_start(
     wallet: *const c_char,
@@ -963,13 +986,14 @@ pub unsafe extern "C" fn rust_epicbox_listener_start(
     Box::into_raw(boxed_handler) as *mut _
 }
 
+/// Cancel a listener via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn _listener_cancel(handler: *mut c_void) -> *const c_char {
     let handle = handler as *mut TaskHandle<usize>;
     listener_cancel(handle);
     let error_msg = format!("{}", listener_cancelled(handle));
     let error_msg_ptr = CString::new(error_msg).unwrap();
-    let ptr = error_msg_ptr.as_ptr(); // Get a pointer to the underlaying memory for s
+    let ptr = error_msg_ptr.as_ptr();
     std::mem::forget(error_msg_ptr);
     ptr
 }

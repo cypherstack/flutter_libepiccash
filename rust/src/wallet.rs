@@ -19,6 +19,7 @@ use stack_epic_keychain::Keychain;
 use stack_epic_wallet_impls::DefaultWalletImpl;
 use std::cmp::Ordering;
 
+/// Wallet type.
 pub type Wallet = Arc<
     Mutex<
         Box<
@@ -32,6 +33,7 @@ pub type Wallet = Arc<
     >,
 >;
 
+/// Wallet information.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WalletInfoFormatted {
     pub last_confirmed_height: u64,
@@ -44,6 +46,7 @@ pub struct WalletInfoFormatted {
     pub amount_locked: f64,
 }
 
+/// Strategy for transaction.
 #[derive(Serialize, Deserialize)]
 struct Strategy {
     selection_strategy_is_use_all: bool,
@@ -51,18 +54,13 @@ struct Strategy {
     fee: u64,
 }
 
-
-/*
-    Get transaction fees
-    all possible Coin/Output selection strategies.
-*/
+/// Get transaction strategies.
 pub fn tx_strategies(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
     amount: u64,
     minimum_confirmations: u64,
 ) -> Result<String, Error> {
-
     let mut result = vec![];
     wallet_lock!(wallet, w);
 
@@ -93,6 +91,7 @@ pub fn tx_strategies(
     Ok(serde_json::to_string(&result).unwrap())
 }
 
+/// Get wallet transactions.
 pub fn txs_get(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -116,9 +115,7 @@ pub fn txs_get(
     Ok(serde_json::to_string(&result).unwrap())
 }
 
-/*
-    Init tx as sender
-*/
+/// Initialize a transaction as sender.
 pub fn tx_create(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -153,11 +150,10 @@ pub fn tx_create(
         ..Default::default()
     };
 
-
     match owner_api.init_send_tx(keychain_mask.as_ref(), args) {
         Ok(slate)=> {
             debug!("SLATE SEND RESPONSE IS  {:?}", slate);
-            //Get transaction for the slate, we will use type to determing if we should finalize or receive tx
+            // Get transaction for the slate, we will use type to determing if we should finalize or receive tx.
             let txs = match owner_api.retrieve_txs(
                 keychain_mask.as_ref(),
                 false,
@@ -183,9 +179,7 @@ pub fn tx_create(
     }
 }
 
-/*
-    Cancel tx by id
-*/
+/// Cancel a transaction by ID.
 pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id: Uuid) -> Result<String, Error> {
     let api = Owner::new(wallet.clone(), None);
     match  api.cancel_tx(keychain_mask.as_ref(), None, Some(tx_slate_id)) {
@@ -197,9 +191,7 @@ pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id:
     }
 }
 
-/*
-    Get transaction by slate id
-*/
+/// Get a transaction by slate ID.
 pub fn tx_get(wallet: &Wallet, refresh_from_node: bool, tx_slate_id: &str) -> Result<String, Error> {
     let api = Owner::new(wallet.clone(), None);
     let uuid = Uuid::parse_str(tx_slate_id).map_err(|e| EpicWalletControllerError::GenericError(e.to_string())).unwrap();
@@ -207,21 +199,21 @@ pub fn tx_get(wallet: &Wallet, refresh_from_node: bool, tx_slate_id: &str) -> Re
     Ok(serde_json::to_string(&txs.1).unwrap())
 }
 
+/// Convert decimal to nano.
 pub fn convert_deci_to_nano(amount: f64) -> u64 {
     let base_nano = 100000000;
     let nano = amount * base_nano as f64;
     nano as u64
 }
 
+/// Convert nano to decimal.
 pub fn nano_to_deci(amount: u64) -> f64 {
     let base_nano = 100000000;
     let decimal = amount as f64 / base_nano as f64;
     decimal
 }
 
-/*
-
-*/
+/// Open a wallet.
 pub fn open_wallet(config_json: &str, password: &str) -> Result<(Wallet, Option<SecretKey>), Error> {
     let config = match Config::from_str(&config_json.to_string()) {
         Ok(config) => {
@@ -297,7 +289,7 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<(Wallet, Option<
     }
 }
 
-
+/// Close a wallet.
 pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
     let mut wallet_lock = wallet.lock();
     let lc = wallet_lock.lc_provider()?;
@@ -314,6 +306,7 @@ pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
     Ok("Wallet has been closed".to_owned())
 }
 
+/// Validate an address.
 pub fn validate_address(str_address: &str) -> bool {
     match EpicboxAddress::from_str(str_address) {
         Ok(addr) => {
@@ -328,6 +321,7 @@ pub fn validate_address(str_address: &str) -> bool {
     }
 }
 
+/// Delete a wallet.
 pub fn delete_wallet(config: Config) -> Result<String, Error> {
     let mut result = String::from("");
     // get wallet object in order to use class methods
@@ -358,6 +352,7 @@ pub fn delete_wallet(config: Config) -> Result<String, Error> {
     Ok(result)
 }
 
+/// Send a transaction via HTTP.
 pub fn tx_send_http(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -418,6 +413,7 @@ pub fn tx_send_http(
     }
 }
 
+/// Create a wallet.
 pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> Result<String, Error> {
     let wallet_pass = ZeroingString::from(password);
     let wallet_config = match Config::from_str(&config) {
@@ -466,6 +462,7 @@ pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> 
     Ok(result)
 }
 
+/// Get a wallet's secret key pair.
 pub fn get_wallet_secret_key_pair(
     wallet: &Wallet, keychain_mask: Option<SecretKey>, index: u32
 ) -> Result<(SecretKey, PublicKey), Error>{
@@ -510,6 +507,7 @@ pub fn get_wallet_secret_key_pair(
     Ok((sec_key, pub_key))
 }
 
+/// Get a summary of a wallet's state.
 pub fn get_wallet_info(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -539,6 +537,7 @@ pub fn get_wallet_info(
     }
 }
 
+/// Recover a wallet from a mnemonic.
 pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, name: &str) -> Result<(), Error> {
     let wallet = match get_wallet(&config) {
         Ok(conf) => {
@@ -558,7 +557,7 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
         }
     };
 
-    //First check if wallet seed directory exists, if not create
+    // First check if wallet seed directory exists, if not create.
     if let Ok(exists_wallet_seed) = lc.wallet_exists(None) {
         return if exists_wallet_seed {
             match lc.recover_from_mnemonic(
@@ -591,6 +590,7 @@ pub fn recover_from_mnemonic(mnemonic: &str, password: &str, config: &Config, na
     Ok(())
 }
 
+/// Get a wallet.
 fn get_wallet(config: &Config) -> Result<Wallet, Error> {
     let wallet_config = match create_wallet_config(config.clone()) {
         Ok(conf) => {
@@ -616,6 +616,7 @@ fn get_wallet(config: &Config) -> Result<Wallet, Error> {
     return Ok(wallet);
 }
 
+/// Instantiate a wallet.
 fn inst_wallet<L, C, K>(
     config: WalletConfig,
     node_client: C,
@@ -647,6 +648,7 @@ where
     Ok(Arc::new(Mutex::new(wallet)))
 }
 
+/// Get the chain height.
 pub fn get_chain_height(config: &str) -> Result<u64, Error> {
     let config = match Config::from_str(&config.to_string()) {
         Ok(config) => {
@@ -679,6 +681,7 @@ pub fn get_chain_height(config: &str) -> Result<u64, Error> {
     Ok(chain_tip.0)
 }
 
+/// Scan the wallet outputs.
 pub fn wallet_scan_outputs(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -736,7 +739,7 @@ pub fn wallet_scan_outputs(
         &None,
     ) {
         Ok(info) => {
-            println!("Info type: {:?}", info);  // Add this debug print
+            println!("Info type: {:?}", info);
 
             let parent_key_id = {
                 wallet_lock!(wallet, w);

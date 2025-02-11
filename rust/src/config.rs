@@ -5,6 +5,7 @@ use stack_epic_wallet_config::WalletConfig;
 
 use crate::Error;
 
+/// Epic Wallet Config.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config {
     pub wallet_dir: String,
@@ -15,6 +16,7 @@ pub struct Config {
     pub api_listen_interface: String
 }
 
+/// Implement the Config struct.
 impl Config {
     pub fn from_str(json: &str) -> Result<Self, serde_json::error::Error> {
         let result = match  serde_json::from_str::<Config>(json) {
@@ -28,12 +30,13 @@ impl Config {
     }
 }
 
+/// Create a wallet config.
 pub fn create_wallet_config(config: Config) -> Result<WalletConfig, Error> {
     let chain_type = match config.chain.as_ref() {
         "mainnet" => ChainTypes::Mainnet,
         "floonet" => ChainTypes::Floonet,
         "usertesting" => ChainTypes::UserTesting,
-        "automatedtesting" => ChainTypes::AutomatedTesting,
+        "automatedtesting" => ChainTypes::AutomatedTesting, // TODO: Use for tests.
         _ => ChainTypes::Floonet,
     };
 

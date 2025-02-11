@@ -8,6 +8,7 @@ use stack_epic_wallet_impls::EpicboxListenChannel;
 
 use crate::wallet::Wallet;
 
+/// Listener task.
 #[derive(Debug, Clone)]
 pub struct Listener {
     pub wallet_ptr_str: String,
@@ -15,6 +16,7 @@ pub struct Listener {
     pub epicbox_config: String
 }
 
+/// Spawn a listener task.
 impl Task for Listener {
     type Output = usize;
 
