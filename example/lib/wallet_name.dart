@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash_example/mnemonic_view.dart';
+import 'package:flutter_libepiccash_example/recover_view.dart';
 import 'package:flutter_libepiccash_example/util.dart';
 
 class WalletNameView extends StatelessWidget {
@@ -35,9 +36,9 @@ class WalletNameView extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => MnemonicView(
-                          name: _controller.text,
-                        ),
+                        builder: (context) => recover
+                            ? RecoverWalletView(name: _controller.text)
+                            : MnemonicView(name: _controller.text),
                       ),
                     );
                   } else {
@@ -45,7 +46,7 @@ class WalletNameView extends StatelessWidget {
                   }
                 }
               },
-              child: Text(recover ? 'Recover' : 'Create'),
+              child: Text(recover ? 'Next' : 'Create'),
             )
           ],
         ),

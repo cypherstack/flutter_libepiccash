@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_libepiccash_example/wallet_info_view.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'transaction_view.dart';
 import 'wallet_name.dart';
 
 class WalletManagementView extends StatefulWidget {
@@ -77,15 +77,12 @@ class _WalletManagementViewState extends State<WalletManagementView> {
     );
 
     if (result != null && result.isNotEmpty) {
-      // Navigate to TransactionView with the wallet name and entered password
+      // Navigate to TransactionView with the wallet name and entered password.
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => TransactionView(
-            walletName: walletName,
-            password: result,
-          ),
-        ),
+            builder: (context) =>
+                WalletInfoView(walletName: walletName, password: result)),
       );
     }
   }

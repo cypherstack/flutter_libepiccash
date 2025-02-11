@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash/lib.dart';
+import 'package:flutter_libepiccash_example/wallet_info_view.dart';
 
 import 'epicbox_config.dart';
-import 'transaction_view.dart';
 
 class MnemonicView extends StatefulWidget {
   final String name;
@@ -127,7 +127,7 @@ class _MnemonicViewState extends State<MnemonicView> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => TransactionView(
+          builder: (context) => WalletInfoView(
             walletName: widget.name,
             password: enteredPassword,
           ),
