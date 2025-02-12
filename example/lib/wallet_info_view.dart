@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_libepiccash/epic_cash.dart';
-import 'package:flutter_libepiccash_example/advanced_functions_view.dart';
 import 'package:flutter_libepiccash_example/init_transaction_view.dart';
 
 import 'epicbox_config.dart';
 
-class WalletInfoView extends StatelessWidget {
+class WalletInfoView extends StatefulWidget {
   final String walletName;
   final String password;
 
@@ -16,20 +15,113 @@ class WalletInfoView extends StatelessWidget {
     required this.password,
   }) : super(key: key);
 
-  Future<String> _getWalletAddress(String config) async {
+  @override
+  State<WalletInfoView> createState() => _WalletInfoViewState();
+}
+
+class _WalletInfoViewState extends State<WalletInfoView> {
+  String _resultMessage = "";
+  bool _isLoading = false;
+  String? _walletConfig;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWalletConfig();
+  }
+
+  Future<void> _loadWalletConfig() async {
     try {
-      // Open wallet.
-      final walletResult = openWallet(config, password);
+      final config = await EpicboxConfig.getDefaultConfig(widget.walletName);
+      setState(() {
+        _walletConfig = config;
+      });
+    } catch (e) {
+      setState(() {
+        _resultMessage = "Error loading wallet config: $e";
+      });
+    }
+  }
+
+  Future<void> _getAddressInfo() async {
+    if (_walletConfig == null) return;
+
+    setState(() {
+      _isLoading = true;
+      _resultMessage = "";
+    });
+
+    try {
+      final walletResult = openWallet(_walletConfig!, widget.password);
       if (walletResult.contains('Error')) {
-        return 'Error opening wallet: $walletResult';
+        setState(() {
+          _resultMessage = 'Error opening wallet: $walletResult';
+        });
+        return;
       }
 
-      final epicboxConfig = await EpicboxConfig.getDefaultConfig(walletName);
-      // Get address using index 0 (the only index used in practice.
+      final epicboxConfig =
+          await EpicboxConfig.getDefaultConfig(widget.walletName);
       final address = getAddressInfo(walletResult, 0, epicboxConfig);
-      return address;
+      setState(() {
+        _resultMessage = "Address Info: $address";
+      });
     } catch (e) {
-      return 'Error getting address: $e';
+      setState(() {
+        _resultMessage = "Error retrieving address info: $e";
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _getChainHeight() async {
+    if (_walletConfig == null) return;
+
+    setState(() {
+      _isLoading = true;
+      _resultMessage = "";
+    });
+
+    try {
+      final height = getChainHeight(_walletConfig!);
+      setState(() {
+        _resultMessage = "Chain Height: $height";
+      });
+    } catch (e) {
+      setState(() {
+        _resultMessage = "Error retrieving chain height: $e";
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _scanOutputs() async {
+    if (_walletConfig == null) return;
+
+    setState(() {
+      _isLoading = true;
+      _resultMessage = "";
+    });
+
+    try {
+      final result = await scanOutPuts(_walletConfig!, 0, 100);
+      setState(() {
+        _resultMessage = "Scan Outputs Result: $result";
+      });
+    } catch (e) {
+      setState(() {
+        _resultMessage = "Error scanning outputs: $e";
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -42,7 +134,7 @@ class WalletInfoView extends StatelessWidget {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Wallet: $walletName'),
+          title: Text('Wallet: ${widget.walletName}'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () {
@@ -51,7 +143,7 @@ class WalletInfoView extends StatelessWidget {
           ),
         ),
         body: FutureBuilder<String>(
-          future: EpicboxConfig.getDefaultConfig(walletName),
+          future: EpicboxConfig.getDefaultConfig(widget.walletName),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -122,8 +214,8 @@ class WalletInfoView extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        InitTransactionView(password: password),
+                                    builder: (context) => InitTransactionView(
+                                        password: widget.password),
                                   ),
                                 );
                               },
@@ -131,17 +223,33 @@ class WalletInfoView extends StatelessWidget {
                             ),
                             const SizedBox(height: 12),
                             ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const AdvancedFunctionsView(),
-                                  ),
-                                );
-                              },
-                              child: const Text('Advanced Functions'),
+                              onPressed: _getAddressInfo,
+                              child: const Text('Get Address Info'),
                             ),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: _getChainHeight,
+                              child: const Text('Get Chain Height'),
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: _scanOutputs,
+                              child: const Text('Scan Outputs'),
+                            ),
+                            if (_isLoading)
+                              const Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            if (_resultMessage.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  _resultMessage,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -154,5 +262,21 @@ class WalletInfoView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<String> _getWalletAddress(String config) async {
+    try {
+      final walletResult = openWallet(config, widget.password);
+      if (walletResult.contains('Error')) {
+        return 'Error opening wallet: $walletResult';
+      }
+
+      final epicboxConfig =
+          await EpicboxConfig.getDefaultConfig(widget.walletName);
+      final address = getAddressInfo(walletResult, 0, epicboxConfig);
+      return address;
+    } catch (e) {
+      return 'Error getting address: $e';
+    }
   }
 }
