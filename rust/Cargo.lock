@@ -911,7 +911,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "epic-cash-wallet"
+name = "epic_cash_wallet"
 version = "0.1.0"
 dependencies = [
  "android_logger",
