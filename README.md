@@ -80,3 +80,11 @@ Libraries will be output to `scripts/windows/build`
 
 ## Building on Windows
 `build_all.ps1` is not confirmed working and may need work eg. may need some missing dependencies added but has been included as a starting point or example for Windows users
+
+# Notes
+## Cargokit
+Cargokit may be updated using:
+```sh
+git subtree pull --prefix cargokit https://github.com/irondash/cargokit.git main --squash
+```
+in the plugin root.
