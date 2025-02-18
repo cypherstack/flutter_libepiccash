@@ -1,3 +1,6 @@
+// group 'com.cypherstack.epic_cash_wallet'
+// version '1.0'
+
 buildscript {
     ext.kotlin_version = '1.8.0'
     repositories {
@@ -28,4 +31,11 @@ subprojects {
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
+}
+
+apply from: "../cargokit/gradle/plugin.gradle"
+
+cargokit {
+    manifestDir = "../rust"
+    libname = "epic_cash_wallet"
 }
