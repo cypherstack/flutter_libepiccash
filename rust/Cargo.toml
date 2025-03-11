@@ -2,7 +2,7 @@
 name = "epic-ffi"
 version = "0.0.1"
 edition = "2021"
-authors = ["Grin developers", "Epic developers", "Cypher Stack and Stack Wallet developers", "@blacktyg3r", "sneurlax"]
+authors = ["Grin developers", "Epic developers", "Cypher Stack and Stack Wallet developers", "Likho", "@blacktyg3r", "sneurlax"]
 description = "Epic Cash oriented for usage via FFI."
 license = "Apache-2.0"
 
