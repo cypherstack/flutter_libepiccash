@@ -1,0 +1,523 @@
+#+TITLE: Epic Cash on Windows
+#+OPTIONS: ^:nil
+
+* Introduction
+
+This document describes how to run each of the elements of the Epic
+blockchain on Windows.
+
+There are three different cases that you can run the Epic Cash blockchain: 
+- [[#server][Running only the server]].
+- [[#wallet_server][Running the server and the wallet.]]
+- [[#miner_wallet_server][Running the server, the wallet and the miner]].
+
+If you want to just have a copy of the chain or help the propagation
+of the blocks in the network, all you need is to run the server.
+
+If you want to make transactions such as payments or receiving
+payments, you need to run the epic server and the epic wallet.
+
+If you want to produce new blocks and with that gain rewards (both new
+coins and transactions fees), you will need to run the epic server
+with an epic wallet listening to it and an epic miner.
+
+* Supported Platforms
+
+For now, these are the supported platforms:
+
+- Linux x86_64 (dpkg for Ubuntu)
+- MacOS (no package yet)
+- Windows (precompiled binaries)
+
+* Server
+  :PROPERTIES:
+  :CUSTOM_ID: server
+  :END:
+
+The epic server is a node in the network that validates, propagates
+and sometimes produces new blocks (for the latter, you need a miner),
+which is a basically a collection of processed transactions. In this
+section we explain how to install and setup your epic server.
+
+** Installation
+
+The following steps explain how to install and run the epic server:
+
+1. Download the latest version of the *epic* server for windows [[https://epic.tech/downloads/][here]].
+
+2. Unpack the zip file.
+
+#+ATTR_HTML: :id run_epic
+** Running the Epic Server
+  :PROPERTIES:
+  :CUSTOM_ID: run_epic
+  :END:
+After you finished the installation, you can run it by executing the
+epic.exe file.
+
+*If you are running the epic server for the first time, it will use*
+*its [[#epic_config_default][default configuration]]. If you want to save all epic server data*
+*in a custom directory check the section [[#epic_config_custom][Configuring a Custom
+ Directory.]]*
+
+If you executed the epic server in Text-User-Interface mode (TUI), you
+should see a screen like this:
+
+#+CAPTION: Epic server in TUI mode 
+#+NAME:   fig:epic-miner
+#+ATTR_HTML: :width 50% :height 50% 
+[[./images/epic-server.png]]
+
+Press the key *Tab* or the *Arrows* keys to change windows inside the epic
+server. Press the key *Enter* to select an item. Press the key *Q* to
+quit the epic server.
+
+#+ATTR_HTML: :id run_config_default
+** Configuring your Epic node
+  :PROPERTIES:
+  :CUSTOM_ID: epic_config_default
+  :END:
+
+By default, the epic server keeps all of its configuration files and
+data in the ~C:/Users/<YOUR_USERNAME>/.epic/main~ directory. The main
+server configuration file can be found in the file
+~C:/Users/<YOUR_USERNAME>/.epic/main/epic-server.toml~. This file is
+fully documented and contains many configuration options for your Epic
+server. Leaving these values at their defaults should work for most
+people who simply want to run a node.
+
+#+ATTR_HTML: :id epic_config_custom
+*** Configuring a Custom Directory
+  :PROPERTIES:
+  :CUSTOM_ID: epic_config_custom
+  :END:
+
+You can also keep Epic's data and configuration files in a custom
+directory. In the terminal (cmd), navigate to the directory in which you
+epic.exe is and run:
+
+    #+begin_src shell
+      epic.exe server config
+    #+end_src
+    
+This will create an ~epic-server.toml~ file in the current directory
+that is configured to place its data files in the same
+directory. *The* *epic.exe will always check the current directory for
+an* *~epic-server.toml~ file, and if one is found it will use it
+instead of* *~C:/Users/<YOUR_USERNAME>/.epic/main/epic-server.toml~.*
+
+#+ATTR_HTML: :id wallet_server
+* Wallet + Server
+  :PROPERTIES:
+  :CUSTOM_ID: wallet_server
+  :END:
+
+The epic wallet is quite literally your wallet. It's where your
+account's balance is stored and where you spend and receive money.
+
+*To run the epic-wallet you also need an epic server running*. The
+wallet request transactions from the epic server. The epic server is
+responsible for propagating and receiving the transactions.
+
+Instruction of how to run the epic server can be found on [[#run_epic][Running the
+Epic Server]].
+
+** Installation
+The following steps explain how to install and run the epic-wallet:
+
+1. Download the latest version of the *epic-wallet* for windows [[https://epic.tech/downloads/][here]].
+
+2. Unpack the downloaded .zip file. Since the wallet doesn't have a
+   TUI (TEXT USER INTERFACE), you will need to run it by the command
+   prompt (cmd). You can found more information about how to run the
+   command prompt on windows [[https://www.lifewire.com/how-to-open-command-prompt-2618089][here]] and how to navigate between folder
+   can be found [[https://www.digitalcitizen.life/command-prompt-how-use-basic-commands][here]].
+   
+
+#+ATTR_HTML: :id init_wallet
+** Initialize the Wallet
+  :PROPERTIES:
+  :CUSTOM_ID: init_wallet
+  :END:    
+Before you can use the Epic wallet, it must be initialized. This
+process will initialize your wallet's database and create your secret
+master seed file. For this, open the cmd and navigate to the folder
+where you extracted the epic-wallet and execute the following command:
+
+    #+begin_src shell
+      epic-wallet.exe init
+    #+end_src
+    
+You will then be prompted to enter a password. This password will be
+used to encrypt your master seed file, and you will need to provide
+this password every time you want to use your wallet. The output
+should be something like this:
+
+    #+begin_src shell
+      File /home/yeastplume/.epic/main/epic-wallet.toml configured and created
+      Please enter a password for your new wallet
+      Password: 
+      Confirm Password: 
+    #+end_src
+
+Once this is done, your wallet seed file will be generated, and you
+will be given a 24 word recovery phrase which you can use to recover
+your wallet if you lose your seed file or forget the password. Write
+this phrase down using a pen and paper and keep it somewhere safe,
+since anyone who has this phrase can control all of your funds:
+
+Your wallet's configuration file is located at
+~C:/Users/<YOUR_USERNAME>/.epic/main/epic-wallet.toml~. You can change
+the default node address, default listener ports and many more options
+by editing this file.
+
+** Initializing from a Custom Directory
+
+You can also keep epic wallet's data and configuration files in a
+custom directory. In the cmd, navigate to the directory in which
+you have the epic-wallet.exe and run:
+
+    #+begin_src shell
+      epic-wallet.exe init -h
+    #+end_src
+    
+This will create an ~epic-wallet.toml~ file in the current directory that
+is configured to place its data files in the same directory. The
+epic-wallet executable will always check the current directory for a
+~epic-wallet.toml~ file, and if one is found it will use it instead of
+~C:/Users/<YOUR_USERNAME>/.epic/main/epic-wallet.toml~.
+
+#+ATTR_HTML: :id run_wallet
+** Running the wallet API
+  :PROPERTIES:
+  :CUSTOM_ID: run_wallet
+  :END:
+Once you have initialized the wallet, we need to execute it in listen
+mode to be able to make transactions. With your [[#run_epic][epic server running]],
+to execute the epic-wallet in listen mode, run the following command
+in the cmd:
+
+    #+begin_src shell
+      epic-wallet.exe -e listen
+    #+end_src
+
+You will be prompted to enter your wallet password. After you have
+inserted it, the wallet will start to listen for requests.
+
+** Check the wallet balance
+
+To check your contents of your wallet, use the info command:
+
+ #+begin_src shell
+   epic-wallet.exe info
+ #+end_src
+
+You should see an output like this:
+
+ #+begin_src shell 
+   ____ Wallet Summary Info - Account 'default' as of height 13833 ____
+
+   Total                            | 60.482000000
+   Immature Coinbase (< 1440)       | 60.030000000
+   Awaiting Confirmation (< 10)     | 0.452000000
+   Locked by previous transaction   | 1200.453000000
+   -------------------------------- | -------------
+   Currently Spendable              | 0.000000000
+
+   Command 'info' completed successfully
+ #+end_src
+
+- *Total* is your total amount, including any balance awaiting
+  confirmation.
+- *Immature Coinbase* denotes any coinbase transactions (i.e. won
+  blocks by mining) that have yet to mature before they can be
+  spent. For a block to mature, it has to wait for a certain number of
+  blocks to be added to the chain.
+- *Awaiting Confirmation* is the balance that the wallet won't spend
+  until a given number of confirmations (number of blocks added to the
+  chain since the block in which the transaction was confirmed). This
+  defaults to 10 blocks.
+- *Locked by previous transaction* are outputs locked by a previous
+  send transaction, which cannot be included in further
+  transactions. These will generally disappear (become spent) when the
+  transaction confirms.
+
+#+ATTR_HTML: :id miner_wallet_server
+* Miner + Wallet + Server
+  :PROPERTIES:
+  :CUSTOM_ID: miner_wallet_server
+  :END:
+  Miners are responsible for processing the transactions in the
+  blockchain. When a batch of transactions is processed, the first one
+  responsible for processing it gains a reward and the fees on
+  those transactions. That involves both computing power and luck. 
+
+  There are three algorithms that help producing the blocks.
+  - [[https://github.com/tevador/RandomX][RandomX]]
+  - [[https://github.com/ifdefelse/ProgPOW][ProgPow]]
+  - [[https://github.com/tromp/cuckoo][Cuckoo]] (CuckAToo31+)
+
+** RandomX
+ 
+  *RandomX* is a Proof-of-Work (PoW) algorithm optimized for general
+  purpose *CPUs*. It uses randomized program executions with several
+  memory-hard techniques to achieve the following goals:
+
+  - Prevention of the development of single-chip ASICs;  
+  - Minimize the efficiency advantage of specialized hardware over
+    general purpose CPUs.
+
+  Mining Epic with CPUs requires a contiguous allocation of 2
+  GB of physical RAM, 16 KB of L1 cache, 256 KB of L2 cache, and 2 MB
+  of L3 cache per mining thread. Windows 10 devices require 8 GB or
+  more RAM.
+
+** ProgPow
+
+  *Programmatic Proof-of-Work (ProgPow)* is an algorithm that depends on
+  memory bandwidth and core computation of randomized math sequences,
+  which take advantage of many of a *GPU’s* computing features and
+  thereby efficiently capture the total energy cost of the
+  hardware. As ProgPow is specifically designed to take full advantage
+  of commodity GPUs, it is both difficult and expensive to achieve
+  significantly higher efficiencies through specialized hardware.
+
+** Cuckoo (CuckAToo31+)
+
+  *CuckAToo31+* is an ASIC friendly permutation of the *Cuckoo Cycle*
+  algorithm developed by Dutch computer scientist, John Tromp. A
+  relative of the ASIC resistant CuckARoo29, CuckAToo31+ generates
+  random bipartite graphs and presents miners with the task of finding a
+  loop of given length ‘N’ passing through the vertices of that graph.
+
+  This is a memory bound task, meaning the solution time is bound by
+  memory bandwidth rather than raw processor or GPU speed. As a
+  result, the Cuckoo Cycle algorithms produce less heat and consume
+  significantly less energy than traditional PoW algorithms. The ASIC
+  friendly CuckAToo31+ allows efficiency improvements over GPUs by
+  using hundreds of MB of SRAM while remaining bottlenecked by memory
+  I/O. *Although, CuckAToo is intended to be mined by ASICs in the
+  future, it can also be mined well using 11GB+ GPUs.*
+
+
+** Prerequisites
+
+   *To run the epic-miner you also need an epic server running and a
+   wallet listening*. You need the wallet listening to receive the epics
+   (currency) that come from the mining reward and transaction fees (if
+   you succeed in process a block in the network) and you need the epic
+   server to propagate the transactions.
+
+   Instruction of how to run you epic server can be
+   found on [[#run_epic][Running the Epic Server]] and the instructions of how to get
+   the wallet listening can be found on [[#run_wallet][Running the wallet API]].
+
+
+**  Prerequisites - GPU mining
+
+    If you are planning to mine using GPU (ProgPow and CuckAToo31+),
+    there are two possible ways, mine with [[https://en.wikipedia.org/wiki/OpenCL][OPENCL]] or [[https://en.wikipedia.org/wiki/CUDA][CUDA]]. The main
+    difference between CUDA and OpenCL is that CUDA is a proprietary
+    framework created by Nvidia (working only with NVIDIA GPUs) and
+    OpenCL is open source (working with AMD GPUs, NVIDIA GPUs and a
+    series of other hardware). The general consensus is that if you
+    have NVIDIA GPUs (that supports both CUDA and OpenCL), go with
+    CUDA as it will generate better performance results. More
+    information regarding this can be found [[https://create.pro/blog/opencl-vs-cuda/][here]]. The CUDA executable
+    is currently not available for the windows.
+     
+** Installation
+
+   There are two different versions of the epic-miner executable for
+   windows:
+
+     - If you want to mine using *only CPU* (basically RandomX) there
+       is the executable called *epic-miner*
+     - If you want to mine using *GPU with OPENCL* there is the
+       package called *epic-miner-opencl*
+
+   The following steps explain how to install and run the epic-miner.
+
+   1. Download the latest version of the desired *epic-miner* executable
+      [[https://epic.tech/downloads/][here]]:
+
+   2. Extract the downloaded .zip file.
+
+
+#+ATTR_HTML: :id config_miner
+** Configuring your epic-miner
+  :PROPERTIES:
+  :CUSTOM_ID: config_miner
+  :END:    
+
+To configure your miner, open the ~epic-miner.toml~ in the folder
+where you extracted the epic-miner files with a text editor. 
+
+With the ~epic-miner.toml~ opened, find the line:
+
+    #+begin_src toml
+      algorithm = "ProgPow"
+    #+end_src
+
+Changing this line you can change what algorithm you are going to use
+for mining. There are 3 possible choices: ProgPow, RandomX, Cuckoo.
+
+** Additional configuration: ProgPow
+
+If you are going to mine with ProgPow, you will need to set some
+additional parameters in the ~epic-miner.toml~. Open the
+~epic-miner.toml~ with your preferred text editor and find the
+following line:
+
+    #+begin_src toml
+      [[mining.gpu_config]]
+      device = 0
+      driver = 2
+    #+end_src
+
+The *device* parameter sets your GPU ID if you have multiple GPUS, if
+you only have one, leave it with the value of 0. You may want to use
+device numbers in the same PCI Bus ID enumeration order as used by
+non-CUDA programs. To do this set the *CUDA_​DEVICE_​ORDER* environment
+variable to *PCI_BUS_ID* in your shell.  The default value of this
+variable is *FASTEST_FIRST*. More info on this can be found [[https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#env-vars][here]]. Note
+that this is available only in CUDA 7 and later.
+
+The *driver* parameter specifies the type of the driver that will be
+used to mine with the GPU. The value *1* corresponds to CUDA
+(exclusive to Nvidia GPUs) and the value *2* corresponds to
+OpenCL(OCL). Following there is an example of how to mine with the GPU
+(primary) using CUDA:
+
+    #+begin_src toml
+      [[mining.gpu_config]]
+      device = 0
+      driver = 1
+    #+end_src
+
+*** Multi-GPU Mining
+
+If you want to mine using multiple GPUs just copy and paste the lines
+shown in the section Additional configuration: ProgPow, changing the
+*device* parameter to match your GPUs ID and the type of driver that
+will be used in each one with the parameter *driver*. Following there
+is an example of how to mine with the 2 GPUs (NVIDIA) using CUDA:
+
+    #+begin_src toml
+      [[mining.gpu_config]]
+      device = 0
+      driver = 1
+
+      [[mining.gpu_config]]
+      device = 1
+      driver = 1
+    #+end_src
+
+** Additional configuration: RandomX
+
+If you are going to mine with RandomX, you will need to set some additional
+parameters in the ~epic-miner.toml~. Open the ~epic-miner.toml~ with your
+preferred text editor and find the following lines:
+
+#+begin_src toml
+[mining.randomx_config]
+threads = 1
+jit = false
+large_pages = false
+hard_aes = false
+#+end_src
+
+You can specify the desired number of threads used by the RandomX algorithm by
+setting its value in the variable *threads*.
+
+
+Check the [[https://github.com/tevador/RandomX/blob/master/doc/design.md][RandomX design]] in order to have a clear understanding about the value
+of the variables above.
+
+After you finish all your modification, save and close the file.
+
+** Additional configuration: Cuckoo
+
+If you are going to mine with Cuckoo, you will need to set some
+additional parameters in the ~epic-miner.toml~. Open the
+~epic-miner.toml~ with your preferred text editor and find the
+following lines:
+
+    #+begin_src toml
+     [[mining.miner_plugin_config]]
+     plugin_name = "cuckatoo_lean_cpu_compat_31"
+     [mining.miner_plugin_config.parameters]
+     nthreads = 4
+    #+end_src
+
+In *plugin_name* you can specify what type of cuckoo algorithm you
+will be using. *The cuckaroo_29 is being deprecated, so the miner will
+not work if you use any of its variants (cuckaroo_cpu_avx2_29,
+cuckaroo_cpu_compat_29)*. To get all plugins available navigate to the
+folder ./plugins in the folder where you extracted your epic miner files:
+
+Then, just put the desired plugin name without .cuckooplugin extension
+in the *plugin_name* variable.
+
+You can also specify the number of threads that a plugin will use in
+the variable *nthreads*.
+
+After you finish all your modification, save and close the file.
+
+If you want more details about the cuckoo plugins, there are more
+examples of how to use the cuckoo plugins in the ~epic-miner.toml~.
+
+** Runing the miner
+
+Once the [[#run_epic][epic server is running]] and your [[#run_wallet][wallet is listening]], to
+execute the epic-miner open a new terminal window and execute the
+following command:
+
+    #+begin_src shell
+      epic-miner.exe
+    #+end_src
+
+If you executed the epic-miner in TUI mode (the default is true in
+~epic-miner.toml~), you should see a screen like this:
+
+#+CAPTION: Epic miner in TUI mode 
+#+NAME:   fig:epic-miner
+#+ATTR_HTML: :width 50%
+[[./images/epic-miner.png]]
+
+Press the key *Tab* or the *Arrows* keys to change windows inside the epic
+miner. Press the key *Enter* to select an item. Press the key *Q* to quit the
+epic miner.
+
+More details about the epic miner stats can be found in [[#epic_miner_stats][Mining Stats]]. 
+
+#+ATTR_HTML: :id epic_miner_stats
+** Mining Stats
+  :PROPERTIES:
+  :CUSTOM_ID: epic_miner_stats
+  :END:
+
+*Solutions Found* is the number of valid solutions you mining
+algorithm has found. Note that this is not the same as finding a
+block. Only solutions that pass a further difficulty check, (as tested
+by the Epic server) can be used to solve a block.
+
+*Accepted* is the number of solutions your miners found that were
+accepted by the epic server as valid shares (or contributions to the
+pool). Again, this does not correspond to number of solved blocks or
+mining rewards.
+
+*Rejected* is the number of rejected shares. Each block in the
+epic-cash block chain has a predetermined algorithm to be mined. For
+example, if you found a solution using the algorithm *A*, and the
+current block has to be mined with algorithm *B*, your block will be
+rejected.
+
+*Stale* is the number of solutions that were found to late (someone
+else on the network solved the block before the solution was submit).
+
+*Blocks* found is the actual number of blocks that you've solved, in
+other words, valid solutions that passed the difficulty check and were
+also accepted by the network.
+
+

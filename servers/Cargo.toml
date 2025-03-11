@@ -1,0 +1,47 @@
+[package]
+name = "epic_servers"
+version = "3.6.0"
+authors = ["Epic Foundation <info@epiccash.com>"]
+description = "Simple, private and scalable cryptocurrency implementation based on the MimbleWimble chain format."
+license = "Apache-2.0"
+repository = "https://github.com/EpicCash/epic"
+keywords = ["crypto", "epic", "mimblewimble"]
+workspace = ".."
+edition = "2021"
+
+[dependencies]
+hyper = { version = "0.14.27", features = ["full"]}
+hyper-rustls = "0.24.1"
+rustls = "0.21.7"
+rustls-pemfile = "1.0.3"
+webpki-roots = "0.25.1"
+
+
+fs2 = "0.4"
+futures = "0.3"
+http = "0.2"
+itertools = "0.7"
+lmdb-zero = "0.4.4"
+rand = "0.6"
+serde = "1"
+log = "0.4"
+serde_derive = "1"
+serde_json = "1"
+chrono = "0.4.31"
+tokio = { version = "1.32", features = ["full"] }
+tokio-util = { version = "0.7.8", features = ["codec"] }
+tokio-stream = "0.1.14"
+bigint = "4.4.1"
+clokwerk = "0.2.1"
+trust-dns-resolver = "0.11.1"
+walkdir = "2.2.9"
+
+
+epic_api = { path = "../api", version = "3.6.0" }
+epic_chain = { path = "../chain", version = "3.6.0" }
+epic_core = { path = "../core", version = "3.6.0" }
+epic_keychain = { path = "../keychain", version = "3.6.0" }
+epic_p2p = { path = "../p2p", version = "3.6.0" }
+epic_pool = { path = "../pool", version = "3.6.0" }
+epic_store = { path = "../store", version = "3.6.0" }
+epic_util = { path = "../util", version = "3.6.0" }
