@@ -1,0 +1,200 @@
+epic-wallet (3.6.0) focal; urgency=high
+
+  [ Epic Team ]
+  * Epicbox Protocol v3.0.0 upgrade
+  * Change default epicbox domain to epicbox.epiccash.com
+  * Adds ability to display to/from address in wallet transfers
+
+ -- Epic Team <info@epiccash.com>  Wed, 27 Feb 2024 12:00:00 +0000
+
+epic-wallet (3.5.2) focal; urgency=medium
+
+  [ Epic Team ]
+  * Epicbox stability improvements
+  * Changes to subscribe interval for epicbox connections
+  * Increase minimum node compat to 3.5.0
+
+ -- Epic Team <info@epiccash.com>  Wed, 22 Feb 2024 12:00:00 +0000
+
+epic-wallet (3.5.0) focal; urgency=high
+
+  [ Epic Team ]
+  * Update dependencies
+  * Fix OwnerV2 api failing to retrieve epicbox config
+  * Fix domain/port discernment for epicbox addresses
+
+ -- Epic Team <admin@epic.tech>  Wed, 23 Nov 2023 12:00:00 +0000
+
+epic-wallet (3.4.0) focal; urgency=high
+
+  [ Epic Team ]
+  * New Transaction method "epicbox" with public epic address
+  * Update ring to 0.16.x
+  * Fix bug, where owner_api threads are not closed
+  * Epicbox Protocol V2
+
+ -- Epic Team <admin@epic.tech>  Wed, 14 Jun 2023 12:00:00 +0000
+
+epic-wallet (3.3.2) bionic; urgency=medium
+
+  [ Epic Team ]
+  * Fix on tests
+  * Fix for issue #26 (Wallet Tx Details lost Output/s)
+  * Fix to issue #20 (Wallet CLI shows wrong balance after recovery)
+  * Emoji transaction
+  * Fix for Rust warnings
+  * New readme
+  * LMDB to SQLite interface
+
+ -- Epic Team <admin@epic.tech>  Mon, 23 Jan 2023 12:00:00 +0000
+
+epic-wallet (3.2.2~alpha-1) UNRELEASED; urgency=medium
+
+  [ João Victor da Silva ]
+  * Solved the biggest problem of version 3, we solved the problem of coins that disappeared after recover,
+  * Fixed issue #20.
+
+  [ Raul Silva ]
+  * Add the emoji transaction method.
+
+  [ Marcio Macedo ]
+  * Fix the history show method (fix issue #26):
+  * Add new method and flag on epic-wallet outputs called show_full_history.
+  * This method shows the lost outputs that have been deleted by the chain in the past.
+
+  [ Johannes Hahn ]
+  * Fixed: Unwrap error on empty password for keybase listener
+
+ -- João Victor da Silva <joao.silva@brickabode.com>  Mon, 8 Aug 2022 12:00:00 +0000
+
+epic-wallet (3.0.0~alpha-2) bionic; urgency=medium
+
+  [ Yuri Albuquerque ]
+  * Fixes conflict with epic server
+
+ -- Ubuntu <ubuntu@ip-172-31-26-231.ec2.internal>  Tue, 27 Feb 2020 17:02:00 +0000
+
+epic-wallet (3.0.0~alpha-1) bionic; urgency=medium
+
+  [ Yuri Albuquerque ]
+  * Integrates with grin 3.0.0
+
+ -- Ubuntu <ubuntu@ip-172-31-26-231.ec2.internal>  Tue, 18 Feb 2020 17:02:00 +0000
+
+epic-wallet (2.3.0-1) bionic; urgency=medium
+
+  [ Yuri Albuquerque ]
+  * Fixes #8
+
+  [ Leonardo Viana ]
+  * Adequating the tests
+  * Fix foundation.json path
+  * Fix wallet tests
+
+  [ Yuri Albuquerque ]
+  * Enabling CI.
+  * Changing dependencies to git
+
+  [ Leonardo Viana ]
+  * Fix some rpc tests
+
+  [ Yuri Albuquerque ]
+  * Using HTTPS for git dependencies
+  * Changing the CI jobs.
+  * Adding integration to the workspace.
+  * Remove integration tests from CI.
+
+  [ Leonardo Viana ]
+  * Fix more api tests
+  * Fix more rpc tests
+
+  [ Yuri Albuquerque ]
+  * Adding the API tests back to the CI.
+  * Per job cache.
+
+  [ Leonardo Viana ]
+  * Fix finalize_tx test
+  * Fix all wallet tests
+
+  [ Yuri Albuquerque ]
+  * Adding a user guide.
+  * Owner API usage guide.
+
+  [ Leonardo Viana ]
+  * Add transactions strategies to deal with multiple people
+
+  [ Yuri Albuquerque ]
+  * Improving the owner_api_usage.
+  * Adding state diagrams to explain the issue.
+  * Trying to add inlined images.
+  * Using png instead of svg
+  * Trying to use an embedded image.
+  * A Guide to Fixing the 500 Error in the Wallet.
+
+  [ Leonardo Viana ]
+  * Add instructions for CLI users
+  * Add support to V2 API responses in the CLI send
+  * Change to API 2.0 on CLI send sync
+  * Improve the message of error on seed recover
+
+  [ Ubuntu ]
+  * UNRELEASED
+
+ -- Ubuntu <ubuntu@ip-172-31-26-231.ec2.internal>  Mon, 07 Oct 2019 20:56:05 +0000
+
+epic-wallet (2.2.2-1) bionic; urgency=medium
+
+  [ Yuri Albuquerque ]
+  * Release version
+
+ -- Ubuntu <ubuntu@ip-172-31-26-231.ec2.internal>  Mon, 02 Sep 2019 18:59:57 +0000
+
+epic-wallet (2.0.0-1) bionic; urgency=medium
+
+  [ Yuri Albuquerque ]
+  * Fixing copyright notices.
+
+ -- Ubuntu <ubuntu@ip-172-31-26-231.ec2.internal>  Mon, 02 Sep 2019 18:59:57 +0000
+
+epic-wallet (1.6.0-2) bionic; urgency=medium
+
+  [ Yuri Albuquerque ]
+  * Fix debian/control description
+
+ -- Ubuntu <ubuntu@ip-172-31-16-240.ec2.internal>  Thu, 29 Aug 2019 16:14:39 +0000
+
+epic-wallet (1.6.0-1) bionic; urgency=medium
+
+  [ Aron Castro ]
+  * Add windows installer
+
+ -- Ubuntu <ubuntu@ip-172-31-16-240.ec2.internal>  Thu, 29 Aug 2019 16:14:39 +0000
+
+epic-wallet (1.2.0-1) bionic; urgency=medium
+
+  [ Leonardo Viana ]
+  * Update the rewards to match the whitepaper
+  * Fix indentation
+
+  [ Yuri Albuquerque ]
+  * Updating bigint
+  * Aborting package build in case of error.
+
+ -- Ubuntu <ubuntu@ip-172-31-16-240.ec2.internal>  Fri, 09 Aug 2019 21:27:04 +0000
+
+epic-wallet (1.0.2-1) unstable; urgency=high
+
+  * Updating with the epic node
+
+ -- Yuri Albuquerque <yurialbuquerque@brickabode.com> Mon, 29 Jul 2019 20:34:12 +0000
+epic-wallet (1.0.0-2) unstable; urgency=medium
+
+  * Fixing the dependencies
+  * Removing the pipe from the network
+
+ -- Yuri Albuquerque <yurialbuquerque@brickabode.com>  Thu, 18 Jul 2019 20:34:12 +0000
+epic-wallet (1.0.0-1) unstable; urgency=medium
+
+  * Initial release
+
+ -- Yuri Albuquerque <yurialbuquerque@brickabode.com>  Mon, 08 Jul 2019 20:34:12 +0000
