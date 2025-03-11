@@ -1,0 +1,16 @@
+*.swp
+.DS_Store
+.epic*
+debug/
+node*
+!node_clients
+!node_clients.rs
+target
+*/Cargo.lock
+*.iml
+epic.log
+wallet.seed
+test_output
+.idea/
+/build/
+release/
