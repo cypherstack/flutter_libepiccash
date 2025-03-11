@@ -37,12 +37,12 @@ stack_test_epic_keychain = "3.0.3"
 stack_test_epic_util = "3.0.3"
 stack_test_epic_core = "3.0.3"
 
-stack_test_epic_wallet_api = "3.0.2"
-stack_test_epic_wallet_impls = "3.0.5"
-stack_test_epic_wallet_libwallet = "3.0.2"
-stack_test_epic_wallet_config = "3.0.2"
-stack_test_epic_wallet_util = "3.0.2"
-stack_test_epic_wallet_controller = "3.0.2"
+epic_wallet_api = { path = "epic-wallet/api" }
+epic_wallet_impls = { path = "epic-wallet/impls" }
+epic_wallet_libwallet = { path = "epic-wallet/libwallet" }
+epic_wallet_config = { path = "epic-wallet/config" }
+epic_wallet_util = { path = "epic-wallet/util" }
+epic_wallet_controller = { path = "epic-wallet/controller" }
 
 # Epic box for posting slates and getting epic addresses.
 stack_test_epicboxlib = "1.0.3"
