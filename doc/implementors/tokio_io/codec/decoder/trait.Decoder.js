@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["epicbox"] = [{"text":"impl <a class=\"trait\" href=\"https://docs.rs/tokio-io/0.1.13/tokio_io/codec/decoder/trait.Decoder.html\" title=\"trait tokio_io::codec::decoder::Decoder\">Decoder</a> for <a class=\"struct\" href=\"epicbox/broker/stomp/codec/struct.Codec.html\" title=\"struct epicbox::broker::stomp::codec::Codec\">Codec</a>","synthetic":false,"types":["epicbox::broker::stomp::codec::Codec"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["epicbox"] = [{"text":"impl Handler for <a class=\"struct\" href=\"epicbox/server/struct.AsyncServer.html\" title=\"struct epicbox::server::AsyncServer\">AsyncServer</a>","synthetic":false,"types":["epicbox::server::AsyncServer"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

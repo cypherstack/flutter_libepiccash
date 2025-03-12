@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["epicbox"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.56.1/std/error/trait.Error.html\" title=\"trait std::error::Error\">Error</a> for <a class=\"enum\" href=\"epicbox/broker/stomp/codec/enum.ParseError.html\" title=\"enum epicbox::broker::stomp::codec::ParseError\">ParseError</a>","synthetic":false,"types":["epicbox::broker::stomp::codec::ParseError"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
