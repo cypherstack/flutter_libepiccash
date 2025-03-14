@@ -1,1 +1,0 @@
-window.ALL_CRATES = ["epic","epic_api","epic_bugreport","epic_chain","epic_config","epic_core","epic_keychain","epic_p2p","epic_pool","epic_servers","epic_store","epic_util"];

@@ -1,0 +1,3 @@
+[submodule "rust/epic"]
+	path = rust/epic
+	url = https://github.com/cypherstack/epic

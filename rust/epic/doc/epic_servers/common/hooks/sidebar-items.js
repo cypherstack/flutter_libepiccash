@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["init_chain_hooks","Returns the list of event hooks that will be initialized for chain events"],["init_net_hooks","Returns the list of event hooks that will be initialized for network events"]],"trait":[["ChainEvents","Trait to be implemented by Chain Event Hooks"],["NetEvents","Trait to be implemented by Network Event Hooks"]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["create_foundation","Call the wallet API to create a given number of foundations coinbases (output/kernel)"]]});

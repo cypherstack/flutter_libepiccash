@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["DiffColumn",""],["StratumWorkerColumn",""]],"struct":[["TUIMiningView","Mining status view"]]});
