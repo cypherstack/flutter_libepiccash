@@ -1,7 +1,0 @@
-{
-	"jsonrpc": "2.0",
-	"method": "get_top_level_directory",
-	"params": {
-	},
-	"id": 1
-}
