@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["heartbeat",""],["select_heartbeat",""]],"struct":[["Credentials",""],["HeartBeat",""],["OwnedCredentials",""]]});

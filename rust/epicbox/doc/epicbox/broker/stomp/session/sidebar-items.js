@@ -1,1 +1,0 @@
-initSidebarItems({"constant":[["GRACE_PERIOD_MULTIPLIER",""]],"enum":[["DisconnectionReason",""],["SessionEvent",""],["StreamState",""]],"fn":[["poll_heartbeat",""]],"struct":[["GenerateReceipt",""],["HeartBeatDelay",""],["OutstandingReceipt",""],["ReceiptRequest",""],["Session",""],["SessionState",""]],"type":[["ConnectFuture",""]]});
