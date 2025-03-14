@@ -4,3 +4,6 @@
 [submodule "rust/epic-wallet"]
 	path = rust/epic-wallet
 	url = https://github.com/cypherstack/epic-wallet
+[submodule "rust/epicbox"]
+	path = rust/epicbox
+	url = https://github.com/cypherstack/epicbox
