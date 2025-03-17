@@ -1,4 +1,10 @@
 # `flutter_libepiccash`
+## Submodules
+Initialize submodules:
+```sh
+git submodule update --init --recursive
+```
+
 ## Dependencies
 ### Rust
 Install Rust: https://www.rust-lang.org/tools/install
