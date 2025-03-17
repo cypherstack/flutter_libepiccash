@@ -61,7 +61,6 @@ class _EpicPasswordView extends State<EpicPasswordView> {
                       MaterialPageRoute(
                           builder: (context) => MnemonicView(
                                 name: widget.name,
-                                password: text,
                               )),
                     );
                   }

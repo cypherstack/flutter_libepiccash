@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_libepiccash/epic_cash.dart';
-import 'package:flutter_libepiccash_example/transaction_view.dart';
-import 'package:flutter_libepiccash_example/util.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_libepiccash/lib.dart';
+import 'package:flutter_libepiccash_example/wallet_info_view.dart';
 
 import 'epicbox_config.dart';
 
-class RecoverWalletView extends StatelessWidget {
-  RecoverWalletView({Key? key, required this.name}) : super(key: key);
+class RecoverWalletView extends StatefulWidget {
   final String name;
+
+  RecoverWalletView({Key? key, required this.name}) : super(key: key);
+
+  @override
+  _RecoverWalletViewState createState() => _RecoverWalletViewState();
+}
+
+class _RecoverWalletViewState extends State<RecoverWalletView> {
+  final TextEditingController _mnemonicController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+  String _errorMessage = '';
 
   @override
   Widget build(BuildContext context) {
@@ -20,154 +30,117 @@ class RecoverWalletView extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: EpicRecoverWalletView(title: 'Recover from mnemonic', name: name),
-    );
-  }
-}
-
-class EpicRecoverWalletView extends StatefulWidget {
-  const EpicRecoverWalletView(
-      {Key? key, required this.title, required this.name})
-      : super(key: key);
-
-  final String name;
-  final String title;
-
-  @override
-  State<EpicRecoverWalletView> createState() => _EpicRecoverWalletView();
-}
-
-class _EpicRecoverWalletView extends State<EpicRecoverWalletView> {
-  String mnemonic = "";
-  String password = "";
-  String walletConfig = "";
-  String recoverError = "";
-  final storage = new FlutterSecureStorage();
-
-  String walletDirectory = "";
-
-  Future<String> _getWalletConfig(String name) async {
-    return await EpicboxConfig.getDefaultConfig(name);
-  }
-
-  bool _createWalletFolder(String name) {
-    createFolder(name.toLowerCase()).then((value) {
-      if (value == "error") {
-        print("Failed to create wallet directory. Check permissions.");
-      } else if (value == "directory_exists") {
-        print("Wallet directory already exists.");
-      } else {
-        print("Wallet directory created at: $value");
-      }
-    });
-    return true;
-  }
-
-  String _recoverWallet(
-    String configPtr,
-    String passwordPtr,
-    String mnemonicPtr,
-    String namePtr,
-  ) {
-    final String recoverWalletStr =
-        recoverWallet(configPtr, passwordPtr, mnemonicPtr, namePtr);
-    return recoverWalletStr;
-  }
-
-  void _setMnemonic(value) {
-    mnemonic = mnemonic + value;
-  }
-
-  void _setPassword(value) {
-    print("Set password");
-    setState(() {
-      password = password + value;
-    });
-  }
-
-  void _setRecoverError(value) {
-    setState(() {
-      recoverError = value;
-    });
-  }
-
-  Future<void> _storeConfig(config) async {
-    await storage.write(key: "config", value: config);
-  }
-
-  final _formKey = GlobalKey<FormState>();
-  @override
-  Widget build(BuildContext context) {
-    String name = widget.name;
-    _createWalletFolder(name);
-
-    return Scaffold(
-        appBar: AppBar(
-          title: Text(widget.title),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        body: Form(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
           key: _formKey,
           child: Column(
-            children: <Widget>[
-              Text(recoverError),
-              TextFormField(
-                decoration: InputDecoration(hintText: name),
-                enabled: false,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Enter your recovery phrase',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
               ),
+              const SizedBox(height: 16.0),
               TextFormField(
-                decoration: InputDecoration(hintText: "Recovery string"),
-                maxLines: 10,
-                // The validator receives the text that the user has entered.
+                controller: _mnemonicController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'Enter your 24-word recovery phrase',
+                  border: OutlineInputBorder(),
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter wallet phrase';
+                    return 'Please enter your recovery phrase';
                   }
-                  _setMnemonic(value);
+                  final wordCount = value.trim().split(' ').length;
+                  if (wordCount != 24) {
+                    return 'Recovery phrase must contain exactly 24 words';
+                  }
                   return null;
                 },
               ),
+              const SizedBox(height: 16.0),
               TextFormField(
-                decoration: InputDecoration(hintText: "Wallet Password"),
-                // The validator receives the text that the user has entered.
+                controller: _passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  hintText: 'Enter new wallet password',
+                  border: OutlineInputBorder(),
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter wallet password';
+                    return 'Please enter a password';
                   }
-                  _setPassword(value);
                   return null;
                 },
               ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    String walletConfig = await _getWalletConfig(name);
-
-                    String recover =
-                        recoverWallet(walletConfig, password, mnemonic, name);
-
-                    if (recover == "recovered") {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => TransactionView(
-                                  password: password,
-                                  walletName: name,
-                                )),
-                      );
-                    } else {
-                      _setRecoverError(recover);
-                    }
-                  }
-                },
-                child: const Text('Next'),
-              ),
-              // Add TextFormFields and ElevatedButton here.
+              const SizedBox(height: 24.0),
+              if (_errorMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(
+                    _errorMessage,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton(
+                      onPressed: _recoverWallet,
+                      child: const Text('Recover Wallet'),
+                    ),
             ],
           ),
-        ));
+        ),
+      ),
+    );
+  }
+
+  Future<void> _recoverWallet() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      String config = await EpicboxConfig.getDefaultConfig(widget.name);
+
+      try {
+        await LibEpiccash.recoverWallet(
+          config: config,
+          mnemonic: _mnemonicController.text.trim(),
+          password: _passwordController.text,
+          name: widget.name,
+        );
+      } catch (e) {
+        setState(() {
+          _errorMessage = 'Error recovering wallet: $e';
+        });
+        return;
+      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WalletInfoView(
+            walletName: widget.name,
+            password: _passwordController.text,
+          ),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error recovering wallet: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 }

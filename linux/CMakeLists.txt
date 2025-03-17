@@ -38,10 +38,14 @@ target_include_directories(${PLUGIN_NAME} INTERFACE
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
 
+include("../cargokit/cmake/cargokit.cmake")
+apply_cargokit(${PROJECT_NAME} ../rust epic_cash_wallet "")
+
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 set(flutter_libepiccash_bundled_libraries
-  ""
+  # Replace original target file with the one produced by Cargokit:
+  "${${PROJECT_NAME}_cargokit_lib}"
   PARENT_SCOPE
 )

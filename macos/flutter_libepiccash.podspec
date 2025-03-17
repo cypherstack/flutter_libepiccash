@@ -14,12 +14,30 @@ A new Flutter plugin project.
   s.author           = { 'Your Company' => 'email@example.com' }
 
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*'
-  s.static_framework = true
-  s.vendored_libraries = "**/*.a"
-  s.dependency 'FlutterMacOS'
+  s.source_files     = 'Classes/**/*'
+  # s.vendored_libraries = "**/*.a" # Disabled for cargokit.
+
+  s.script_phase = {
+    :name => 'Build Rust library',
+    # First argument is relative path to the `rust` folder, second is name of rust library
+    :script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../rust epic_cash_wallet',
+    :execution_position => :before_compile,
+    :input_files => ['${BUILT_PRODUCTS_DIR}/cargokit_phony'],
+    # Let XCode know that the static library referenced in -force_load below is
+    # created by this build step.
+    :output_files => ["${BUILT_PRODUCTS_DIR}/libepic_cash_wallet.a"],
+  }
+  s.pod_target_xcconfig = {
+    'DEFINES_MODULE' => 'YES',
+    # Flutter.framework does not contain a i386 slice.
+    'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386',
+    'OTHER_LDFLAGS' => '-force_load ${BUILT_PRODUCTS_DIR}/libepic_cash_wallet.a',
+  }
 
   s.platform = :osx, '10.11'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=macosx*]' => 'x86_64' }
+  # TODO: Double-check if x86_64 works with the cargokit build once that's done.
   s.swift_version = '5.0'
+
+  s.dependency 'FlutterMacOS'
 end

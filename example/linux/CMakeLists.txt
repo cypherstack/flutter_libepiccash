@@ -116,13 +116,14 @@ install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}
 install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
-  install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../../linux/bin/aarch64-unknown-linux-gnu/release/libepic_cash_wallet.so" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-          COMPONENT Runtime)
-else()
-  install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../../linux/bin/x86_64-unknown-linux-gnu/release/libepic_cash_wallet.so" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-          COMPONENT Runtime)
-endif()
+# To be replaced with irondash/cargokit:
+# if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+#   install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../../linux/bin/aarch64-unknown-linux-gnu/release/libepic_cash_wallet.so" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+#           COMPONENT Runtime)
+# else()
+#   install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../../linux/bin/x86_64-unknown-linux-gnu/release/libepic_cash_wallet.so" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+#           COMPONENT Runtime)
+# endif()
 
 foreach(bundled_library ${PLUGIN_BUNDLED_LIBRARIES})
   install(FILES "${bundled_library}"
