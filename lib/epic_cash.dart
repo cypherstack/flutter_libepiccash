@@ -7,7 +7,7 @@ final DynamicLibrary epicCashNative = io.Platform.isWindows
     ? DynamicLibrary.open("libepic_cash_wallet.dll")
     : io.Platform.environment.containsKey('FLUTTER_TEST')
         ? DynamicLibrary.open(
-            'crypto_plugins/flutter_libepiccash/scripts/linux/build/libepic_cash_wallet.so')
+            'crypto_plugins/flutter_libepiccash/rust/target/debug/libepic_cash_wallet.so')
         : io.Platform.isAndroid || io.Platform.isLinux
             ? DynamicLibrary.open('libepic_cash_wallet.so')
             : DynamicLibrary.process();
