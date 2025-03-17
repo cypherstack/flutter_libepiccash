@@ -2,8 +2,10 @@
 name = "epic-cash-wallet"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+repository = "https://github.com/cypherstack/flutter_libepiccash"
+authors = ["Cypher Stack", "Likho", "sneurlax"]
+license = "MIT"
+license-file = "LICENSE"
 
 [dependencies]
 clap = { version = "2.31", features = ["yaml"] }
