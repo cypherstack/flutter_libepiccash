@@ -33,7 +33,7 @@ tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
 
-apply from: "../cargokit/gradle/plugin.gradle"
+apply from: "../../cargokit/gradle/plugin.gradle"
 
 cargokit {
     manifestDir = "../rust"
