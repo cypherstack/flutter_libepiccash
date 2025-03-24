@@ -67,10 +67,7 @@ cargo install cbindgen
 ```
 
 ## Build
-```sh
-cd scripts/ios
-./build_all
-```
+Builds are automatically triggered upon a Flutter build using [cargokit](https://github.com/irondash/cargokit) (see [this guide](https://matejknopp.com/post/flutter_plugin_in_rust_with_no_prebuilt_binaries/)).
 
 # Windows
 ## Dependencies
@@ -79,10 +76,18 @@ Run `scripts/windows/deps.sh` in WSL (may need to alter permissions like with `c
 sudo apt-get install clang gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
 ```
 
-## Building for Windows
-Run `scripts/windows/build_all.sh`
-
-Libraries will be output to `scripts/windows/build`
-
 ## Building on Windows
 `build_all.ps1` is not confirmed working and may need work eg. may need some missing dependencies added but has been included as a starting point or example for Windows users
+
+# Development
+## Cargokit
+Cargokit may be updated using:
+```sh
+git subtree pull --prefix cargokit https://github.com/irondash/cargokit.git main --squash
+```
+in the plugin root.
+
+## Bindings generation
+To generate `epic_cash_wallet.h` C bindings for Rust, `cbindgen --config cbindgen.toml --crate epic_cash_wallet --output target/epic_cash_wallet.h` or `cargo build` in `rust` to produce headers according to `build.rs`.
+
+[//]: # (To generate `epic_cash_bindings_generated.dart` Dart bindings for C, `flutter pub run ffigen --config ffigen.yaml`.)
