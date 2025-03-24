@@ -13,7 +13,7 @@ cp -r ../../rust build/rust
 cd build/rust
 
 # building
-cbindgen src/lib.rs -l c > libepic_cash_wallet.h
+cp target/epic_cash_wallet.h libepic_cash_wallet.h
 cargo lipo --release --targets aarch64-apple-darwin
 
 # moving files to the ios project
