@@ -28,15 +28,17 @@ migrate_working_dir/
 .dart_tool/
 .packages
 build/
-rust/src/bin
 android/src/main/jniLibs/
 rust/default/
 ios/include/
 ios/libs/
+linux/bin/
 macos/include/
 macos/libs/
-rust/libepic_cash_wallet.h
+
 lib/git_versions.dart
+rust/src/bin
+rust/libepic_cash_wallet.h
 
 scripts/windows/vcpkg/
 scripts/linux/flutter_libepiccash_bins/
@@ -46,6 +48,3 @@ scripts/windows/flutter_libepiccash_bins/
 scripts/macos/flutter_libepiccash_bins/
 scripts/android/cache/
 scripts/android/build/openssl/
-
-linux/bin/
-
