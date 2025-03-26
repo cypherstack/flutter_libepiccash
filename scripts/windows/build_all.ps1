@@ -35,7 +35,7 @@ if (Test-Path 'env:IS_ARM ') {
     cargo build --target x86_64-pc-windows-msvc --release --lib
 
     New-Item -ItemType Directory -Force -Path target\x86_64-pc-windows-msvc\release # Is this needed?
-    Copy-Item "target\x86_64-pc-windows-msvc\release\epic_cash_wallet.dll" -Destination "..\" -Force
+    Copy-Item "target\x86_64-pc-windows-msvc\release\epic_cash_wallet.dll" -Destination "..\libepic_cash_wallet.dll" -Force
 }
 
 # Return to /scripts/windows
