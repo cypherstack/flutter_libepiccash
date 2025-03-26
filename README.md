@@ -80,9 +80,11 @@ sudo apt-get install clang gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
 ```
 
 ## Building for Windows
-Run `scripts/windows/build_all.sh`
+Run `scripts/windows/build_all.sh` in WSL (Ubuntu 20.04 on WSL2 has been tested)
 
 Libraries will be output to `scripts/windows/build`
 
 ## Building on Windows
-`build_all.ps1` is not confirmed working and may need work eg. may need some missing dependencies added but has been included as a starting point or example for Windows users
+Perl is required for building on Windows.  Strawberry Perl has been tested working.
+
+Run `build_all.ps1` in Powershell.  This is not confirmed working and may need work eg. may need some missing dependencies added but has been included as a starting point or example for Windows developers.
