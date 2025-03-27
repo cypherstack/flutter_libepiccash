@@ -26,6 +26,11 @@ add_library(${PLUGIN_NAME} SHARED
   ${PLUGIN_SOURCES}
 )
 
+# Ensure .lib file is generated alongside .dll
+set_target_properties(${PLUGIN_NAME} PROPERTIES
+  WINDOWS_EXPORT_ALL_SYMBOLS ON
+)
+
 # Apply a standard set of build settings that are configured in the
 # application-level CMakeLists.txt. This can be removed for plugins that want
 # full control over build settings.
@@ -49,5 +54,7 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 # external build triggered from this build file.
 set(flutter_libepiccash_bundled_libraries
   ""
+  "${CMAKE_CURRENT_BINARY_DIR}/Debug/flutter_libepiccash_plugin.dll"
+  "${CMAKE_CURRENT_BINARY_DIR}/Debug/flutter_libepiccash_plugin.lib"
   PARENT_SCOPE
 )
