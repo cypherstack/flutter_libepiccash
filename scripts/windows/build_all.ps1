@@ -22,19 +22,20 @@ $env:EXAMPLE_VERSIONS_FILE = "..\..\lib\git_versions_example.dart"
 Copy-Item $env:EXAMPLE_VERSIONS_FILE -Destination $env:VERSIONS_FILE -Force
 $env:OS = "WINDOWS"
 (Get-Content $env:VERSIONS_FILE).replace('WINDOWS_VERSION = ""', "WINDOWS_VERSION = ""${env:COMMIT}""") | Set-Content $env:VERSIONS_FILE
-Copy-Item "..\..\rust\*" -Destination "build\rust" -Force -Recurse
+Copy-Item "..\..\rust" -Destination "build\rust" -Force -Recurse
 cd build\rust
 if (Test-Path 'env:IS_ARM ') {
     Write-Output "Building arm version"
     cargo build --target aarch64-pc-windows-msvc --release --lib
 
-    New-Item -ItemType Directory -Force -Path target\aarch64-pc-windows-msvc\release
+    New-Item -ItemType Directory -Force -Path target\aarch64-pc-windows-msvc\release # Is this needed?
     Copy-Item "target\aarch64-pc-windows-msvc\release\libepic_cash_wallet.so" -Destination "target\aarch64-pc-windows-gnu\release\" -Force
 } else {
     Write-Output "Building x86_64 version"
-    New-Item -ItemType Directory -Force -Path target\x86_64-pc-windows-msvc\release
-
     cargo build --target x86_64-pc-windows-msvc --release --lib
+
+    New-Item -ItemType Directory -Force -Path target\x86_64-pc-windows-msvc\release # Is this needed?
+    Copy-Item "target\x86_64-pc-windows-msvc\release\epic_cash_wallet.dll" -Destination "..\" -Force
 }
 
 # Return to /scripts/windows
