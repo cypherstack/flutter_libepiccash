@@ -25,4 +25,10 @@ cd rust
 rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 
 # TODO Investigate why x86 does not build
-cargo ndk -t armeabi-v7a -t arm64-v8a -t x86_64 -o ../../../../android/src/main/jniLibs build --release
+cargo ndk \
+  --target armv7-linux-androideabi \
+  --target aarch64-linux-android \
+  --target x86_64-linux-android \
+  --output-dir ../../../../android/src/main/jniLibs \
+  --platform 21 \
+  build --release
