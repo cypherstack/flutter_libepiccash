@@ -130,7 +130,6 @@ pub fn tx_create(
     note: &str,
     return_slate: Option<bool>,
 ) -> Result<String, Error> {
-
     let return_slate = return_slate.unwrap_or(false);
 
     let owner_api = Owner::new(wallet.clone(), None);
@@ -174,13 +173,24 @@ pub fn tx_create(
     )?;
 
     let empty_json = r#"{"slate_msg": ""}"#;
-    let response = (
-        serde_json::to_string(&tx_entries)?,
-        serde_json::to_string(&slate)?,
-        empty_json.to_string(),
-    );
+    let tx_entries_json = serde_json::to_string(&tx_entries)
+        .map_err(|e| Error::from(EpicWalletControllerError::GenericError(
+            e.to_string(),
+        )))?;
 
-    Ok(serde_json::to_string(&response)?)
+    let slate_json = serde_json::to_string(&slate)
+        .map_err(|e| Error::from(EpicWalletControllerError::GenericError(
+            e.to_string(),
+        )))?;
+
+    let response = (tx_entries_json, slate_json, String::new());
+
+    let response_json = serde_json::to_string(&response)
+        .map_err(|e| Error::from(EpicWalletControllerError::GenericError(
+            e.to_string(),
+        )))?;
+
+    Ok(response_json)
 }
 
 /// Cancel a transaction by ID.
