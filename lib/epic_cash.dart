@@ -38,8 +38,16 @@ typedef ScanOutPuts = Pointer<Utf8> Function(
 typedef ScanOutPutsFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
-typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+typedef CreateTransaction = Pointer<Utf8> Function(
+    Pointer<Utf8>, // wallet
+    Pointer<Int8>, // amount
+    Pointer<Utf8>, // to_address
+    Pointer<Int8>, // secret_key_index
+    Pointer<Utf8>, // epicbox_config
+    Pointer<Int8>, // confirmations
+    Pointer<Utf8>, // note
+    Pointer<Int8> // return_slate_flag
+    );
 typedef CreateTransactionFFI = Pointer<Utf8> Function(
     Pointer<Utf8>,
     Pointer<Int8>,
@@ -47,7 +55,9 @@ typedef CreateTransactionFFI = Pointer<Utf8> Function(
     Pointer<Int8>,
     Pointer<Utf8>,
     Pointer<Int8>,
-    Pointer<Utf8>);
+    Pointer<Utf8>,
+    Pointer<Int8> // return_slate_flag
+    );
 
 typedef EpicboxListenerStart = Pointer<Void> Function(
     Pointer<Utf8>, Pointer<Utf8>);
@@ -292,8 +302,9 @@ Future<String> createTransaction(
   int secretKey,
   String epicboxConfig,
   int minimumConfirmations,
-  String note,
-) async {
+  String note, {
+  bool returnSlate = false,
+}) async {
   Pointer<Utf8>? ptr;
   final walletPtr = wallet.toNativeUtf8();
   final amountPtr = amount.toString().toNativeUtf8().cast<Int8>();
@@ -303,6 +314,7 @@ Future<String> createTransaction(
   final minConfPtr =
       minimumConfirmations.toString().toNativeUtf8().cast<Int8>();
   final notePtr = note.toNativeUtf8();
+  final returnSlatePtr = (returnSlate ? '1' : '0').toNativeUtf8().cast<Int8>();
 
   try {
     ptr = _createTransaction(
@@ -313,6 +325,7 @@ Future<String> createTransaction(
       epicboxConfigPtr,
       minConfPtr,
       notePtr,
+      returnSlatePtr,
     );
     return ptr.toDartString();
   } catch (_) {
@@ -325,6 +338,7 @@ Future<String> createTransaction(
     malloc.free(epicboxConfigPtr);
     malloc.free(minConfPtr);
     malloc.free(notePtr);
+    malloc.free(returnSlatePtr);
     if (ptr != null) {
       malloc.free(ptr);
     }

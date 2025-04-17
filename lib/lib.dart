@@ -246,6 +246,7 @@ abstract class LibEpiccash {
       String epicboxConfig,
       int minimumConfirmations,
       String note,
+      bool returnSlate,
     }) data,
   ) async {
     return lib_epiccash.createTransaction(
@@ -256,6 +257,7 @@ abstract class LibEpiccash {
       data.epicboxConfig,
       data.minimumConfirmations,
       data.note,
+      returnSlate: data.returnSlate,
     );
   }
 
@@ -270,6 +272,7 @@ abstract class LibEpiccash {
     required String epicboxConfig,
     required int minimumConfirmations,
     required String note,
+    bool returnSlate = false,
   }) async {
     return await m.protect(() async {
       try {
@@ -283,6 +286,7 @@ abstract class LibEpiccash {
             epicboxConfig: epicboxConfig,
             minimumConfirmations: minimumConfirmations,
             note: note,
+            returnSlate: returnSlate,
           ),
         );
 
