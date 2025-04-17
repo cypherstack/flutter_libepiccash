@@ -9,6 +9,7 @@ use stack_epic_wallet_config::{EpicboxConfig, WalletConfig};
 use stack_epic_wallet_impls::{DefaultLCProvider, HTTPNodeClient};
 use stack_epic_wallet_libwallet::{address, scan, wallet_lock, AddressType, EpicboxAddress, Error, InitTxArgs, InitTxSendArgs, WalletInst};
 use stack_epic_wallet_libwallet::api_impl::owner;
+use stack_epic_wallet_libwallet::Slate;
 use uuid::Uuid;
 use crate::config::{create_wallet_config, Config};
 use crate::EpicWalletControllerError;
