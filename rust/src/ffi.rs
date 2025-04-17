@@ -424,9 +424,9 @@ pub unsafe extern "C" fn rust_create_tx(
     secret_key_index: *const c_char,
     epicbox_config: *const c_char,
     confirmations: *const c_char,
-    note: *const c_char
+    note: *const c_char,
+    return_slate_flag: *const c_char,
 ) -> *const c_char {
-
     let wallet_data = CStr::from_ptr(wallet).to_str().unwrap();
     let min_confirmations: u64 = CStr::from_ptr(confirmations).to_str().unwrap().to_string().parse().unwrap();
     let amount: u64 = CStr::from_ptr(amount).to_str().unwrap().to_string().parse().unwrap();
@@ -436,6 +436,10 @@ pub unsafe extern "C" fn rust_create_tx(
     let epicbox_config = CStr::from_ptr(epicbox_config).to_str().unwrap();
 
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+
+    let c_return_slate  = CStr::from_ptr(return_slate_flag);
+    let return_slate_u64: u64 = c_return_slate.to_str().unwrap().parse().unwrap_or(0);
+    let return_slate    = return_slate_u64 != 0;
 
     let listen = Listener {
         wallet_ptr_str: wallet_data.to_string(),
@@ -459,7 +463,8 @@ pub unsafe extern "C" fn rust_create_tx(
         key_index,
         epicbox_config,
         min_confirmations,
-        note
+        note,
+        return_slate
     ) {
         Ok(slate) => {
             // Spawn listener again.
@@ -486,7 +491,8 @@ fn _create_tx(
     _secret_key_index: u32,
     epicbox_config: &str,
     minimum_confirmations: u64,
-    note: &str
+    note: &str,
+    return_slate: bool,
 ) -> Result<*const c_char, Error> {
     let  mut message = String::from("");
     match tx_create(
@@ -497,7 +503,9 @@ fn _create_tx(
         false,
         epicbox_config,
         address,
-        note) {
+        note,
+        return_slate,
+    ) {
         Ok(slate) => {
             let empty_json = format!(r#"{{"slate_msg": ""}}"#);
             let create_response = (&slate, &empty_json);
@@ -514,8 +522,6 @@ fn _create_tx(
     let p = s.as_ptr();
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
-
-
 }
 
 /// Get transactions via FFI.

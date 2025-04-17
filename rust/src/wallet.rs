@@ -116,6 +116,9 @@ pub fn txs_get(
 }
 
 /// Initialize a transaction as sender.
+///
+/// Will use Epicbox for tx relay by default.  Override default behavior by setting return_slate.
+#[allow(clippy::too_many_arguments)]
 pub fn tx_create(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -125,58 +128,59 @@ pub fn tx_create(
     epicbox_config: &str,
     address: &str,
     note: &str,
+    return_slate: Option<bool>,
 ) -> Result<String, Error> {
-    let owner_api = Owner::new(wallet.clone(), None);
-    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
 
-    owner_api.set_epicbox_config(Some(epicbox_conf));
-    let init_send_args = InitTxSendArgs {
-        method: "epicbox".to_string(),
-        dest: address.to_string(),
-        finalize: false,
-        post_tx: false,
-        fluff: false
+    let return_slate = return_slate.unwrap_or(false);
+
+    let owner_api = Owner::new(wallet.clone(), None);
+
+    // Only set send‑args if we want the wallet to relay via Epicbox.
+    let send_args = if return_slate {
+        None
+    } else {
+        Some(InitTxSendArgs {
+            method: "epicbox".into(),
+            dest: address.into(),
+            finalize: false,
+            post_tx: false,
+            fluff: false,
+        })
     };
 
     let args = InitTxArgs {
-        src_acct_name: Some("default".to_string()),
+        src_acct_name: Some("default".into()),
         amount,
         minimum_confirmations,
         max_outputs: 500,
         num_change_outputs: 1,
         selection_strategy_is_use_all,
-        send_args: Some(init_send_args),
-        message: Some(note.to_string()),
+        send_args,
+        message: Some(note.into()),
         ..Default::default()
     };
 
-    match owner_api.init_send_tx(keychain_mask.as_ref(), args) {
-        Ok(slate)=> {
-            debug!("SLATE SEND RESPONSE IS  {:?}", slate);
-            // Get transaction for the slate, we will use type to determing if we should finalize or receive tx.
-            let txs = match owner_api.retrieve_txs(
-                keychain_mask.as_ref(),
-                false,
-                None,
-                Some(slate.id)
-            ) {
-                Ok(txs_result) => {
-                    txs_result
-                }, Err(e) => {
-                    return Err(e);
-                }
-            };
-            let final_result = (
-                serde_json::to_string(&txs.1).unwrap(),
-                serde_json::to_string(&slate).unwrap()
-            );
-            let str_result = serde_json::to_string(&final_result).unwrap();
-            Ok(str_result)
-        },
-        Err(e)=> {
-            return Err(e);
-        }
-    }
+    // Create the transaction.
+    let slate: Slate = owner_api.init_send_tx(keychain_mask.as_ref(), args)?;
+
+    // Fetch tx‑log entries.
+    //
+    // We can use type to determine if we should finalize or receive tx.
+    let (_, tx_entries) = owner_api.retrieve_txs(
+        keychain_mask.as_ref(),
+        false,
+        None,
+        Some(slate.id),
+    )?;
+
+    let empty_json = r#"{"slate_msg": ""}"#;
+    let response = (
+        serde_json::to_string(&tx_entries)?,
+        serde_json::to_string(&slate)?,
+        empty_json.to_string(),
+    );
+
+    Ok(serde_json::to_string(&response)?)
 }
 
 /// Cancel a transaction by ID.
