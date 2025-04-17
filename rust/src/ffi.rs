@@ -504,7 +504,7 @@ fn _create_tx(
         epicbox_config,
         address,
         note,
-        return_slate,
+        Some(return_slate),
     ) {
         Ok(slate) => {
             let empty_json = format!(r#"{{"slate_msg": ""}}"#);
