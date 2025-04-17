@@ -88,3 +88,10 @@ Libraries will be output to `scripts/windows/build`
 Perl is required for building on Windows.  Strawberry Perl has been tested working.
 
 Run `build_all.ps1` in Powershell.  This is not confirmed working and may need work eg. may need some missing dependencies added but has been included as a starting point or example for Windows developers.
+
+# Development
+## Rust -> C Bindings
+Regenerate C bindings for Rust as in:
+```
+cbindgen --config cbindgen.toml --crate epic-cash-wallet --output target/epic_cash_wallet.h
+```
