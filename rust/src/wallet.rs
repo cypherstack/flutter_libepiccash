@@ -119,6 +119,8 @@ pub fn txs_get(
 /// Initialize a transaction as sender.
 ///
 /// Will use Epicbox for tx relay by default.  Override default behavior by setting return_slate.
+///
+/// Step 1 of the 3-part transaction process (if return_slate is set).
 #[allow(clippy::too_many_arguments)]
 pub fn tx_create(
     wallet: &Wallet,
@@ -192,6 +194,66 @@ pub fn tx_create(
         )))?;
 
     Ok(response_json)
+}
+
+/// Receive a slate.
+///
+/// The receiver opens an incoming slate, adds its output,
+/// produces its partial signature and gives the caller the updated slate.
+///
+/// Step 2 of the 3-part transaction process.
+pub fn tx_receive(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    slate_json: &str,                // raw JSON from sender
+    message: Option<&str>,           // optional note to sign
+) -> Result<String, Error>           // updated slate JSON
+{
+    // Deserialize & upgrade to current.
+    let mut slate = Slate::deserialize_upgrade(slate_json)?;
+
+    // Choose parent path.
+    let parent_key_id = {
+        wallet_lock!(wallet, w);
+        w.parent_key_id().clone()
+    };
+
+    // Call the same code path the Foreign API uses.
+    internal::tx::add_output_to_slate(
+        &mut *wallet.lock(),
+        keychain_mask.as_ref(),
+        &mut slate,
+        &parent_key_id,
+        /*participant_id=*/1,
+        message.map(|s| s.to_owned()),
+        /*is_initiator=*/false,
+        /*use_test_rng=*/false,
+    )?;
+
+    Ok(serde_json::to_string(&slate)?)
+}
+
+/// Finalize a slate.
+///
+/// The original sender consumes the returned slate, finalises the transaction,
+/// and croadcasts it via the node.
+///
+/// Step 3 of the 3-part transaction process.
+pub fn tx_finalize(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    slate_json: &str,
+) -> Result<(), Error>
+{
+    // Inflate the slate.
+    let mut slate = Slate::deserialize_upgrade(slate_json)?;
+
+    // Rebuild the private context that was stashed when we created the tx (Owner API does this for us)
+    let owner_api = Owner::new(wallet.clone(), None);
+    owner_api.finalize_tx(keychain_mask.as_ref(), &mut slate, None, None)?;
+    // `finalize_tx` posts to the node when `post_tx=true` inside the slate.
+
+    Ok(())
 }
 
 /// Cancel a transaction by ID.

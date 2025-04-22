@@ -1128,3 +1128,101 @@ mod mnemonic_tests {
         }
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_tx_receive(
+    wallet: *const c_char,
+    slate_json: *const c_char,
+) -> *const c_char {
+    let wallet_str  = CStr::from_ptr(wallet).to_str().unwrap();
+    let slate_str   = CStr::from_ptr(slate_json).to_str().unwrap();
+
+    let (wlt, sek_key): (i64, Option<SecretKey>) =
+        serde_json::from_str(wallet_str).unwrap();
+
+    ensure_wallet!(wlt, wallet);
+
+    match _tx_receive(wallet, sek_key, slate_str) {
+        Ok(ptr)  => ptr,
+        Err(e)   => {
+            let err = CString::new(format!("Error {}", e)).unwrap();
+            let p   = err.as_ptr();
+            std::mem::forget(err);
+            p
+        }
+    }
+}
+
+fn _tx_receive(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    slate_json: &str,
+) -> Result<*const c_char, Error> {
+    let mut out = String::new();
+
+    match tx_receive(wallet, keychain_mask, slate_json) {
+        Ok(processed_slate) => {
+            // Keep the outer API uniform with (<slate>, {"slate_msg":""}).
+            let empty_json      = r#"{"slate_msg": ""}"#;
+            let response_tuple  = (&processed_slate, &empty_json);
+            out.push_str(&serde_json::to_string(&response_tuple).unwrap());
+        }
+        Err(e) => {
+            return Err(e);
+        }
+    }
+
+    let c_out = CString::new(out).unwrap();
+    let p     = c_out.as_ptr();
+    std::mem::forget(c_out);
+    Ok(p)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rust_tx_finalize(
+    wallet: *const c_char,
+    slate_json: *const c_char,
+) -> *const c_char {
+    let wallet_str  = CStr::from_ptr(wallet).to_str().unwrap();
+    let slate_str   = CStr::from_ptr(slate_json).to_str().unwrap();
+
+    let (wlt, sek_key): (i64, Option<SecretKey>) =
+        serde_json::from_str(wallet_str).unwrap();
+
+    ensure_wallet!(wlt, wallet);
+
+    match _tx_finalize(wallet, sek_key, slate_str) {
+        Ok(ptr)  => ptr,
+        Err(e)   => {
+            let err = CString::new(format!("Error {}", e)).unwrap();
+            let p   = err.as_ptr();
+            std::mem::forget(err);
+            p
+        }
+    }
+}
+
+fn _tx_finalize(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    slate_json: &str,
+) -> Result<*const c_char, Error> {
+    let mut out = String::new();
+
+    match tx_finalize(wallet, keychain_mask, slate_json) {
+        Ok(finalised_slate) => {
+            // Same tuple shape as elsewhere
+            let empty_json      = r#"{"slate_msg": ""}"#;
+            let response_tuple  = (&finalised_slate, &empty_json);
+            out.push_str(&serde_json::to_string(&response_tuple).unwrap());
+        }
+        Err(e) => {
+            return Err(e);
+        }
+    }
+
+    let c_out = CString::new(out).unwrap();
+    let p     = c_out.as_ptr();
+    std::mem::forget(c_out);
+    Ok(p)
+}
