@@ -742,7 +742,7 @@ abstract class LibEpiccash {
         throw Exception("Error creating transaction ${result.toString()}");
       }
 
-      //Decode sent tx and return Slate Id
+      //Decode sent tx and return Slate Id.
       final slate0 = jsonDecode(result);
       final slate = jsonDecode(slate0[0] as String);
       final part1 = jsonDecode(slate[0] as String);
@@ -775,5 +775,119 @@ abstract class LibEpiccash {
     if (ListenerManager.pointer != null) {
       lib_epiccash.epicboxListenerStop(ListenerManager.pointer!);
     }
+  }
+
+  /// Private function wrapper for tx_receive.
+  static Future<String> _txReceiveWrapper(
+    ({
+      String wallet,
+      String slateJson,
+    }) data,
+  ) async {
+    return lib_epiccash.txReceive(
+      data.wallet,
+      data.slateJson,
+    );
+  }
+
+  /// Receive an Epic transaction
+  ///
+  /// Adds the receiving wallet's output to the transaction and returns an
+  /// updated slate.
+  static Future<({String slateId, String commitId})> txReceive({
+    required String wallet,
+    required String slateJson,
+  }) async {
+    return await m.protect(() async {
+      try {
+        final String result = await compute(
+          _txReceiveWrapper,
+          (
+            wallet: wallet,
+            slateJson: slateJson,
+          ),
+        );
+
+        if (result.toUpperCase().contains("ERROR")) {
+          throw Exception("Error receiving transaction ${result.toString()}");
+        }
+
+        // Decode the received tx and return Slate Id and CommitId.
+        final slate0 = jsonDecode(result);
+        final slate = jsonDecode(slate0[0] as String);
+        final part1 = jsonDecode(slate[0] as String);
+        final part2 = jsonDecode(slate[1] as String);
+
+        final List<dynamic> outputs = part2['tx']?['body']?['outputs'] as List;
+        final commitId =
+            (outputs.isEmpty) ? '' : outputs[0]['commit'] as String;
+
+        final ({String slateId, String commitId}) data = (
+          slateId: part1[0]['tx_slate_id'],
+          commitId: commitId,
+        );
+
+        return data;
+      } catch (e) {
+        throw ("Error receiving epic transaction: ${e.toString()}");
+      }
+    });
+  }
+
+  /// Private function wrapper for tx_finalize.
+  static Future<String> _txFinalizeWrapper(
+    ({
+      String wallet,
+      String slateJson,
+    }) data,
+  ) async {
+    return lib_epiccash.txFinalize(
+      data.wallet,
+      data.slateJson,
+    );
+  }
+
+  /// Finalize an Epic slate.
+  ///
+  /// The original sender consumes the returned slate, finalizes the
+  /// transaction, and broadcasts it to the network.
+  static Future<({String slateId, String commitId})> txFinalize({
+    required String wallet,
+    required String slateJson,
+  }) async {
+    return await m.protect(() async {
+      try {
+        final String result = await compute(
+          _txFinalizeWrapper,
+          (
+            wallet: wallet,
+            slateJson: slateJson,
+          ),
+        );
+
+        if (result.toUpperCase().contains("ERROR")) {
+          throw Exception("Error finalizing transaction ${result.toString()}");
+        }
+
+        // Decode the finalized tx and return Slate Id and CommitId.
+        final slate0 = jsonDecode(result);
+        final slate = jsonDecode(slate0[0] as String);
+        final part1 = jsonDecode(slate[0] as String);
+        final part2 = jsonDecode(slate[1] as String);
+
+        final List<dynamic> outputs = part2['tx']?['body']?['outputs'] as List;
+        final commitId =
+            (outputs.isEmpty) ? '' : outputs[0]['commit'] as String;
+
+        final ({String slateId, String commitId}) data = (
+          slateId: part1[0]['tx_slate_id'],
+          commitId: commitId,
+        );
+
+        return data;
+      } catch (e) {
+        throw ("Error finalizing epic transaction: ${e.toString()}");
+      }
+    });
   }
 }

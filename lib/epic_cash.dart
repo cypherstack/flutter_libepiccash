@@ -103,6 +103,12 @@ typedef TxHttpSend = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
 typedef TxHttpSendFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
     Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
 
+typedef TxReceive = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef TxReceiveFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+
+typedef TxFinalize = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef TxFinalizeFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+
 final WalletMnemonic _walletMnemonic = epicCashNative
     .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
     .asFunction();
@@ -577,6 +583,52 @@ Future<String> txHttpSend(
     malloc.free(messagePtr);
     malloc.free(amountPtr);
     malloc.free(addressPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
+}
+
+final TxReceive _txReceive = epicCashNative
+    .lookup<NativeFunction<TxReceiveFFI>>("rust_tx_receive")
+    .asFunction();
+
+String txReceive(String wallet, String slateJson) {
+  Pointer<Utf8>? ptr;
+  final walletPtr = wallet.toNativeUtf8();
+  final slateJsonPtr = slateJson.toNativeUtf8();
+
+  try {
+    ptr = _txReceive(walletPtr, slateJsonPtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(slateJsonPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
+}
+
+final TxFinalize _txFinalize = epicCashNative
+    .lookup<NativeFunction<TxFinalizeFFI>>("rust_tx_finalize")
+    .asFunction();
+
+String txFinalize(String wallet, String slateJson) {
+  Pointer<Utf8>? ptr;
+  final walletPtr = wallet.toNativeUtf8();
+  final slateJsonPtr = slateJson.toNativeUtf8();
+
+  try {
+    ptr = _txFinalize(walletPtr, slateJsonPtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(slateJsonPtr);
     if (ptr != null) {
       malloc.free(ptr);
     }
