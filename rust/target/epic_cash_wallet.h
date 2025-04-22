@@ -86,6 +86,10 @@ const char *rust_recover_from_mnemonic(const char *config,
  */
 const char *rust_tx_cancel(const char *wallet, const char *tx_id);
 
+const char *rust_tx_finalize(const char *wallet, const char *slate_json);
+
+const char *rust_tx_receive(const char *wallet, const char *slate_json);
+
 /**
  * Send a transaction via FFI.
  */
