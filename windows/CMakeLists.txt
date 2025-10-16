@@ -54,7 +54,5 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 # external build triggered from this build file.
 set(flutter_libepiccash_bundled_libraries
   ""
-  "${CMAKE_CURRENT_BINARY_DIR}/Debug/flutter_libepiccash_plugin.dll"
-  "${CMAKE_CURRENT_BINARY_DIR}/Debug/flutter_libepiccash_plugin.lib"
   PARENT_SCOPE
 )
