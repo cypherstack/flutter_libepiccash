@@ -1,5 +1,5 @@
 
-use stack_epic_keychain::mnemonic;
+use epic_keychain::mnemonic;
 use rand::thread_rng;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
@@ -143,7 +143,7 @@ mod mnemonic_tests {
     // Test that generated mnemonics can be parsed back into valid seeds.
     #[test]
     fn test_mnemonic_reversibility() {
-        use stack_epic_keychain::mnemonic::to_entropy;
+        use epic_keychain::mnemonic::to_entropy;
 
         match mnemonic() {
             Ok(phrase) => {
@@ -168,7 +168,7 @@ mod mnemonic_tests {
     /// Test a specific mnemonic phrase against known entropy values.
     #[test]
     fn test_mnemonic_vector() {
-        use stack_epic_keychain::mnemonic::to_entropy;
+        use epic_keychain::mnemonic::to_entropy;
 
         let mnemonic = "march journey switch frame cloud since course twice cement pen random snow volume warrior film traffic loan tomorrow speed surprise thought remember ill whip";
         // Alternate vector used elsewhere in tests or otherwise committed:

@@ -1,10 +1,10 @@
 use std::sync::Arc;
 use ffi_helpers::{export_task, Task};
 use ffi_helpers::task::CancellationToken;
-use stack_epic_util::Mutex;
-use stack_epic_util::secp::SecretKey;
-use stack_epic_wallet_config::EpicboxConfig;
-use stack_epic_wallet_impls::EpicboxListenChannel;
+use epic_util::Mutex;
+use epic_util::secp::SecretKey;
+use epic_wallet_config::EpicboxConfig;
+use epic_wallet_impls::EpicboxListenChannel;
 
 use crate::wallet::Wallet;
 

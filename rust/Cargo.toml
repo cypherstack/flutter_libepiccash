@@ -29,17 +29,17 @@ rustc-serialize = "0.3.24"
 android_logger = "0.11.0"
 chrono = "0.4.24"
 
-stack_epic_keychain = { package = "epic_keychain", git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
-stack_epic_util = { package = "epic_util", git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
-stack_epic_core = { package = "epic_core", git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_keychain = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_util = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_core = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
 
-# Wallet crates: keep in-code names, source official v3.6
-stack_epic_wallet_api = { package = "epic_wallet_api", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
-stack_epic_wallet_impls = { package = "epic_wallet_impls", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
-stack_epic_wallet_libwallet = { package = "epic_wallet_libwallet", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
-stack_epic_wallet_config = { package = "epic_wallet_config", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
-stack_epic_wallet_util = { package = "epic_wallet_util", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
-stack_epic_wallet_controller = { package = "epic_wallet_controller", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
+# Wallet crates from official v3.6 tag
+epic_wallet_api = { git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
+epic_wallet_impls = { git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
+epic_wallet_libwallet = { git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
+epic_wallet_config = { git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
+epic_wallet_util = { git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
+epic_wallet_controller = { git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
 
 url = "2.1.0"
 futures = "0.3.15"

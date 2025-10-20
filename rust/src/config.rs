@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use stack_epic_wallet_util::epic_core::global::ChainTypes;
+use epic_wallet_util::epic_core::global::ChainTypes;
 use std::path::Path;
-use stack_epic_wallet_config::WalletConfig;
+use epic_wallet_config::WalletConfig;
 
 use crate::Error;
 

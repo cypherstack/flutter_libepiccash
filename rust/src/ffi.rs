@@ -3,12 +3,12 @@ use std::os::raw::c_char;
 
 use uuid::Uuid;
 
-use stack_epic_wallet_api::{self, Owner};
-use stack_epic_wallet_config::EpicboxConfig;
-use stack_epic_wallet_libwallet::Error;
-use stack_epic_wallet_controller::Error as EpicWalletControllerError;
+use epic_wallet_api::{self, Owner};
+use epic_wallet_config::EpicboxConfig;
+use epic_wallet_libwallet::Error;
+use epic_wallet_controller::Error as EpicWalletControllerError;
 
-use stack_epic_util::secp::key::SecretKey;
+use epic_util::secp::key::SecretKey;
 
 use crate::config::Config;
 
@@ -1100,7 +1100,7 @@ mod mnemonic_tests {
     // Test that generated mnemonics can be parsed back into valid seeds.
     #[test]
     fn test_mnemonic_reversibility() {
-        use stack_epic_keychain::mnemonic::to_entropy;
+        use epic_keychain::mnemonic::to_entropy;
 
         match mnemonic() {
             Ok(phrase) => {

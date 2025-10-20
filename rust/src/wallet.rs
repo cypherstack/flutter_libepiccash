@@ -1,22 +1,22 @@
 use std::sync::Arc;
 use serde_derive::{Deserialize, Serialize};
-use stack_epic_keychain::ExtKeychain;
-use stack_epic_util::{Mutex, ZeroingString};
-use stack_epic_util::file::get_first_line;
-use stack_epic_util::secp::{PublicKey, Secp256k1, SecretKey};
-use stack_epic_wallet_api::Owner;
-use stack_epic_wallet_config::{EpicboxConfig, WalletConfig};
-use stack_epic_wallet_impls::{DefaultLCProvider, HTTPNodeClient};
-use stack_epic_wallet_libwallet::{address, scan, wallet_lock, AddressType, EpicboxAddress, Error, InitTxArgs, InitTxSendArgs, WalletInst};
-use stack_epic_wallet_libwallet::api_impl::owner;
+use epic_keychain::ExtKeychain;
+use epic_util::{Mutex, ZeroingString};
+use epic_util::file::get_first_line;
+use epic_util::secp::{PublicKey, Secp256k1, SecretKey};
+use epic_wallet_api::Owner;
+use epic_wallet_config::{EpicboxConfig, WalletConfig};
+use epic_wallet_impls::{DefaultLCProvider, HTTPNodeClient};
+use epic_wallet_libwallet::{address, scan, wallet_lock, AddressType, EpicboxAddress, Error, InitTxArgs, InitTxSendArgs, WalletInst};
+use epic_wallet_libwallet::api_impl::owner;
 use uuid::Uuid;
 use crate::config::{create_wallet_config, Config};
 use crate::EpicWalletControllerError;
-use stack_epic_wallet_libwallet::Address;
-use stack_epic_wallet_libwallet::WalletLCProvider;
-use stack_epic_wallet_libwallet::NodeClient;
-use stack_epic_keychain::Keychain;
-use stack_epic_wallet_impls::DefaultWalletImpl;
+use epic_wallet_libwallet::Address;
+use epic_wallet_libwallet::WalletLCProvider;
+use epic_wallet_libwallet::NodeClient;
+use epic_keychain::Keychain;
+use epic_wallet_impls::DefaultWalletImpl;
 use std::cmp::Ordering;
 
 /// Wallet type.
