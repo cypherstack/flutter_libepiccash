@@ -33,12 +33,12 @@ stack_epic_keychain = "3.6.0"
 stack_epic_util = "3.6.0"
 stack_epic_core = "3.6.0"
 
-stack_epic_wallet_api = { path = "epic-wallet/api" }
-stack_epic_wallet_impls = { path = "epic-wallet/impls" }
-stack_epic_wallet_libwallet = { path = "epic-wallet/libwallet" }
-stack_epic_wallet_config = { path = "epic-wallet/config" }
-stack_epic_wallet_util = { path = "epic-wallet/util" }
-stack_epic_wallet_controller = { path = "epic-wallet/controller" }
+stack_epic_wallet_api = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
+stack_epic_wallet_impls = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
+stack_epic_wallet_libwallet = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
+stack_epic_wallet_config = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
+stack_epic_wallet_util = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
+stack_epic_wallet_controller = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
 
 url = "2.1.0"
 futures = "0.3.15"
