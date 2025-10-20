@@ -13,7 +13,7 @@ use crate::ffi::rust_get_chain_height;
 // use crate::ffi::rust_epicbox_listener_start;
 // use crate::ffi::_listener_cancel;
 use crate::ffi::rust_validate_address;
-// use crate::ffi::rust_get_wallet_address;
+use crate::ffi::rust_get_wallet_address;
 // use crate::ffi::rust_get_tx_fees;
 use crate::ffi::rust_delete_wallet;
 
@@ -654,5 +654,215 @@ mod tests {
         }
 
         println!("\n=== End rust_validate_address FFI test ===");
+    }
+
+    /// Test the rust_get_wallet_address FFI function.
+    /// This test creates a wallet and retrieves its address with epicbox configuration.
+    #[test]
+    fn test_rust_get_wallet_address_ffi() {
+        println!("=== Test rust_get_wallet_address FFI ===");
+
+        let test_dir = setup_test_dir("get_wallet_address_ffi");
+        let config_json = create_test_config(&test_dir);
+
+        // Create epicbox configuration.
+        let epicbox_config = json!({
+            "epicbox_domain": "epicbox.epic.tech",
+            "epicbox_port": 443,
+            "epicbox_protocol_unsecure": false,
+            "epicbox_address_index": 0,
+        }).to_string();
+
+        unsafe {
+            let config_ptr = str_to_cchar(&config_json);
+            let password_ptr = str_to_cchar("address_test_password");
+            let name_ptr = str_to_cchar("address_wallet");
+
+            // 1. Generate mnemonic and create wallet.
+            let mnemonic_ptr = get_mnemonic();
+            let mnemonic_str = CStr::from_ptr(mnemonic_ptr).to_str().unwrap();
+            println!("Generated mnemonic for address test");
+
+            let creation_ptr = wallet_init(
+                config_ptr,
+                str_to_cchar(mnemonic_str),
+                password_ptr,
+                name_ptr
+            );
+            let creation_result = CStr::from_ptr(creation_ptr).to_str().unwrap();
+            println!("Wallet creation result: {}", creation_result);
+
+            // 2. Open the wallet.
+            let open_ptr = rust_open_wallet(config_ptr, password_ptr);
+            let wallet_data = CStr::from_ptr(open_ptr).to_str().unwrap();
+            println!("Opened wallet");
+
+            // 3. Get wallet address at index 0.
+            let index_ptr = str_to_cchar("0");
+            let epicbox_config_ptr = str_to_cchar(&epicbox_config);
+
+            let address_ptr = rust_get_wallet_address(
+                str_to_cchar(wallet_data),
+                index_ptr,
+                epicbox_config_ptr
+            );
+            let address = CStr::from_ptr(address_ptr).to_str().unwrap();
+
+            println!("Wallet address at index 0: {}", address);
+
+            // Verify the address format.
+            assert!(!address.is_empty(), "Address should not be empty");
+            assert!(address.contains('@'), "Address should contain @ for epicbox domain");
+            assert!(address.contains("epicbox.epic.tech"), "Address should contain epicbox domain");
+
+            // 4. Get wallet address at index 1.
+            let index_ptr_1 = str_to_cchar("1");
+            let address_ptr_1 = rust_get_wallet_address(
+                str_to_cchar(wallet_data),
+                index_ptr_1,
+                epicbox_config_ptr
+            );
+            let address_1 = CStr::from_ptr(address_ptr_1).to_str().unwrap();
+
+            println!("Wallet address at index 1: {}", address_1);
+
+            // Verify addresses at different indices are different.
+            assert_ne!(address, address_1, "Addresses at different indices should be different");
+
+            // 5. Clean up.
+            let delete_ptr = rust_delete_wallet(str_to_cchar(wallet_data), config_ptr);
+            let delete_result = CStr::from_ptr(delete_ptr).to_str().unwrap();
+            println!("Delete result: {}", delete_result);
+        }
+
+        cleanup_test_dir(&test_dir);
+        println!("=== End rust_get_wallet_address FFI test ===");
+    }
+
+    /// Test that a known mnemonic produces a known wallet address (test vector).
+    /// This ensures deterministic address generation from mnemonic seeds.
+    #[test]
+    fn test_mnemonic_to_address_vector() {
+        println!("=== Test Mnemonic to Address Vector ===");
+
+        let test_dir = setup_test_dir("mnemonic_address_vector");
+        let config_json = create_test_config(&test_dir);
+
+        // Known test vector: mnemonic phrase (standard BIP39 test vector).
+        let known_mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art";
+
+        // Expected addresses derived from this mnemonic.
+        let expected_address_index_0 = "esYCWofU6pCtd1HyvsmbTTtrMs75WxSoJz2bfxF88vX86e5WvQRb@epicbox.epic.tech";
+        let expected_address_index_1 = "esWNSTgR69g5MdAwndY1MuZEQqXk19tW36kjLX7xV9f5x1qDaD7w@epicbox.epic.tech";
+
+        let epicbox_config = json!({
+            "epicbox_domain": "epicbox.epic.tech",
+            "epicbox_port": 443,
+            "epicbox_protocol_unsecure": false,
+            "epicbox_address_index": 0,
+        }).to_string();
+
+        println!("Test vector mnemonic: {}", known_mnemonic);
+        println!("Expected address at index 0: {}", expected_address_index_0);
+        println!("Expected address at index 1: {}", expected_address_index_1);
+
+        unsafe {
+            let config_ptr = str_to_cchar(&config_json);
+            let password_ptr = str_to_cchar("test_vector_password");
+            let name_ptr = str_to_cchar("vector_wallet");
+            let mnemonic_ptr = str_to_cchar(known_mnemonic);
+
+            // 1. Create wallet from known mnemonic.
+            let creation_ptr = wallet_init(
+                config_ptr,
+                mnemonic_ptr,
+                password_ptr,
+                name_ptr
+            );
+            let creation_result = CStr::from_ptr(creation_ptr).to_str().unwrap();
+            println!("Wallet creation result: {}", creation_result);
+
+            // 2. Open the wallet.
+            let open_ptr = rust_open_wallet(config_ptr, password_ptr);
+            let wallet_data = CStr::from_ptr(open_ptr).to_str().unwrap();
+            println!("Opened wallet from known mnemonic");
+
+            // 3. Get wallet address at index 0.
+            let index_ptr = str_to_cchar("0");
+            let epicbox_config_ptr = str_to_cchar(&epicbox_config);
+
+            let address_ptr = rust_get_wallet_address(
+                str_to_cchar(wallet_data),
+                index_ptr,
+                epicbox_config_ptr
+            );
+            let address_index_0 = CStr::from_ptr(address_ptr).to_str().unwrap();
+
+            println!("Actual address at index 0: {}", address_index_0);
+
+            // Verify the address matches the expected test vector.
+            assert_eq!(
+                address_index_0, expected_address_index_0,
+                "Address at index 0 does not match expected test vector"
+            );
+
+            // 4. Get wallet address at index 1.
+            let index_ptr_1 = str_to_cchar("1");
+            let address_ptr_1 = rust_get_wallet_address(
+                str_to_cchar(wallet_data),
+                index_ptr_1,
+                epicbox_config_ptr
+            );
+            let address_index_1 = CStr::from_ptr(address_ptr_1).to_str().unwrap();
+
+            println!("Actual address at index 1: {}", address_index_1);
+
+            // Verify the address matches the expected test vector.
+            assert_eq!(
+                address_index_1, expected_address_index_1,
+                "Address at index 1 does not match expected test vector"
+            );
+
+            // 5. Create a second wallet with the same mnemonic to verify determinism.
+            let delete_ptr = rust_delete_wallet(str_to_cchar(wallet_data), config_ptr);
+            let delete_result = CStr::from_ptr(delete_ptr).to_str().unwrap();
+            println!("Deleted first wallet: {}", delete_result);
+
+            let name_ptr_2 = str_to_cchar("vector_wallet_2");
+            let creation_ptr_2 = wallet_init(
+                config_ptr,
+                mnemonic_ptr,
+                password_ptr,
+                name_ptr_2
+            );
+            let creation_result_2 = CStr::from_ptr(creation_ptr_2).to_str().unwrap();
+            println!("Second wallet creation result: {}", creation_result_2);
+
+            let open_ptr_2 = rust_open_wallet(config_ptr, password_ptr);
+            let wallet_data_2 = CStr::from_ptr(open_ptr_2).to_str().unwrap();
+
+            let address_ptr_verify = rust_get_wallet_address(
+                str_to_cchar(wallet_data_2),
+                index_ptr,
+                epicbox_config_ptr
+            );
+            let address_verify = CStr::from_ptr(address_ptr_verify).to_str().unwrap();
+
+            println!("Verification address at index 0: {}", address_verify);
+
+            // Verify determinism: same mnemonic produces same address.
+            assert_eq!(
+                address_index_0, address_verify,
+                "Same mnemonic should produce same address at index 0"
+            );
+
+            // 6. Clean up.
+            let delete_ptr_2 = rust_delete_wallet(str_to_cchar(wallet_data_2), config_ptr);
+            let delete_result_2 = CStr::from_ptr(delete_ptr_2).to_str().unwrap();
+            println!("Deleted second wallet: {}", delete_result_2);
+        }
+
+        cleanup_test_dir(&test_dir);
+        println!("=== End Mnemonic to Address Vector test ===");
     }
 }
