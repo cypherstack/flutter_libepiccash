@@ -1,5 +1,5 @@
-use stack_epic_wallet_libwallet::Error;
-use stack_epic_wallet_controller::Error as EpicWalletControllerError;
+use epic_wallet_libwallet::Error;
+use epic_wallet_controller::Error as EpicWalletControllerError;
 
 use crate::ffi::get_mnemonic;
 use crate::ffi::wallet_init;
@@ -353,7 +353,7 @@ mod tests {
                     println!("Word Count: {}", words.len());
 
                     // Generate entropy from mnemonic.
-                    use stack_epic_keychain::mnemonic::to_entropy;
+                    use epic_keychain::mnemonic::to_entropy;
                     match to_entropy(&phrase) {
                         Ok(entropy) => {
                             println!("Entropy (hex): {}", hex::encode(&entropy));
