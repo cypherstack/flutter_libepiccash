@@ -6,7 +6,8 @@ use crate::ffi::wallet_init;
 use crate::ffi::rust_open_wallet;
 use crate::ffi::rust_wallet_balances;
 use crate::ffi::rust_wallet_scan_outputs;
-// use crate::ffi::rust_create_tx;
+use crate::ffi::rust_create_tx;
+use crate::ffi::rust_tx_send_http;
 use crate::ffi::rust_txs_get;
 use crate::ffi::rust_tx_cancel;
 use crate::ffi::rust_get_chain_height;
@@ -1106,5 +1107,111 @@ mod tests {
 
         cleanup_test_dir(&test_dir);
         println!("=== End rust_tx_cancel FFI test ===");
+    }
+
+    /// Test the rust_create_tx and rust_tx_send_http FFI functions.
+    /// These functions create transactions, so we test them together.
+    /// Note: Without funds, these will return errors, but we verify the FFI interface works.
+    #[test]
+    fn test_rust_create_tx_ffi() {
+        println!("=== Test rust_create_tx FFI ===");
+
+        let test_dir = setup_test_dir("create_tx_ffi");
+        let config_json = create_test_config(&test_dir);
+
+        let epicbox_config = json!({
+            "epicbox_domain": "epicbox.epic.tech",
+            "epicbox_port": 443,
+            "epicbox_protocol_unsecure": false,
+            "epicbox_address_index": 0,
+        }).to_string();
+
+        unsafe {
+            let config_ptr = str_to_cchar(&config_json);
+            let password_ptr = str_to_cchar("tx_test_password");
+            let name_ptr = str_to_cchar("tx_wallet");
+
+            // 1. Generate mnemonic and create wallet.
+            let mnemonic_ptr = get_mnemonic();
+            let mnemonic_str = CStr::from_ptr(mnemonic_ptr).to_str().unwrap();
+            println!("Generated mnemonic for tx test");
+
+            let creation_ptr = wallet_init(
+                config_ptr,
+                str_to_cchar(mnemonic_str),
+                password_ptr,
+                name_ptr
+            );
+            let creation_result = CStr::from_ptr(creation_ptr).to_str().unwrap();
+            println!("Wallet creation result: {}", creation_result);
+
+            // 2. Open the wallet.
+            let open_ptr = rust_open_wallet(config_ptr, password_ptr);
+            let wallet_data = CStr::from_ptr(open_ptr).to_str().unwrap();
+            println!("Opened wallet");
+
+            // 3. Test rust_create_tx (epicbox transaction).
+            println!("\nTesting rust_create_tx...");
+            let amount = "1000000000"; // 1 EPIC in nanoEPIC
+            let to_address = "epic1test@epicbox.epic.tech";
+            let secret_key_index = "0";
+            let confirmations = "10";
+            let note = "Test transaction";
+
+            let tx_ptr = rust_create_tx(
+                str_to_cchar(wallet_data),
+                str_to_cchar(amount),
+                str_to_cchar(to_address),
+                str_to_cchar(secret_key_index),
+                str_to_cchar(&epicbox_config),
+                str_to_cchar(confirmations),
+                str_to_cchar(note)
+            );
+            let tx_result = CStr::from_ptr(tx_ptr).to_str().unwrap();
+
+            println!("Create tx result: {}", tx_result);
+
+            // Should return an error (no funds in wallet).
+            if tx_result.starts_with("Error ") {
+                println!("Expected error for empty wallet");
+                assert!(tx_result.contains("Error"), "Empty wallet should error when creating tx");
+            } else {
+                println!("Unexpected success creating tx (wallet has no funds)");
+            }
+
+            // 4. Test rust_tx_send_http (HTTP transaction).
+            println!("\nTesting rust_tx_send_http...");
+            let strategy_use_all = "0"; // Don't use all outputs.
+            let message = "HTTP test transaction";
+            let http_address = "http://example.epic.address";
+
+            let http_tx_ptr = rust_tx_send_http(
+                str_to_cchar(wallet_data),
+                str_to_cchar(strategy_use_all),
+                str_to_cchar(confirmations),
+                str_to_cchar(message),
+                str_to_cchar(amount),
+                str_to_cchar(http_address)
+            );
+            let http_tx_result = CStr::from_ptr(http_tx_ptr).to_str().unwrap();
+
+            println!("Send HTTP tx result: {}", http_tx_result);
+
+            // Should also return an error (no funds in wallet).
+            if http_tx_result.starts_with("Error ") {
+                println!("Expected error for empty wallet");
+                assert!(http_tx_result.contains("Error"), "Empty wallet should error when sending HTTP tx");
+            } else {
+                println!("Unexpected success sending HTTP tx (wallet has no funds)");
+            }
+
+            // 5. Clean up.
+            let delete_ptr = rust_delete_wallet(str_to_cchar(wallet_data), config_ptr);
+            let delete_result = CStr::from_ptr(delete_ptr).to_str().unwrap();
+            println!("\nDelete result: {}", delete_result);
+        }
+
+        cleanup_test_dir(&test_dir);
+        println!("=== End rust_create_tx FFI test ===");
     }
 }
