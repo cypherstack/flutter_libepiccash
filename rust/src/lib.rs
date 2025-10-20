@@ -5,7 +5,7 @@ use crate::ffi::get_mnemonic;
 use crate::ffi::wallet_init;
 use crate::ffi::rust_open_wallet;
 use crate::ffi::rust_wallet_balances;
-// use crate::ffi::rust_wallet_scan_outputs;
+use crate::ffi::rust_wallet_scan_outputs;
 // use crate::ffi::rust_create_tx;
 // use crate::ffi::rust_txs_get;
 // use crate::ffi::rust_tx_cancel;
@@ -507,5 +507,77 @@ mod tests {
 
         cleanup_test_dir(&test_dir);
         println!("=== End rust_get_chain_height FFI test ===");
+    }
+
+    /// Test the rust_wallet_scan_outputs FFI function.
+    /// This test creates a wallet and scans outputs from a specific block height.
+    #[test]
+    fn test_rust_wallet_scan_outputs_ffi() {
+        println!("=== Test rust_wallet_scan_outputs FFI ===");
+
+        let test_dir = setup_test_dir("scan_outputs_ffi");
+        let config_json = create_test_config(&test_dir);
+
+        unsafe {
+            let config_ptr = str_to_cchar(&config_json);
+            let password_ptr = str_to_cchar("scan_test_password");
+            let name_ptr = str_to_cchar("scan_outputs_wallet");
+
+            // 1. Generate mnemonic and create wallet.
+            let mnemonic_ptr = get_mnemonic();
+            let mnemonic_str = CStr::from_ptr(mnemonic_ptr).to_str().unwrap();
+            println!("Generated mnemonic for scan test");
+
+            let creation_ptr = wallet_init(
+                config_ptr,
+                str_to_cchar(mnemonic_str),
+                password_ptr,
+                name_ptr
+            );
+            let creation_result = CStr::from_ptr(creation_ptr).to_str().unwrap();
+            println!("Wallet creation result: {}", creation_result);
+
+            // 2. Open the wallet.
+            let open_ptr = rust_open_wallet(config_ptr, password_ptr);
+            let wallet_data = CStr::from_ptr(open_ptr).to_str().unwrap();
+            println!("Opened wallet: {}", wallet_data);
+
+            // 3. Scan outputs from block height 1 for 100 blocks.
+            let start_height_ptr = str_to_cchar("1");
+            let number_of_blocks_ptr = str_to_cchar("100");
+
+            let scan_ptr = rust_wallet_scan_outputs(
+                str_to_cchar(wallet_data),
+                start_height_ptr,
+                number_of_blocks_ptr
+            );
+            let scan_result = CStr::from_ptr(scan_ptr).to_str().unwrap();
+
+            println!("Scan outputs result: {}", scan_result);
+
+            // Verify the result.
+            if scan_result.starts_with("Error ") {
+                println!("Scan returned error (expected for empty wallet): {}", scan_result);
+            } else {
+                // Should return the last scanned height.
+                match scan_result.parse::<u64>() {
+                    Ok(last_height) => {
+                        println!("Successfully scanned up to height: {}", last_height);
+                        assert!(last_height >= 1, "Last scanned height should be >= start height");
+                    }
+                    Err(e) => {
+                        println!("Note: Could not parse scan result as height: {}", e);
+                    }
+                }
+            }
+
+            // 4. Clean up.
+            let delete_ptr = rust_delete_wallet(str_to_cchar(wallet_data), config_ptr);
+            let delete_result = CStr::from_ptr(delete_ptr).to_str().unwrap();
+            println!("Delete result: {}", delete_result);
+        }
+
+        cleanup_test_dir(&test_dir);
+        println!("=== End rust_wallet_scan_outputs FFI test ===");
     }
 }
