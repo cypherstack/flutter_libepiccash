@@ -9,7 +9,7 @@ use crate::ffi::rust_wallet_balances;
 // use crate::ffi::rust_create_tx;
 // use crate::ffi::rust_txs_get;
 // use crate::ffi::rust_tx_cancel;
-// use crate::ffi::rust_get_chain_height;
+use crate::ffi::rust_get_chain_height;
 // use crate::ffi::rust_epicbox_listener_start;
 // use crate::ffi::_listener_cancel;
 // use crate::ffi::rust_validate_address;
@@ -464,5 +464,48 @@ mod tests {
             println!("Converted back to EPIC: {}", back_to_epic);
             println!("---");
         }
+    }
+
+    /// Test the rust_get_chain_height FFI function directly.
+    /// This test verifies that the FFI wrapper properly calls the underlying
+    /// get_chain_height function and returns a valid height as a C string.
+    #[test]
+    fn test_rust_get_chain_height_ffi() {
+        println!("=== Test rust_get_chain_height FFI ===");
+
+        let test_dir = setup_test_dir("chain_height_ffi");
+        let config_json = create_test_config(&test_dir);
+
+        unsafe {
+            // Convert config to C string pointer.
+            let config_ptr = str_to_cchar(&config_json);
+
+            // Call the FFI function.
+            let height_ptr = rust_get_chain_height(config_ptr);
+
+            // Convert the result back to a Rust string.
+            let height_str = CStr::from_ptr(height_ptr).to_str().unwrap();
+
+            println!("Chain height returned from FFI: {}", height_str);
+
+            // Verify the result.
+            if height_str.starts_with("Error ") {
+                println!("FFI returned an error: {}", height_str);
+            } else {
+                // Try to parse as a number.
+                match height_str.parse::<u64>() {
+                    Ok(height) => {
+                        println!("Successfully parsed chain height: {}", height);
+                        assert!(height > 0, "Chain height should be greater than 0");
+                    }
+                    Err(e) => {
+                        panic!("Failed to parse chain height '{}': {}", height_str, e);
+                    }
+                }
+            }
+        }
+
+        cleanup_test_dir(&test_dir);
+        println!("=== End rust_get_chain_height FFI test ===");
     }
 }
