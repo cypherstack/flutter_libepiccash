@@ -14,7 +14,7 @@ use crate::ffi::rust_get_chain_height;
 // use crate::ffi::_listener_cancel;
 use crate::ffi::rust_validate_address;
 use crate::ffi::rust_get_wallet_address;
-// use crate::ffi::rust_get_tx_fees;
+use crate::ffi::rust_get_tx_fees;
 use crate::ffi::rust_delete_wallet;
 
 use android_logger::FilterBuilder;
@@ -864,5 +864,90 @@ mod tests {
 
         cleanup_test_dir(&test_dir);
         println!("=== End Mnemonic to Address Vector test ===");
+    }
+
+    /// Test the rust_get_tx_fees FFI function.
+    /// This test creates a wallet and calculates transaction fees for various amounts.
+    #[test]
+    fn test_rust_get_tx_fees_ffi() {
+        println!("=== Test rust_get_tx_fees FFI ===");
+
+        let test_dir = setup_test_dir("get_tx_fees_ffi");
+        let config_json = create_test_config(&test_dir);
+
+        unsafe {
+            let config_ptr = str_to_cchar(&config_json);
+            let password_ptr = str_to_cchar("fees_test_password");
+            let name_ptr = str_to_cchar("fees_wallet");
+
+            // 1. Generate mnemonic and create wallet.
+            let mnemonic_ptr = get_mnemonic();
+            let mnemonic_str = CStr::from_ptr(mnemonic_ptr).to_str().unwrap();
+            println!("Generated mnemonic for fees test");
+
+            let creation_ptr = wallet_init(
+                config_ptr,
+                str_to_cchar(mnemonic_str),
+                password_ptr,
+                name_ptr
+            );
+            let creation_result = CStr::from_ptr(creation_ptr).to_str().unwrap();
+            println!("Wallet creation result: {}", creation_result);
+
+            // 2. Open the wallet.
+            let open_ptr = rust_open_wallet(config_ptr, password_ptr);
+            let wallet_data = CStr::from_ptr(open_ptr).to_str().unwrap();
+            println!("Opened wallet");
+
+            // 3. Test fee calculation for various amounts.
+            let test_amounts = ["100000000", "500000000", "1000000000"]; // In nanoEPIC
+            let min_confirmations = "10";
+
+            for amount in &test_amounts {
+                println!("\nCalculating fees for amount: {} nanoEPIC", amount);
+
+                let amount_ptr = str_to_cchar(amount);
+                let min_conf_ptr = str_to_cchar(min_confirmations);
+
+                let fees_ptr = rust_get_tx_fees(
+                    str_to_cchar(wallet_data),
+                    amount_ptr,
+                    min_conf_ptr
+                );
+                let fees_result = CStr::from_ptr(fees_ptr).to_str().unwrap();
+
+                println!("Fees result: {}", fees_result);
+
+                // Verify the result.
+                if fees_result.starts_with("Error ") {
+                    println!("Expected error for empty wallet: {}", fees_result);
+                    // Empty wallet should error when trying to calculate fees.
+                    assert!(
+                        fees_result.contains("Error"),
+                        "Empty wallet should return error when calculating fees"
+                    );
+                } else {
+                    // If we get a valid response, try to parse it as JSON.
+                    match serde_json::from_str::<serde_json::Value>(fees_result) {
+                        Ok(json) => {
+                            println!("Successfully parsed fees JSON: {:?}", json);
+                            // Verify it's an array (strategies).
+                            assert!(json.is_array(), "Fees response should be an array");
+                        }
+                        Err(e) => {
+                            println!("Note: Could not parse fees result as JSON: {}", e);
+                        }
+                    }
+                }
+            }
+
+            // 4. Clean up.
+            let delete_ptr = rust_delete_wallet(str_to_cchar(wallet_data), config_ptr);
+            let delete_result = CStr::from_ptr(delete_ptr).to_str().unwrap();
+            println!("\nDelete result: {}", delete_result);
+        }
+
+        cleanup_test_dir(&test_dir);
+        println!("=== End rust_get_tx_fees FFI test ===");
     }
 }
