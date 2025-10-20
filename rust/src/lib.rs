@@ -11,8 +11,8 @@ use crate::ffi::rust_tx_send_http;
 use crate::ffi::rust_txs_get;
 use crate::ffi::rust_tx_cancel;
 use crate::ffi::rust_get_chain_height;
-// use crate::ffi::rust_epicbox_listener_start;
-// use crate::ffi::_listener_cancel;
+use crate::ffi::rust_epicbox_listener_start;
+use crate::ffi::_listener_cancel;
 use crate::ffi::rust_validate_address;
 use crate::ffi::rust_get_wallet_address;
 use crate::ffi::rust_get_tx_fees;
@@ -1213,5 +1213,88 @@ mod tests {
 
         cleanup_test_dir(&test_dir);
         println!("=== End rust_create_tx FFI test ===");
+    }
+
+    /// Test the rust_epicbox_listener_start and _listener_cancel FFI functions.
+    /// This test verifies the listener lifecycle: start and stop.
+    #[test]
+    fn test_rust_epicbox_listener_ffi() {
+        println!("=== Test rust_epicbox_listener FFI ===");
+
+        let test_dir = setup_test_dir("listener_ffi");
+        let config_json = create_test_config(&test_dir);
+
+        let epicbox_config = json!({
+            "epicbox_domain": "epicbox.epic.tech",
+            "epicbox_port": 443,
+            "epicbox_protocol_unsecure": false,
+            "epicbox_address_index": 0,
+        }).to_string();
+
+        unsafe {
+            let config_ptr = str_to_cchar(&config_json);
+            let password_ptr = str_to_cchar("listener_test_password");
+            let name_ptr = str_to_cchar("listener_wallet");
+
+            // 1. Generate mnemonic and create wallet.
+            let mnemonic_ptr = get_mnemonic();
+            let mnemonic_str = CStr::from_ptr(mnemonic_ptr).to_str().unwrap();
+            println!("Generated mnemonic for listener test");
+
+            let creation_ptr = wallet_init(
+                config_ptr,
+                str_to_cchar(mnemonic_str),
+                password_ptr,
+                name_ptr
+            );
+            let creation_result = CStr::from_ptr(creation_ptr).to_str().unwrap();
+            println!("Wallet creation result: {}", creation_result);
+
+            // 2. Open the wallet.
+            let open_ptr = rust_open_wallet(config_ptr, password_ptr);
+            let wallet_data = CStr::from_ptr(open_ptr).to_str().unwrap();
+            println!("Opened wallet");
+
+            // 3. Start the epicbox listener.
+            println!("\nStarting epicbox listener...");
+            let listener_handle = rust_epicbox_listener_start(
+                str_to_cchar(wallet_data),
+                str_to_cchar(&epicbox_config)
+            );
+
+            println!("Listener handle: {:?}", listener_handle);
+
+            // Verify we got a valid handle (non-null pointer).
+            assert!(!listener_handle.is_null(), "Listener handle should not be null");
+
+            // 4. Let the listener run briefly.
+            println!("Listener is running...");
+            std::thread::sleep(std::time::Duration::from_secs(1));
+
+            // 5. Cancel the listener.
+            println!("\nCancelling listener...");
+            let cancel_ptr = _listener_cancel(listener_handle);
+            let cancel_result = CStr::from_ptr(cancel_ptr).to_str().unwrap();
+
+            println!("Listener cancel result: {}", cancel_result);
+
+            // The result should indicate whether the listener was cancelled.
+            // It returns "true" or "false" as a string.
+            if cancel_result == "true" {
+                println!("Listener successfully cancelled");
+            } else if cancel_result == "false" {
+                println!("Listener was not cancelled (may have already stopped)");
+            } else {
+                println!("Unexpected cancel result: {}", cancel_result);
+            }
+
+            // 6. Clean up.
+            let delete_ptr = rust_delete_wallet(str_to_cchar(wallet_data), config_ptr);
+            let delete_result = CStr::from_ptr(delete_ptr).to_str().unwrap();
+            println!("\nDelete result: {}", delete_result);
+        }
+
+        cleanup_test_dir(&test_dir);
+        println!("=== End rust_epicbox_listener FFI test ===");
     }
 }
