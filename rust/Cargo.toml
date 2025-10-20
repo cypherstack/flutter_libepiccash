@@ -29,16 +29,17 @@ rustc-serialize = "0.3.24"
 android_logger = "0.11.0"
 chrono = "0.4.24"
 
-stack_epic_keychain = "3.6.0"
-stack_epic_util = "3.6.0"
-stack_epic_core = "3.6.0"
+stack_epic_keychain = { package = "epic_keychain", git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+stack_epic_util = { package = "epic_util", git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+stack_epic_core = { package = "epic_core", git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
 
-stack_epic_wallet_api = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
-stack_epic_wallet_impls = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
-stack_epic_wallet_libwallet = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
-stack_epic_wallet_config = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
-stack_epic_wallet_util = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
-stack_epic_wallet_controller = { git = "https://github.com/cypherstack/epic-wallet", branch = "old/stack_epic_prefix" }
+# Wallet crates: keep in-code names, source official v3.6
+stack_epic_wallet_api = { package = "epic_wallet_api", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
+stack_epic_wallet_impls = { package = "epic_wallet_impls", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
+stack_epic_wallet_libwallet = { package = "epic_wallet_libwallet", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
+stack_epic_wallet_config = { package = "epic_wallet_config", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
+stack_epic_wallet_util = { package = "epic_wallet_util", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
+stack_epic_wallet_controller = { package = "epic_wallet_controller", git = "https://github.com/EpicCash/epic-wallet", tag = "v3.6.0" }
 
 url = "2.1.0"
 futures = "0.3.15"
@@ -69,4 +70,14 @@ crate-type = ["staticlib", "cdylib"]
 
 [patch.crates-io]
 liblmdb-sys = { git = "https://github.com/i1skn/lmdb-rs" }
-
+# Force all epic crates to resolve from git v3.6.0
+epic_api = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_chain = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_config = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_core = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_keychain = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_p2p = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_pool = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_servers = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_store = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+epic_util = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
