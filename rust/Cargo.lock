@@ -4477,6 +4477,374 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
+name = "stack_epic_api"
+version = "3.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6f47126ab82379499282a75557c6f2e8dd6da988f5c52c1c85f21958361ddb3"
+dependencies = [
+ "bigint",
+ "bytes 0.5.6",
+ "easy-jsonrpc-mw",
+ "futures 0.3.31",
+ "http 0.2.12",
+ "hyper 0.14.32",
+ "hyper-rustls 0.24.2",
+ "hyper-timeout",
+ "hyper-tls 0.5.0",
+ "lazy_static",
+ "log 0.4.26",
+ "regex",
+ "ring 0.16.20",
+ "rustls 0.21.12",
+ "rustls-pemfile",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "stack_epic_chain",
+ "stack_epic_core",
+ "stack_epic_p2p",
+ "stack_epic_pool",
+ "stack_epic_store",
+ "stack_epic_util",
+ "thiserror",
+ "tokio 1.44.1",
+ "tokio-rustls 0.24.1",
+ "url 2.5.4",
+]
+
+[[package]]
+name = "stack_epic_chain"
+version = "3.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64f12c3933ce52b25fbd79a208d28f13606ad826b8cb9ac943c128ada2a9da77"
+dependencies = [
+ "bigint",
+ "bit-vec",
+ "bitflags 1.3.2",
+ "byteorder",
+ "chrono",
+ "croaring",
+ "failure",
+ "failure_derive",
+ "lazy_static",
+ "log 0.4.26",
+ "lru-cache",
+ "regex",
+ "serde",
+ "serde_derive",
+ "stack_epic_core",
+ "stack_epic_keychain",
+ "stack_epic_store",
+ "stack_epic_util",
+]
+
+[[package]]
+name = "stack_epic_core"
+version = "3.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9275a150f9c8208111b0a82ed68c88f3f15b74f0e110e79f91c4ba5ea4a911e"
+dependencies = [
+ "bigint",
+ "blake2-rfc",
+ "byteorder",
+ "chrono",
+ "croaring",
+ "enum_primitive",
+ "failure",
+ "failure_derive",
+ "keccak-hash",
+ "lazy_static",
+ "log 0.4.26",
+ "lru-cache",
+ "md5",
+ "num 0.2.1",
+ "num-bigint 0.2.6",
+ "rand 0.6.5",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "sha2 0.8.2",
+ "siphasher 0.2.3",
+ "stack_epic_keychain",
+ "stack_epic_util",
+ "uuid 0.6.5",
+ "zeroize",
+]
+
+[[package]]
+name = "stack_epic_keychain"
+version = "3.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "907e57824ea3a4218612246360515acf5d2afbe1859c93526cc506e9cea20497"
+dependencies = [
+ "blake2-rfc",
+ "byteorder",
+ "digest 0.9.0",
+ "hmac",
+ "lazy_static",
+ "log 0.4.26",
+ "pbkdf2",
+ "rand 0.6.5",
+ "ripemd160",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "sha2 0.9.9",
+ "stack_epic_util",
+ "uuid 0.6.5",
+ "zeroize",
+]
+
+[[package]]
+name = "stack_epic_p2p"
+version = "3.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "879b1754f3c8ba59de3b222a39b0c1d97daf3990e3b1bf259b47ed541a001323"
+dependencies = [
+ "bitflags 1.3.2",
+ "bytes 0.4.12",
+ "chrono",
+ "enum_primitive",
+ "log 0.4.26",
+ "lru-cache",
+ "net2",
+ "num 0.1.43",
+ "rand 0.6.5",
+ "serde",
+ "serde_derive",
+ "stack_epic_chain",
+ "stack_epic_core",
+ "stack_epic_store",
+ "stack_epic_util",
+ "tempfile",
+]
+
+[[package]]
+name = "stack_epic_pool"
+version = "3.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0184885a484f7e5ad3e3c7d9ffa380a6e5926ef1e478889a892d555a3a678cb"
+dependencies = [
+ "blake2-rfc",
+ "chrono",
+ "failure",
+ "failure_derive",
+ "log 0.4.26",
+ "rand 0.6.5",
+ "serde",
+ "serde_derive",
+ "stack_epic_core",
+ "stack_epic_keychain",
+ "stack_epic_store",
+ "stack_epic_util",
+]
+
+[[package]]
+name = "stack_epic_store"
+version = "3.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c85a06f322911dc88a63136ecd2cca7c883a7983316d94549ab651928ced7298"
+dependencies = [
+ "byteorder",
+ "croaring",
+ "env_logger 0.5.13",
+ "failure",
+ "failure_derive",
+ "libc",
+ "lmdb-zero",
+ "log 0.4.26",
+ "memmap",
+ "serde",
+ "serde_derive",
+ "stack_epic_core",
+ "stack_epic_util",
+ "tempfile",
+]
+
+[[package]]
+name = "stack_epic_util"
+version = "3.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2abdbeed56a95d9749ba929747e0e63f9a1010f2d5cbc3f6073303695843e9a2"
+dependencies = [
+ "backtrace",
+ "base64 0.9.3",
+ "byteorder",
+ "grin_secp256k1zkp",
+ "lazy_static",
+ "log 0.4.26",
+ "log4rs",
+ "parking_lot 0.6.4",
+ "rand 0.6.5",
+ "serde",
+ "serde_derive",
+ "walkdir",
+ "zeroize",
+ "zip",
+]
+
+[[package]]
+name = "stack_epic_wallet_api"
+version = "3.6.0"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=old%2Fstack_epic_prefix#c2e308d3ff7cd8df9750de933be76b6972c4526e"
+dependencies = [
+ "base64 0.9.3",
+ "chrono",
+ "easy-jsonrpc-mw",
+ "ed25519-dalek",
+ "failure",
+ "failure_derive",
+ "log 0.4.26",
+ "rand 0.5.6",
+ "ring 0.16.20",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "stack_epic_wallet_config",
+ "stack_epic_wallet_impls",
+ "stack_epic_wallet_libwallet",
+ "stack_epic_wallet_util",
+ "uuid 0.7.4",
+]
+
+[[package]]
+name = "stack_epic_wallet_config"
+version = "3.6.0"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=old%2Fstack_epic_prefix#c2e308d3ff7cd8df9750de933be76b6972c4526e"
+dependencies = [
+ "dirs 1.0.5",
+ "rand 0.5.6",
+ "serde",
+ "serde_derive",
+ "stack_epic_wallet_util",
+ "toml 0.4.10",
+]
+
+[[package]]
+name = "stack_epic_wallet_controller"
+version = "3.6.0"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=old%2Fstack_epic_prefix#c2e308d3ff7cd8df9750de933be76b6972c4526e"
+dependencies = [
+ "chrono",
+ "easy-jsonrpc-mw",
+ "futures 0.3.31",
+ "hyper 0.14.32",
+ "lazy_static",
+ "log 0.4.26",
+ "prettytable-rs 0.10.0",
+ "rand 0.5.6",
+ "ring 0.16.20",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "stack_epic_wallet_api",
+ "stack_epic_wallet_config",
+ "stack_epic_wallet_impls",
+ "stack_epic_wallet_libwallet",
+ "stack_epic_wallet_util",
+ "term 0.5.2",
+ "thiserror",
+ "tokio 1.44.1",
+ "tungstenite",
+ "url 1.7.2",
+ "uuid 0.7.4",
+]
+
+[[package]]
+name = "stack_epic_wallet_impls"
+version = "3.6.0"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=old%2Fstack_epic_prefix#c2e308d3ff7cd8df9750de933be76b6972c4526e"
+dependencies = [
+ "bitvec",
+ "blake2-rfc",
+ "byteorder",
+ "chrono",
+ "data-encoding",
+ "ed25519-dalek",
+ "emoji",
+ "failure",
+ "failure_derive",
+ "futures 0.3.31",
+ "http 0.2.12",
+ "hyper-rustls 0.24.2",
+ "hyper-timeout",
+ "lazy_static",
+ "log 0.4.26",
+ "parking_lot 0.6.4",
+ "rand 0.5.6",
+ "regex",
+ "reqwest 0.10.10",
+ "ring 0.16.20",
+ "rustls 0.21.12",
+ "semver",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "sqlite",
+ "stack_epic_wallet_config",
+ "stack_epic_wallet_libwallet",
+ "stack_epic_wallet_util",
+ "sysinfo",
+ "thiserror",
+ "timer",
+ "tokio 0.2.25",
+ "tungstenite",
+ "uuid 0.7.4",
+ "x25519-dalek",
+]
+
+[[package]]
+name = "stack_epic_wallet_libwallet"
+version = "3.6.0"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=old%2Fstack_epic_prefix#c2e308d3ff7cd8df9750de933be76b6972c4526e"
+dependencies = [
+ "aead",
+ "blake2-rfc",
+ "byteorder",
+ "chacha20poly1305",
+ "chrono",
+ "data-encoding",
+ "digest 0.9.0",
+ "ed25519-dalek",
+ "lazy_static",
+ "log 0.4.26",
+ "rand 0.5.6",
+ "regex",
+ "ring 0.16.20",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "sha2 0.9.9",
+ "sha3",
+ "sqlite",
+ "stack_epic_wallet_config",
+ "stack_epic_wallet_util",
+ "strum",
+ "strum_macros",
+ "thiserror",
+ "tungstenite",
+ "uuid 0.7.4",
+]
+
+[[package]]
+name = "stack_epic_wallet_util"
+version = "3.6.0"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=old%2Fstack_epic_prefix#c2e308d3ff7cd8df9750de933be76b6972c4526e"
+dependencies = [
+ "dirs 1.0.5",
+ "rand 0.5.6",
+ "serde",
+ "serde_derive",
+ "stack_epic_api",
+ "stack_epic_chain",
+ "stack_epic_core",
+ "stack_epic_keychain",
+ "stack_epic_store",
+ "stack_epic_util",
+ "toml 0.4.10",
+]
+
+[[package]]
 name = "static_assertions"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
