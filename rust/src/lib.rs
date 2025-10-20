@@ -7,7 +7,7 @@ use crate::ffi::rust_open_wallet;
 use crate::ffi::rust_wallet_balances;
 use crate::ffi::rust_wallet_scan_outputs;
 // use crate::ffi::rust_create_tx;
-// use crate::ffi::rust_txs_get;
+use crate::ffi::rust_txs_get;
 // use crate::ffi::rust_tx_cancel;
 use crate::ffi::rust_get_chain_height;
 // use crate::ffi::rust_epicbox_listener_start;
@@ -949,5 +949,85 @@ mod tests {
 
         cleanup_test_dir(&test_dir);
         println!("=== End rust_get_tx_fees FFI test ===");
+    }
+
+    /// Test the rust_txs_get FFI function.
+    /// This test creates a wallet and retrieves the transaction list.
+    #[test]
+    fn test_rust_txs_get_ffi() {
+        println!("=== Test rust_txs_get FFI ===");
+
+        let test_dir = setup_test_dir("txs_get_ffi");
+        let config_json = create_test_config(&test_dir);
+
+        unsafe {
+            let config_ptr = str_to_cchar(&config_json);
+            let password_ptr = str_to_cchar("txs_test_password");
+            let name_ptr = str_to_cchar("txs_wallet");
+
+            // 1. Generate mnemonic and create wallet.
+            let mnemonic_ptr = get_mnemonic();
+            let mnemonic_str = CStr::from_ptr(mnemonic_ptr).to_str().unwrap();
+            println!("Generated mnemonic for txs test");
+
+            let creation_ptr = wallet_init(
+                config_ptr,
+                str_to_cchar(mnemonic_str),
+                password_ptr,
+                name_ptr
+            );
+            let creation_result = CStr::from_ptr(creation_ptr).to_str().unwrap();
+            println!("Wallet creation result: {}", creation_result);
+
+            // 2. Open the wallet.
+            let open_ptr = rust_open_wallet(config_ptr, password_ptr);
+            let wallet_data = CStr::from_ptr(open_ptr).to_str().unwrap();
+            println!("Opened wallet");
+
+            // 3. Get transactions without refreshing from node.
+            println!("\nGetting transactions (no refresh)...");
+            let refresh_ptr_no = str_to_cchar("0"); // 0 = no refresh
+
+            let txs_ptr = rust_txs_get(
+                str_to_cchar(wallet_data),
+                refresh_ptr_no
+            );
+            let txs_result = CStr::from_ptr(txs_ptr).to_str().unwrap();
+
+            println!("Transactions result (no refresh): {}", txs_result);
+
+            // Verify the result.
+            if txs_result.starts_with("Error ") {
+                println!("Error getting transactions: {}", txs_result);
+            } else {
+                // Should return valid JSON (likely an empty array for a new wallet).
+                match serde_json::from_str::<serde_json::Value>(txs_result) {
+                    Ok(json) => {
+                        println!("Successfully parsed transactions JSON");
+                        // Should be an array of transactions.
+                        if json.is_array() {
+                            let txs_array = json.as_array().unwrap();
+                            println!("Number of transactions: {}", txs_array.len());
+                            // New wallet should have no transactions.
+                            assert_eq!(txs_array.len(), 0, "New wallet should have no transactions");
+                        } else {
+                            println!("Transactions result is not an array: {:?}", json);
+                        }
+                    }
+                    Err(e) => {
+                        println!("Could not parse transactions as JSON: {}", e);
+                        println!("Raw result: {}", txs_result);
+                    }
+                }
+            }
+
+            // 4. Clean up.
+            let delete_ptr = rust_delete_wallet(str_to_cchar(wallet_data), config_ptr);
+            let delete_result = CStr::from_ptr(delete_ptr).to_str().unwrap();
+            println!("\nDelete result: {}", delete_result);
+        }
+
+        cleanup_test_dir(&test_dir);
+        println!("=== End rust_txs_get FFI test ===");
     }
 }
