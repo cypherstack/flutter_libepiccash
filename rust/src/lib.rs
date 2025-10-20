@@ -12,7 +12,7 @@ use crate::ffi::rust_wallet_scan_outputs;
 use crate::ffi::rust_get_chain_height;
 // use crate::ffi::rust_epicbox_listener_start;
 // use crate::ffi::_listener_cancel;
-// use crate::ffi::rust_validate_address;
+use crate::ffi::rust_validate_address;
 // use crate::ffi::rust_get_wallet_address;
 // use crate::ffi::rust_get_tx_fees;
 use crate::ffi::rust_delete_wallet;
@@ -579,5 +579,80 @@ mod tests {
 
         cleanup_test_dir(&test_dir);
         println!("=== End rust_wallet_scan_outputs FFI test ===");
+    }
+
+    /// Test the rust_validate_address FFI function.
+    /// This test validates various Epic Cash address formats.
+    /// Note: The validation function only accepts Epicbox-type addresses with the @ domain format.
+    #[test]
+    fn test_rust_validate_address_ffi() {
+        println!("=== Test rust_validate_address FFI ===");
+
+        // Test vectors: (address, description)
+        // We test the FFI function and print results to understand actual validation behavior.
+        let test_cases = [
+            (
+                "epic1xdp9qkz8tqhlqv4ryy5kv780kzfsxwjvlxjxkhz4vw9r6fz4hc5qzezyzj@epicbox.epic.tech",
+                "Epic address with epicbox domain"
+            ),
+            (
+                "epic1xdp9qkz8tqhlqv4ryy5kv780kzfsxwjvlxjxkhz4vw9r6fz4hc5qzezyzj",
+                "Epic address without domain"
+            ),
+            (
+                "invalid_address",
+                "Invalid address format"
+            ),
+            (
+                "epic1abc@epicbox.epic.tech",
+                "Invalid epic address (too short) with domain"
+            ),
+            (
+                "@epicbox.epic.tech",
+                "Missing address part"
+            ),
+            (
+                "",
+                "Empty address"
+            ),
+        ];
+
+        unsafe {
+            for (address, description) in &test_cases {
+                println!("\nTesting: {}", description);
+                println!("Address: {}", address);
+
+                let address_ptr = str_to_cchar(address);
+                let result_ptr = rust_validate_address(address_ptr);
+                let result_str = CStr::from_ptr(result_ptr).to_str().unwrap();
+
+                println!("FFI returned: {}", result_str);
+
+                // Parse the result (should be "1" for valid, "0" for invalid).
+                match result_str.parse::<i32>() {
+                    Ok(validation_code) => {
+                        let is_valid = validation_code == 1;
+                        println!("Validation result: {} ({})",
+                                 if is_valid { "valid" } else { "invalid" },
+                                 validation_code);
+
+                        // Basic sanity checks:
+                        // - Empty addresses should be invalid
+                        if address.is_empty() {
+                            assert_eq!(is_valid, false, "Empty address should be invalid");
+                        }
+                        // - "invalid_address" should be invalid
+                        if *address == "invalid_address" {
+                            assert_eq!(is_valid, false, "Malformed address should be invalid");
+                        }
+                    }
+                    Err(e) => {
+                        panic!("Failed to parse validation result '{}': {}", result_str, e);
+                    }
+                }
+            }
+        }
+
+        println!("\n=== End rust_validate_address FFI test ===");
     }
 }
