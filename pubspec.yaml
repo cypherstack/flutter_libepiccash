@@ -41,20 +41,14 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.example.flutter_libepiccash
-        pluginClass: FlutterLibepiccashPlugin
         ffiPlugin: true
       ios:
-        pluginClass: FlutterLibepiccashPlugin
         ffiPlugin: true
       linux:
-        pluginClass: FlutterLibepiccashPlugin
         ffiPlugin: true
       macos:
-        pluginClass: FlutterLibepiccashPlugin
         ffiPlugin: true
       windows:
-        pluginClass: FlutterLibepiccashPluginCApi
         ffiPlugin: true
 
   # To add assets to your plugin package, add an assets section, like this:
