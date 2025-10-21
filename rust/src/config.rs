@@ -47,6 +47,8 @@ pub fn create_wallet_config(config: Config) -> Result<WalletConfig, Error> {
         chain_type: Some(chain_type),
         api_listen_interface: config.api_listen_interface,
         api_listen_port,
+        owner_api_listen_port: Some(WalletConfig::default_owner_api_listen_port()),
+        owner_api_interface: Some(WalletConfig::default_owner_api_interface()),
         api_secret_path: None,
         node_api_secret_path: if Path::new(&api_secret_path).exists() {
             Some(api_secret_path)
@@ -61,6 +63,5 @@ pub fn create_wallet_config(config: Config) -> Result<WalletConfig, Error> {
         keybase_notify_ttl: Some(1440),
         no_commit_cache: Some(false),
         owner_api_include_foreign: Some(false),
-        owner_api_listen_port: Some(WalletConfig::default_owner_api_listen_port()),
     })
 }

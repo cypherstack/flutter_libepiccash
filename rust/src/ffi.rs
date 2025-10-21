@@ -7,6 +7,8 @@ use epic_wallet_api::{self, Owner};
 use epic_wallet_config::EpicboxConfig;
 use epic_wallet_libwallet::Error;
 use epic_wallet_controller::Error as EpicWalletControllerError;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use epic_util::secp::key::SecretKey;
 
@@ -94,25 +96,25 @@ fn _wallet_init(
 
     let str_password = match password.to_str() {
         Ok(str_pass) => {str_pass}, Err(e) => {return Err(
-            Error::from(EpicWalletControllerError::GenericError(format!("{}", e.to_string())))
+            Error::GenericError(e.to_string())
         )}
     };
 
     let str_config = match config.to_str() {
         Ok(str_conf) => {str_conf}, Err(e) => {return Err(
-            Error::from(EpicWalletControllerError::GenericError(format!("{}", e.to_string())))
+            Error::GenericError(e.to_string())
         )}
     };
 
     let phrase = match mnemonic.to_str() {
         Ok(str_phrase) => {str_phrase}, Err(e) => {return Err(
-            Error::from(EpicWalletControllerError::GenericError(format!("{}", e.to_string())))
+            Error::GenericError(e.to_string())
         )}
     };
 
     let str_name = match name.to_str() {
         Ok(str_name) => {str_name}, Err(e) => {return Err(
-            Error::from(EpicWalletControllerError::GenericError(format!("{}", e.to_string())))
+            Error::GenericError(e.to_string())
         )}
     };
 
@@ -313,10 +315,10 @@ fn _recover_from_mnemonic(
         Ok(config) => {
             config
         }, Err(err) => {
-            return Err(Error::from(EpicWalletControllerError::GenericError(format!(
+            return Err(Error::GenericError(format!(
                 "Wallet config error : {}",
                 err.to_string()
-            ))))
+            )))
         }
     };
     let phrase = c_mnemonic.to_str().unwrap();
@@ -876,7 +878,8 @@ pub fn get_wallet_address(
 ) -> String {
 
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
-    let api = Owner::new(wallet.clone(), None);
+    let is_stopped = Arc::new(AtomicBool::new(false));
+    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
     let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
     format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain.as_deref().unwrap_or(""))
 }

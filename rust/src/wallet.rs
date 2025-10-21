@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use serde_derive::{Deserialize, Serialize};
 use epic_keychain::ExtKeychain;
 use epic_util::{Mutex, ZeroingString};
@@ -97,21 +98,22 @@ pub fn txs_get(
     keychain_mask: Option<SecretKey>,
     refresh_from_node: bool,
 ) -> Result<String, Error> {
-    let api = Owner::new(wallet.clone(), None);
-    let txs = match api.retrieve_txs(
+    let is_stopped = Arc::new(AtomicBool::new(false));
+    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
+    let res = match api.retrieve_txs(
         keychain_mask.as_ref(),
         refresh_from_node,
         None,
-        None
+        None,
+        None,
+        None,
+        None,
     ) {
-        Ok((_, tx_entries)) => {
-            tx_entries
-        }, Err(e) => {
-            return  Err(e);
-        }
+        Ok(result) => result,
+        Err(e) => return Err(e),
     };
 
-    let result = txs;
+    let result = res.txs;
     Ok(serde_json::to_string(&result).unwrap())
 }
 
@@ -126,7 +128,8 @@ pub fn tx_create(
     address: &str,
     note: &str,
 ) -> Result<String, Error> {
-    let owner_api = Owner::new(wallet.clone(), None);
+    let is_stopped = Arc::new(AtomicBool::new(false));
+    let owner_api = Owner::new(wallet.clone(), None, is_stopped.clone());
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
 
     owner_api.set_epicbox_config(Some(epicbox_conf));
@@ -150,24 +153,24 @@ pub fn tx_create(
         ..Default::default()
     };
 
-    match owner_api.init_send_tx(keychain_mask.as_ref(), args) {
+    match owner_api.init_send_tx(keychain_mask.as_ref(), args, is_stopped.clone()) {
         Ok(slate)=> {
             debug!("SLATE SEND RESPONSE IS  {:?}", slate);
             // Get transaction for the slate, we will use type to determing if we should finalize or receive tx.
-            let txs = match owner_api.retrieve_txs(
+            let txs_result = match owner_api.retrieve_txs(
                 keychain_mask.as_ref(),
                 false,
                 None,
-                Some(slate.id)
+                Some(slate.id),
+                None,
+                None,
+                None,
             ) {
-                Ok(txs_result) => {
-                    txs_result
-                }, Err(e) => {
-                    return Err(e);
-                }
+                Ok(txs_result) => txs_result,
+                Err(e) => return Err(e),
             };
             let final_result = (
-                serde_json::to_string(&txs.1).unwrap(),
+                serde_json::to_string(&txs_result.txs).unwrap(),
                 serde_json::to_string(&slate).unwrap()
             );
             let str_result = serde_json::to_string(&final_result).unwrap();
@@ -181,7 +184,8 @@ pub fn tx_create(
 
 /// Cancel a transaction by ID.
 pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id: Uuid) -> Result<String, Error> {
-    let api = Owner::new(wallet.clone(), None);
+    let is_stopped = Arc::new(AtomicBool::new(false));
+    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
     match  api.cancel_tx(keychain_mask.as_ref(), None, Some(tx_slate_id)) {
         Ok(_) => {
             Ok("cancelled".to_owned())
@@ -193,10 +197,11 @@ pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id:
 
 /// Get a transaction by slate ID.
 pub fn tx_get(wallet: &Wallet, refresh_from_node: bool, tx_slate_id: &str) -> Result<String, Error> {
-    let api = Owner::new(wallet.clone(), None);
-    let uuid = Uuid::parse_str(tx_slate_id).map_err(|e| EpicWalletControllerError::GenericError(e.to_string())).unwrap();
-    let txs = api.retrieve_txs(None, refresh_from_node, None, Some(uuid)).unwrap();
-    Ok(serde_json::to_string(&txs.1).unwrap())
+    let is_stopped = Arc::new(AtomicBool::new(false));
+    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
+    let uuid = Uuid::parse_str(tx_slate_id).map_err(|e| Error::GenericError(e.to_string()))?;
+    let res = api.retrieve_txs(None, refresh_from_node, None, Some(uuid), None, None, None)?;
+    Ok(serde_json::to_string(&res.txs).unwrap())
 }
 
 /// Convert decimal to nano.
@@ -219,10 +224,7 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<(Wallet, Option<
         Ok(config) => {
             config
         }, Err(_e) => {
-            return Err(Error::from(EpicWalletControllerError::GenericError(format!(
-                "{}",
-                "Unable to get wallet config"
-            ))))
+            return Err(Error::GenericError("Unable to get wallet config".to_string()))
         }
     };
     let wallet = match get_wallet(&config) {
@@ -285,7 +287,7 @@ pub fn open_wallet(config_json: &str, password: &str) -> Result<(Wallet, Option<
     if opened {
         Ok((wallet, secret_key))
     } else {
-        Err(Error::from(EpicWalletControllerError::WalletSeedDoesntExist))
+        Err(Error::WalletSeedDoesntExist)
     }
 }
 
@@ -298,9 +300,7 @@ pub fn close_wallet(wallet: &Wallet) -> Result<String, Error> {
             lc.close_wallet(None)?
         }
         false => {
-            return Err(
-                Error::from(EpicWalletControllerError::WalletSeedDoesntExist)
-            );
+            return Err(Error::WalletSeedDoesntExist);
         }
     }
     Ok("Wallet has been closed".to_owned())
@@ -335,7 +335,8 @@ pub fn delete_wallet(config: Config) -> Result<String, Error> {
     };
     //First close the wallet
     if let Ok(_) = close_wallet(&wallet) {
-        let api = Owner::new(wallet.clone(), None);
+        let is_stopped = Arc::new(AtomicBool::new(false));
+        let api = Owner::new(wallet.clone(), None, is_stopped.clone());
         match api.delete_wallet(None) {
             Ok(_) => {
                 result.push_str("deleted");
@@ -345,9 +346,7 @@ pub fn delete_wallet(config: Config) -> Result<String, Error> {
             }
         };
     } else {
-        return Err(
-            Error::from(EpicWalletControllerError::GenericError(format!("{}", "Error closing wallet")))
-        );
+        return Err(Error::GenericError("Error closing wallet".to_string()));
     }
     Ok(result)
 }
@@ -362,7 +361,8 @@ pub fn tx_send_http(
     amount: u64,
     address: &str,
 ) -> Result<String, Error>{
-    let api = Owner::new(wallet.clone(), None);
+    let is_stopped = Arc::new(AtomicBool::new(false));
+    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
     let init_send_args = InitTxSendArgs {
         method: "http".to_string(),
         dest: address.to_string(),
@@ -383,25 +383,25 @@ pub fn tx_send_http(
         ..Default::default()
     };
 
-    match api.init_send_tx(keychain_mask.as_ref(), args) {
+    match api.init_send_tx(keychain_mask.as_ref(), args, is_stopped.clone()) {
         Ok(slate) => {
             println!("{}", "CREATE_TX_SUCCESS");
             //Get transaction for slate, for UI display
-            let txs = match api.retrieve_txs(
+            let txs_result = match api.retrieve_txs(
                 keychain_mask.as_ref(),
                 false,
                 None,
-                Some(slate.id)
+                Some(slate.id),
+                None,
+                None,
+                None,
             ) {
-                Ok(txs_result) => {
-                    txs_result
-                }, Err(e) => {
-                    return Err(e);
-                }
+                Ok(txs_result) => txs_result,
+                Err(e) => return Err(e),
             };
 
             let tx_data = (
-                serde_json::to_string(&txs.1).unwrap(),
+                serde_json::to_string(&txs_result.txs).unwrap(),
                 serde_json::to_string(&slate).unwrap()
             );
             let str_tx_data = serde_json::to_string(&tx_data).unwrap();
@@ -420,10 +420,10 @@ pub fn create_wallet(config: &str, phrase: &str, password: &str, name: &str) -> 
         Ok(config) => {
             config
         }, Err(e) => {
-            return  Err(Error::from(EpicWalletControllerError::GenericError(format!(
+            return  Err(Error::GenericError(format!(
                 "Error getting wallet config: {}",
                 e.to_string()
-            ))));
+            )));
         }
     };
 
@@ -496,11 +496,7 @@ pub fn get_wallet_secret_key_pair(
             p_key
         }
         Err(err) => {
-            return Err(Error::from(
-                EpicWalletControllerError::GenericError(
-                    format!("{}", err.to_string())
-                )
-            ));
+            return Err(Error::GenericError(err.to_string()));
         }
     };
 
@@ -515,7 +511,8 @@ pub fn get_wallet_info(
     min_confirmations: u64
 ) -> Result<WalletInfoFormatted, Error> {
     println!(">> get_wallet_info called with refresh_from_node={refresh_from_node}, min_confirmations={min_confirmations}");
-    let api = Owner::new(wallet.clone(), None);
+    let is_stopped = Arc::new(AtomicBool::new(false));
+    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
 
     match api.retrieve_summary_info(keychain_mask.as_ref(), refresh_from_node, min_confirmations) {
         Ok((_, wallet_summary)) => {
@@ -654,10 +651,7 @@ pub fn get_chain_height(config: &str) -> Result<u64, Error> {
         Ok(config) => {
             config
         }, Err(_e) => {
-            return Err(Error::from(EpicWalletControllerError::GenericError(format!(
-                "{}",
-                "Unable to get wallet config"
-            ))))
+            return Err(Error::GenericError("Unable to get wallet config".to_string()))
         }
     };
     let wallet_config = match create_wallet_config(config.clone()) {
@@ -701,10 +695,7 @@ pub fn wallet_scan_outputs(
     };
 
     if tip == 0 {
-        return Err(Error::from(EpicWalletControllerError::GenericError(format!(
-            "{}",
-            "Unable to scan, could not determine chain height"
-        ))));
+        return Err(Error::GenericError("Unable to scan, could not determine chain height".to_string()));
     }
 
     let start_height: u64 = match start_height {

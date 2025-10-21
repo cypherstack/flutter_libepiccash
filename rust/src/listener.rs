@@ -3,8 +3,10 @@ use ffi_helpers::{export_task, Task};
 use ffi_helpers::task::CancellationToken;
 use epic_util::Mutex;
 use epic_util::secp::SecretKey;
-use epic_wallet_config::EpicboxConfig;
+use epic_wallet_config::{EpicboxConfig, TorConfig};
 use epic_wallet_impls::EpicboxListenChannel;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc as StdArc;
 
 use crate::wallet::Wallet;
 
@@ -45,6 +47,8 @@ impl Task for Listener {
                     Arc::new(Mutex::new(sek_key.clone())),
                     epicbox_conf.clone(),
                     &mut reconnections,
+                    StdArc::new(AtomicBool::new(false)),
+                    TorConfig::default(),
                 ).expect("TODO: Error Listening on Epicbox");
                 spins += 1;
             }
