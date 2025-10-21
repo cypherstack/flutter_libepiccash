@@ -9,6 +9,7 @@ import 'epic_cash.dart' as lib_epiccash;
 import 'models/transaction.dart';
 import 'src/errors.dart' as epic_errors;
 import 'src/ffi_worker.dart';
+import 'src/parsing.dart' as parsing;
 
 class BadEpicHttpAddressException implements Exception {
   final String? message;
@@ -272,23 +273,7 @@ abstract class LibEpiccash {
         ));
 
         _checkForError(result);
-
-        //Decode sent tx and return Slate Id
-        final slate0 = jsonDecode(result);
-        final slate = jsonDecode(slate0[0] as String);
-        final part1 = jsonDecode(slate[0] as String);
-        final part2 = jsonDecode(slate[1] as String);
-
-        final List<dynamic> outputs = part2['tx']?['body']?['outputs'] as List;
-        final commitId =
-            (outputs.isEmpty) ? '' : outputs[0]['commit'] as String;
-
-        final ({String slateId, String commitId}) data = (
-          slateId: part1[0]['tx_slate_id'],
-          commitId: commitId,
-        );
-
-        return data;
+        return parsing.parseCreateTxResult(result);
       } catch (e) {
         throw ("Error creating epic transaction : ${e.toString()}");
       }
@@ -511,18 +496,7 @@ abstract class LibEpiccash {
         }
 
         _checkForError(fees);
-        final decodedFees = json.decode(fees);
-        final feeItem = decodedFees[0];
-        final ({
-          bool strategyUseAll,
-          int total,
-          int fee,
-        }) feeRecord = (
-          strategyUseAll: feeItem['selection_strategy_is_use_all'],
-          total: feeItem['total'],
-          fee: feeItem['fee'],
-        );
-        return feeRecord;
+        return parsing.parseTxFees(fees);
       } catch (e) {
         throw (e.toString());
       }
@@ -685,19 +659,7 @@ abstract class LibEpiccash {
         address: address,
       ));
       _checkForError(result);
-
-      //Decode sent tx and return Slate Id
-      final slate0 = jsonDecode(result);
-      final slate = jsonDecode(slate0[0] as String);
-      final part1 = jsonDecode(slate[0] as String);
-      final part2 = jsonDecode(slate[1] as String);
-
-      final ({String slateId, String commitId}) data = (
-        slateId: part1[0]['tx_slate_id'],
-        commitId: part2['tx']['body']['outputs'][0]['commit'],
-      );
-
-      return data;
+      return parsing.parseCreateTxResult(result);
     } catch (e) {
       throw ("Error sending tx HTTP : ${e.toString()}");
     }
