@@ -43,15 +43,8 @@ abstract class LibEpiccash {
   ///
   static bool validateSendAddress({required String address}) {
     final String validate = lib_epiccash.validateSendAddress(address);
-    if (int.parse(validate) == 1) {
-      // Check if address contains a domain
-      if (address.contains("@")) {
-        return true;
-      }
-      return false;
-    } else {
-      return false;
-    }
+    // Trust the Rust-side validation result exclusively.
+    return int.tryParse(validate) == 1;
   }
 
   ///
@@ -111,8 +104,7 @@ abstract class LibEpiccash {
         ));
 
         _checkForError(result);
-
-        return result;
+        return epic_errors.unwrapOkData(result);
       } catch (e) {
         throw ("Error creating new wallet : ${e.toString()}");
       }
@@ -160,7 +152,8 @@ abstract class LibEpiccash {
 
         //If balances is valid json return, else return error
         _checkForError(balances);
-        final jsonBalances = json.decode(balances);
+        final unwrappedBalances = epic_errors.unwrapOkData(balances);
+        final jsonBalances = json.decode(unwrappedBalances);
         //Return balances as record
         final ({
           double spendable,
@@ -213,7 +206,8 @@ abstract class LibEpiccash {
           numberOfBlocks: numberOfBlocks,
         ));
       });
-      final response = int.tryParse(result);
+      final unwrapped = epic_errors.unwrapOkData(result);
+      final response = int.tryParse(unwrapped);
       if (response == null) {
         throw Exception(result);
       }
@@ -273,7 +267,8 @@ abstract class LibEpiccash {
         ));
 
         _checkForError(result);
-        return parsing.parseCreateTxResult(result);
+        final unwrapped = epic_errors.unwrapOkData(result);
+        return parsing.parseCreateTxResult(unwrapped);
       } catch (e) {
         throw ("Error creating epic transaction : ${e.toString()}");
       }
@@ -310,10 +305,10 @@ abstract class LibEpiccash {
         ));
 
         _checkForError(result);
-
-//Parse the returned data as an EpicTransaction
+        final unwrappedResult = epic_errors.unwrapOkData(result);
+        //Parse the returned data as an EpicTransaction
         final List<Transaction> finalResult = [];
-        final jsonResult = json.decode(result) as List;
+        final jsonResult = json.decode(unwrappedResult) as List;
 
         for (final tx in jsonResult) {
           final Transaction itemTx = Transaction.fromJson(tx);
@@ -357,8 +352,7 @@ abstract class LibEpiccash {
         ));
 
         _checkForError(result);
-
-        return result;
+        return epic_errors.unwrapOkData(result);
       } catch (e) {
         throw ("Error canceling epic transaction : ${e.toString()}");
       }
@@ -496,7 +490,8 @@ abstract class LibEpiccash {
         }
 
         _checkForError(fees);
-        return parsing.parseTxFees(fees);
+        final unwrapped = epic_errors.unwrapOkData(fees);
+        return parsing.parseTxFees(unwrapped);
       } catch (e) {
         throw (e.toString());
       }
@@ -532,12 +527,13 @@ abstract class LibEpiccash {
     required String name,
   }) async {
     try {
-      await _recoverWalletWrapper((
+      final result = await _recoverWalletWrapper((
         config: config,
         password: password,
         mnemonic: mnemonic,
         name: name,
       ));
+      _checkForError(result);
     } catch (e) {
       throw (e.toString());
     }
@@ -572,8 +568,7 @@ abstract class LibEpiccash {
       ));
 
       _checkForError(result);
-
-      return result;
+      return epic_errors.unwrapOkData(result);
     } catch (e) {
       throw ("Error deleting wallet : ${e.toString()}");
     }
@@ -608,8 +603,7 @@ abstract class LibEpiccash {
       ));
 
       _checkForError(result);
-
-      return result;
+      return epic_errors.unwrapOkData(result);
     } catch (e) {
       throw ("Error opening wallet : ${e.toString()}");
     }
@@ -659,7 +653,8 @@ abstract class LibEpiccash {
         address: address,
       ));
       _checkForError(result);
-      return parsing.parseCreateTxResult(result);
+      final unwrapped = epic_errors.unwrapOkData(result);
+      return parsing.parseCreateTxResult(unwrapped);
     } catch (e) {
       throw ("Error sending tx HTTP : ${e.toString()}");
     }

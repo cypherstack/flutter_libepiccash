@@ -29,7 +29,7 @@ class EpicCashWalletBindings {
     );
   }
 
-  /// Public alias for `_listener_cancel` so it can be used outside this file.
+  /// Public alias for `_listener_cancel` for external callers.
   ffi.Pointer<ffi.Char> listener_cancel(
     ffi.Pointer<ffi.Void> handler,
   ) {
@@ -95,6 +95,47 @@ class EpicCashWalletBindings {
           ffi.Pointer<ffi.Char>,
           ffi.Pointer<ffi.Char>)>();
 
+  /// JSON-envelope wrapper for rust_create_tx
+  ffi.Pointer<ffi.Char> rust_create_tx_json(
+    ffi.Pointer<ffi.Char> wallet,
+    ffi.Pointer<ffi.Char> amount,
+    ffi.Pointer<ffi.Char> to_address,
+    ffi.Pointer<ffi.Char> secret_key_index,
+    ffi.Pointer<ffi.Char> epicbox_config,
+    ffi.Pointer<ffi.Char> confirmations,
+    ffi.Pointer<ffi.Char> note,
+  ) {
+    return _rust_create_tx_json(
+      wallet,
+      amount,
+      to_address,
+      secret_key_index,
+      epicbox_config,
+      confirmations,
+      note,
+    );
+  }
+
+  late final _rust_create_tx_jsonPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('rust_create_tx_json');
+  late final _rust_create_tx_json = _rust_create_tx_jsonPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>)>();
+
   /// Delete a wallet via FFI.
   ffi.Pointer<ffi.Char> rust_delete_wallet(
     ffi.Pointer<ffi.Char> _wallet,
@@ -111,6 +152,25 @@ class EpicCashWalletBindings {
           ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
               ffi.Pointer<ffi.Char>)>>('rust_delete_wallet');
   late final _rust_delete_wallet = _rust_delete_walletPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(
+          ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+
+  /// JSON-envelope wrapper for rust_delete_wallet
+  ffi.Pointer<ffi.Char> rust_delete_wallet_json(
+    ffi.Pointer<ffi.Char> wallet,
+    ffi.Pointer<ffi.Char> config,
+  ) {
+    return _rust_delete_wallet_json(
+      wallet,
+      config,
+    );
+  }
+
+  late final _rust_delete_wallet_jsonPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('rust_delete_wallet_json');
+  late final _rust_delete_wallet_json = _rust_delete_wallet_jsonPtr.asFunction<
       ffi.Pointer<ffi.Char> Function(
           ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
 
@@ -173,6 +233,29 @@ class EpicCashWalletBindings {
       ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
           ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
 
+  /// JSON-envelope wrapper for rust_get_tx_fees
+  ffi.Pointer<ffi.Char> rust_get_tx_fees_json(
+    ffi.Pointer<ffi.Char> wallet,
+    ffi.Pointer<ffi.Char> c_amount,
+    ffi.Pointer<ffi.Char> min_confirmations,
+  ) {
+    return _rust_get_tx_fees_json(
+      wallet,
+      c_amount,
+      min_confirmations,
+    );
+  }
+
+  late final _rust_get_tx_fees_jsonPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('rust_get_tx_fees_json');
+  late final _rust_get_tx_fees_json = _rust_get_tx_fees_jsonPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+
   /// Get a wallet address via FFI.
   ffi.Pointer<ffi.Char> rust_get_wallet_address(
     ffi.Pointer<ffi.Char> wallet,
@@ -196,6 +279,30 @@ class EpicCashWalletBindings {
       ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
           ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
 
+  /// JSON-envelope wrapper for rust_get_wallet_address
+  ffi.Pointer<ffi.Char> rust_get_wallet_address_json(
+    ffi.Pointer<ffi.Char> wallet,
+    ffi.Pointer<ffi.Char> index,
+    ffi.Pointer<ffi.Char> epicbox_config,
+  ) {
+    return _rust_get_wallet_address_json(
+      wallet,
+      index,
+      epicbox_config,
+    );
+  }
+
+  late final _rust_get_wallet_address_jsonPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('rust_get_wallet_address_json');
+  late final _rust_get_wallet_address_json =
+      _rust_get_wallet_address_jsonPtr.asFunction<
+          ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+
   /// Open a wallet via FFI.
   ffi.Pointer<ffi.Char> rust_open_wallet(
     ffi.Pointer<ffi.Char> config,
@@ -212,6 +319,25 @@ class EpicCashWalletBindings {
           ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
               ffi.Pointer<ffi.Char>)>>('rust_open_wallet');
   late final _rust_open_wallet = _rust_open_walletPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(
+          ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+
+  /// JSON-envelope wrapper for rust_open_wallet
+  ffi.Pointer<ffi.Char> rust_open_wallet_json(
+    ffi.Pointer<ffi.Char> config,
+    ffi.Pointer<ffi.Char> password,
+  ) {
+    return _rust_open_wallet_json(
+      config,
+      password,
+    );
+  }
+
+  late final _rust_open_wallet_jsonPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('rust_open_wallet_json');
+  late final _rust_open_wallet_json = _rust_open_wallet_jsonPtr.asFunction<
       ffi.Pointer<ffi.Char> Function(
           ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
 
@@ -239,6 +365,36 @@ class EpicCashWalletBindings {
               ffi.Pointer<ffi.Char>)>>('rust_recover_from_mnemonic');
   late final _rust_recover_from_mnemonic =
       _rust_recover_from_mnemonicPtr.asFunction<
+          ffi.Pointer<ffi.Char> Function(
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>();
+
+  /// JSON-envelope wrapper for rust_recover_from_mnemonic
+  ffi.Pointer<ffi.Char> rust_recover_from_mnemonic_json(
+    ffi.Pointer<ffi.Char> config,
+    ffi.Pointer<ffi.Char> password,
+    ffi.Pointer<ffi.Char> mnemonic,
+    ffi.Pointer<ffi.Char> name,
+  ) {
+    return _rust_recover_from_mnemonic_json(
+      config,
+      password,
+      mnemonic,
+      name,
+    );
+  }
+
+  late final _rust_recover_from_mnemonic_jsonPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('rust_recover_from_mnemonic_json');
+  late final _rust_recover_from_mnemonic_json =
+      _rust_recover_from_mnemonic_jsonPtr.asFunction<
           ffi.Pointer<ffi.Char> Function(
               ffi.Pointer<ffi.Char>,
               ffi.Pointer<ffi.Char>,
@@ -280,6 +436,25 @@ class EpicCashWalletBindings {
       ffi.Pointer<ffi.Char> Function(
           ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
 
+  /// JSON-envelope wrapper for rust_tx_cancel
+  ffi.Pointer<ffi.Char> rust_tx_cancel_json(
+    ffi.Pointer<ffi.Char> wallet,
+    ffi.Pointer<ffi.Char> tx_id,
+  ) {
+    return _rust_tx_cancel_json(
+      wallet,
+      tx_id,
+    );
+  }
+
+  late final _rust_tx_cancel_jsonPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('rust_tx_cancel_json');
+  late final _rust_tx_cancel_json = _rust_tx_cancel_jsonPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(
+          ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+
   /// Send a transaction via FFI.
   ffi.Pointer<ffi.Char> rust_tx_send_http(
     ffi.Pointer<ffi.Char> wallet,
@@ -317,6 +492,43 @@ class EpicCashWalletBindings {
           ffi.Pointer<ffi.Char>,
           ffi.Pointer<ffi.Char>)>();
 
+  /// JSON-envelope wrapper for rust_tx_send_http
+  ffi.Pointer<ffi.Char> rust_tx_send_http_json(
+    ffi.Pointer<ffi.Char> wallet,
+    ffi.Pointer<ffi.Char> selection_strategy_is_use_all,
+    ffi.Pointer<ffi.Char> minimum_confirmations,
+    ffi.Pointer<ffi.Char> message,
+    ffi.Pointer<ffi.Char> amount,
+    ffi.Pointer<ffi.Char> address,
+  ) {
+    return _rust_tx_send_http_json(
+      wallet,
+      selection_strategy_is_use_all,
+      minimum_confirmations,
+      message,
+      amount,
+      address,
+    );
+  }
+
+  late final _rust_tx_send_http_jsonPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('rust_tx_send_http_json');
+  late final _rust_tx_send_http_json = _rust_tx_send_http_jsonPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>)>();
+
   /// Get transactions via FFI.
   ffi.Pointer<ffi.Char> rust_txs_get(
     ffi.Pointer<ffi.Char> wallet,
@@ -333,6 +545,25 @@ class EpicCashWalletBindings {
           ffi.Pointer<ffi.Char> Function(
               ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>>('rust_txs_get');
   late final _rust_txs_get = _rust_txs_getPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(
+          ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+
+  /// JSON-envelope wrapper for rust_txs_get
+  ffi.Pointer<ffi.Char> rust_txs_get_json(
+    ffi.Pointer<ffi.Char> wallet,
+    ffi.Pointer<ffi.Char> refresh_from_node,
+  ) {
+    return _rust_txs_get_json(
+      wallet,
+      refresh_from_node,
+    );
+  }
+
+  late final _rust_txs_get_jsonPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('rust_txs_get_json');
+  late final _rust_txs_get_json = _rust_txs_get_jsonPtr.asFunction<
       ffi.Pointer<ffi.Char> Function(
           ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
 
@@ -375,6 +606,30 @@ class EpicCashWalletBindings {
       ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
           ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
 
+  /// JSON-envelope wrapper for rust_wallet_balances
+  ffi.Pointer<ffi.Char> rust_wallet_balances_json(
+    ffi.Pointer<ffi.Char> wallet,
+    ffi.Pointer<ffi.Char> refresh,
+    ffi.Pointer<ffi.Char> min_confirmations,
+  ) {
+    return _rust_wallet_balances_json(
+      wallet,
+      refresh,
+      min_confirmations,
+    );
+  }
+
+  late final _rust_wallet_balances_jsonPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('rust_wallet_balances_json');
+  late final _rust_wallet_balances_json =
+      _rust_wallet_balances_jsonPtr.asFunction<
+          ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+
   /// Validate an address via FFI.
   ffi.Pointer<ffi.Char> rust_wallet_scan_outputs(
     ffi.Pointer<ffi.Char> wallet,
@@ -396,6 +651,30 @@ class EpicCashWalletBindings {
               ffi.Pointer<ffi.Char>)>>('rust_wallet_scan_outputs');
   late final _rust_wallet_scan_outputs =
       _rust_wallet_scan_outputsPtr.asFunction<
+          ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+
+  /// JSON-envelope wrapper for rust_wallet_scan_outputs
+  ffi.Pointer<ffi.Char> rust_wallet_scan_outputs_json(
+    ffi.Pointer<ffi.Char> wallet,
+    ffi.Pointer<ffi.Char> start_height,
+    ffi.Pointer<ffi.Char> number_of_blocks,
+  ) {
+    return _rust_wallet_scan_outputs_json(
+      wallet,
+      start_height,
+      number_of_blocks,
+    );
+  }
+
+  late final _rust_wallet_scan_outputs_jsonPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('rust_wallet_scan_outputs_json');
+  late final _rust_wallet_scan_outputs_json =
+      _rust_wallet_scan_outputs_jsonPtr.asFunction<
           ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>,
               ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
 

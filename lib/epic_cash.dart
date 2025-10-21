@@ -100,7 +100,7 @@ Future<String> getWalletInfo(
 
   try {
     ptr = _bindings
-        .rust_wallet_balances(
+        .rust_wallet_balances_json(
           walletPtr.cast(),
           refreshFromNodePtr.cast(),
           minConfPtr.cast(),
@@ -167,7 +167,7 @@ Future<String> scanOutPuts(
 
   try {
     ptr = _bindings
-        .rust_wallet_scan_outputs(
+        .rust_wallet_scan_outputs_json(
           walletPtr.cast(),
           startHeightPtr.cast(),
           numberOfBlocksPtr.cast(),
@@ -241,7 +241,7 @@ Future<String> createTransaction(
 
   try {
     ptr = _bindings
-        .rust_create_tx(
+        .rust_create_tx_json(
           walletPtr.cast(),
           amountPtr.cast(),
           addressPtr.cast(),
@@ -276,7 +276,7 @@ Future<String> getTransactions(String wallet, int refreshFromNode) async {
 
   try {
     ptr = _bindings
-        .rust_txs_get(
+        .rust_txs_get_json(
           walletPtr.cast(),
           refreshFromNodePtr.cast(),
         )
@@ -300,7 +300,7 @@ String cancelTransaction(String wallet, String transactionId) {
 
   try {
     ptr = _bindings
-        .rust_tx_cancel(
+        .rust_tx_cancel_json(
           walletPtr.cast(),
           transactionIdPtr.cast(),
         )
@@ -343,7 +343,7 @@ String getAddressInfo(String wallet, int index, String epicboxConfig) {
 
   try {
     ptr = _bindings
-        .rust_get_wallet_address(
+        .rust_get_wallet_address_json(
           walletPtr.cast(),
           indexPtr.cast(),
           epicboxConfigPtr.cast(),
@@ -391,7 +391,7 @@ Future<String> getTransactionFees(
 
   try {
     ptr = _bindings
-        .rust_get_tx_fees(
+        .rust_get_tx_fees_json(
           walletPtr.cast(),
           amountPtr.cast(),
           minConfPtr.cast(),
@@ -415,7 +415,7 @@ Future<String> deleteWallet(String wallet, String config) async {
   final configPtr = config.toNativeUtf8();
   final walletPtr = wallet.toNativeUtf8();
   try {
-    ptr = _bindings.rust_delete_wallet(walletPtr.cast(), configPtr.cast()).cast<Utf8>();
+    ptr = _bindings.rust_delete_wallet_json(walletPtr.cast(), configPtr.cast()).cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -433,7 +433,7 @@ String openWallet(String config, String password) {
   final configPtr = config.toNativeUtf8();
   final pwPtr = password.toNativeUtf8();
   try {
-    ptr = _bindings.rust_open_wallet(configPtr.cast(), pwPtr.cast()).cast<Utf8>();
+    ptr = _bindings.rust_open_wallet_json(configPtr.cast(), pwPtr.cast()).cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -467,7 +467,7 @@ Future<String> txHttpSend(
 
   try {
     ptr = _bindings
-        .rust_tx_send_http(
+        .rust_tx_send_http_json(
           walletPtr.cast(),
           stratPtr.cast(),
           minConfsPtr.cast(),

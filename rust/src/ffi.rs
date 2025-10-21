@@ -40,6 +40,185 @@ use crate::listener::listener_cancelled;
 use crate::init_logger;
 
 use ffi_helpers::task::TaskHandle;
+use serde_json::json as serde_json_json;
+
+fn is_error_str(s: &str) -> bool {
+    s.starts_with("Error ") || s.to_uppercase().contains("ERROR")
+}
+
+fn envelope_ok(data: String) -> *const c_char {
+    let obj = serde_json_json!({
+        "ok": true,
+        "data": data,
+    });
+    let s = CString::new(obj.to_string()).unwrap();
+    let p = s.as_ptr();
+    std::mem::forget(s);
+    p
+}
+
+fn envelope_err(message: String) -> *const c_char {
+    let obj = serde_json_json!({
+        "ok": false,
+        "message": message,
+    });
+    let s = CString::new(obj.to_string()).unwrap();
+    let p = s.as_ptr();
+    std::mem::forget(s);
+    p
+}
+
+/// Wrap the result of an existing FFI call into a JSON envelope.
+unsafe fn wrap_envelope_from_ptr(raw_ptr: *const c_char) -> *const c_char {
+    let s = CStr::from_ptr(raw_ptr).to_string_lossy().into_owned();
+    // Free the original string returned by the inner FFI call.
+    rust_string_free(raw_ptr as *mut c_char);
+    if is_error_str(&s) {
+        envelope_err(s)
+    } else {
+        envelope_ok(s)
+    }
+}
+
+/// JSON-envelope wrapper for rust_get_tx_fees
+#[no_mangle]
+pub unsafe extern "C" fn rust_get_tx_fees_json(
+    wallet: *const c_char,
+    c_amount: *const c_char,
+    min_confirmations: *const c_char,
+) -> *const c_char {
+    let raw = rust_get_tx_fees(wallet, c_amount, min_confirmations);
+    wrap_envelope_from_ptr(raw)
+}
+
+/// JSON-envelope wrapper for rust_wallet_balances
+#[no_mangle]
+pub unsafe extern "C" fn rust_wallet_balances_json(
+    wallet: *const c_char,
+    refresh: *const c_char,
+    min_confirmations: *const c_char,
+) -> *const c_char {
+    let raw = rust_wallet_balances(wallet, refresh, min_confirmations);
+    wrap_envelope_from_ptr(raw)
+}
+
+/// JSON-envelope wrapper for rust_txs_get
+#[no_mangle]
+pub unsafe extern "C" fn rust_txs_get_json(
+    wallet: *const c_char,
+    refresh_from_node: *const c_char,
+) -> *const c_char {
+    let raw = rust_txs_get(wallet, refresh_from_node);
+    wrap_envelope_from_ptr(raw)
+}
+
+/// JSON-envelope wrapper for rust_get_wallet_address
+#[no_mangle]
+pub unsafe extern "C" fn rust_get_wallet_address_json(
+    wallet: *const c_char,
+    index: *const c_char,
+    epicbox_config: *const c_char,
+) -> *const c_char {
+    let raw = rust_get_wallet_address(wallet, index, epicbox_config);
+    wrap_envelope_from_ptr(raw)
+}
+
+/// JSON-envelope wrapper for rust_open_wallet
+#[no_mangle]
+pub unsafe extern "C" fn rust_open_wallet_json(
+    config: *const c_char,
+    password: *const c_char,
+) -> *const c_char {
+    let raw = rust_open_wallet(config, password);
+    wrap_envelope_from_ptr(raw)
+}
+
+/// JSON-envelope wrapper for rust_recover_from_mnemonic
+#[no_mangle]
+pub unsafe extern "C" fn rust_recover_from_mnemonic_json(
+    config: *const c_char,
+    password: *const c_char,
+    mnemonic: *const c_char,
+    name: *const c_char,
+) -> *const c_char {
+    let raw = rust_recover_from_mnemonic(config, password, mnemonic, name);
+    wrap_envelope_from_ptr(raw)
+}
+
+/// JSON-envelope wrapper for rust_wallet_scan_outputs
+#[no_mangle]
+pub unsafe extern "C" fn rust_wallet_scan_outputs_json(
+    wallet: *const c_char,
+    start_height: *const c_char,
+    number_of_blocks: *const c_char,
+) -> *const c_char {
+    let raw = rust_wallet_scan_outputs(wallet, start_height, number_of_blocks);
+    wrap_envelope_from_ptr(raw)
+}
+
+/// JSON-envelope wrapper for rust_delete_wallet
+#[no_mangle]
+pub unsafe extern "C" fn rust_delete_wallet_json(
+    wallet: *const c_char,
+    config: *const c_char,
+) -> *const c_char {
+    let raw = rust_delete_wallet(wallet, config);
+    wrap_envelope_from_ptr(raw)
+}
+
+/// JSON-envelope wrapper for rust_create_tx
+#[no_mangle]
+pub unsafe extern "C" fn rust_create_tx_json(
+    wallet: *const c_char,
+    amount: *const c_char,
+    to_address: *const c_char,
+    secret_key_index: *const c_char,
+    epicbox_config: *const c_char,
+    confirmations: *const c_char,
+    note: *const c_char,
+) -> *const c_char {
+    let raw = rust_create_tx(
+        wallet,
+        amount,
+        to_address,
+        secret_key_index,
+        epicbox_config,
+        confirmations,
+        note,
+    );
+    wrap_envelope_from_ptr(raw)
+}
+
+/// JSON-envelope wrapper for rust_tx_send_http
+#[no_mangle]
+pub unsafe extern "C" fn rust_tx_send_http_json(
+    wallet: *const c_char,
+    selection_strategy_is_use_all: *const c_char,
+    minimum_confirmations: *const c_char,
+    message: *const c_char,
+    amount: *const c_char,
+    address: *const c_char,
+) -> *const c_char {
+    let raw = rust_tx_send_http(
+        wallet,
+        selection_strategy_is_use_all,
+        minimum_confirmations,
+        message,
+        amount,
+        address,
+    );
+    wrap_envelope_from_ptr(raw)
+}
+
+/// JSON-envelope wrapper for rust_tx_cancel
+#[no_mangle]
+pub unsafe extern "C" fn rust_tx_cancel_json(
+    wallet: *const c_char,
+    tx_id: *const c_char,
+) -> *const c_char {
+    let raw = rust_tx_cancel(wallet, tx_id);
+    wrap_envelope_from_ptr(raw)
+}
 
 /// Initialize a new wallet via FFI.
 #[no_mangle]

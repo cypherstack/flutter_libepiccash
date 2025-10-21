@@ -15,20 +15,31 @@ functions:
     - wallet_init
     - get_mnemonic
     - rust_open_wallet
+    - rust_open_wallet_json
     - rust_wallet_balances
+    - rust_wallet_balances_json
     - rust_recover_from_mnemonic
+    - rust_recover_from_mnemonic_json
     - rust_wallet_scan_outputs
+    - rust_wallet_scan_outputs_json
     - rust_create_tx
     - rust_txs_get
+    - rust_txs_get_json
     - rust_tx_cancel
+    - rust_tx_cancel_json
     - rust_get_chain_height
     - rust_delete_wallet
+    - rust_delete_wallet_json
     - rust_tx_send_http
     - rust_get_wallet_address
+    - rust_get_wallet_address_json
     - rust_validate_address
     - rust_get_tx_fees
+    - rust_get_tx_fees_json
     - rust_epicbox_listener_start
     - _listener_cancel
+    - rust_create_tx_json
+    - rust_tx_send_http_json
     - rust_string_free
 comments:
   style: any

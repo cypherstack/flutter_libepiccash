@@ -39,9 +39,25 @@ const char *rust_create_tx(const char *wallet,
                            const char *note);
 
 /**
+ * JSON-envelope wrapper for rust_create_tx
+ */
+const char *rust_create_tx_json(const char *wallet,
+                                const char *amount,
+                                const char *to_address,
+                                const char *secret_key_index,
+                                const char *epicbox_config,
+                                const char *confirmations,
+                                const char *note);
+
+/**
  * Delete a wallet via FFI.
  */
 const char *rust_delete_wallet(const char *_wallet, const char *config);
+
+/**
+ * JSON-envelope wrapper for rust_delete_wallet
+ */
+const char *rust_delete_wallet_json(const char *wallet, const char *config);
 
 /**
  * Start a listener via FFI.
@@ -61,6 +77,13 @@ const char *rust_get_tx_fees(const char *wallet,
                              const char *min_confirmations);
 
 /**
+ * JSON-envelope wrapper for rust_get_tx_fees
+ */
+const char *rust_get_tx_fees_json(const char *wallet,
+                                  const char *c_amount,
+                                  const char *min_confirmations);
+
+/**
  * Get a wallet address via FFI.
  */
 const char *rust_get_wallet_address(const char *wallet,
@@ -68,9 +91,21 @@ const char *rust_get_wallet_address(const char *wallet,
                                     const char *epicbox_config);
 
 /**
+ * JSON-envelope wrapper for rust_get_wallet_address
+ */
+const char *rust_get_wallet_address_json(const char *wallet,
+                                         const char *index,
+                                         const char *epicbox_config);
+
+/**
  * Open a wallet via FFI.
  */
 const char *rust_open_wallet(const char *config, const char *password);
+
+/**
+ * JSON-envelope wrapper for rust_open_wallet
+ */
+const char *rust_open_wallet_json(const char *config, const char *password);
 
 /**
  * Recover a wallet from a mnemonic via FFI.
@@ -79,6 +114,14 @@ const char *rust_recover_from_mnemonic(const char *config,
                                        const char *password,
                                        const char *mnemonic,
                                        const char *name);
+
+/**
+ * JSON-envelope wrapper for rust_recover_from_mnemonic
+ */
+const char *rust_recover_from_mnemonic_json(const char *config,
+                                            const char *password,
+                                            const char *mnemonic,
+                                            const char *name);
 
 /**
  * Free a C string previously allocated by Rust and returned over FFI.
@@ -92,6 +135,11 @@ void rust_string_free(char *s);
 const char *rust_tx_cancel(const char *wallet, const char *tx_id);
 
 /**
+ * JSON-envelope wrapper for rust_tx_cancel
+ */
+const char *rust_tx_cancel_json(const char *wallet, const char *tx_id);
+
+/**
  * Send a transaction via FFI.
  */
 const char *rust_tx_send_http(const char *wallet,
@@ -102,9 +150,24 @@ const char *rust_tx_send_http(const char *wallet,
                               const char *address);
 
 /**
+ * JSON-envelope wrapper for rust_tx_send_http
+ */
+const char *rust_tx_send_http_json(const char *wallet,
+                                   const char *selection_strategy_is_use_all,
+                                   const char *minimum_confirmations,
+                                   const char *message,
+                                   const char *amount,
+                                   const char *address);
+
+/**
  * Get transactions via FFI.
  */
 const char *rust_txs_get(const char *wallet, const char *refresh_from_node);
+
+/**
+ * JSON-envelope wrapper for rust_txs_get
+ */
+const char *rust_txs_get_json(const char *wallet, const char *refresh_from_node);
 
 /**
  * Validate an address via FFI.
@@ -119,11 +182,25 @@ const char *rust_wallet_balances(const char *wallet,
                                  const char *min_confirmations);
 
 /**
+ * JSON-envelope wrapper for rust_wallet_balances
+ */
+const char *rust_wallet_balances_json(const char *wallet,
+                                      const char *refresh,
+                                      const char *min_confirmations);
+
+/**
  * Validate an address via FFI.
  */
 const char *rust_wallet_scan_outputs(const char *wallet,
                                      const char *start_height,
                                      const char *number_of_blocks);
+
+/**
+ * JSON-envelope wrapper for rust_wallet_scan_outputs
+ */
+const char *rust_wallet_scan_outputs_json(const char *wallet,
+                                          const char *start_height,
+                                          const char *number_of_blocks);
 
 /**
  * Initialize a new wallet via FFI.

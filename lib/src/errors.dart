@@ -43,6 +43,23 @@ void throwIfError(String result) {
   }
 }
 
+/// If [result] is an ok-envelope, return its `data` field as String.
+/// Otherwise return [result] unmodified.
+String unwrapOkData(String result) {
+  final trimmed = result.trim();
+  if (!trimmed.startsWith('{')) return result;
+  try {
+    final decoded = _tryDecodeJson(trimmed);
+    if (decoded is Map && decoded['ok'] == true) {
+      final data = decoded['data'];
+      if (data is String) return data;
+    }
+  } catch (_) {
+    // Ignore and return original.
+  }
+  return result;
+}
+
 dynamic _tryDecodeJson(String s) {
   // Avoid importing dart:convert here to keep the helper light; caller can
   // decode again as needed. Minimal local decode via dart:convert would be fine
