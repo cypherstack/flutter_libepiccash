@@ -7,6 +7,7 @@ import 'package:mutex/mutex.dart';
 
 import 'epic_cash.dart' as lib_epiccash;
 import 'models/transaction.dart';
+import 'src/ffi_worker.dart';
 
 class BadEpicHttpAddressException implements Exception {
   final String? message;
@@ -72,7 +73,7 @@ abstract class LibEpiccash {
     }
   }
 
-  // Private function wrapper for compute
+  // Private function wrapper (worker isolate)
   static Future<String> _initializeWalletWrapper(
     ({
       String config,
@@ -81,13 +82,12 @@ abstract class LibEpiccash {
       String name,
     }) data,
   ) async {
-    final String initWalletStr = lib_epiccash.initWallet(
-      data.config,
-      data.mnemonic,
-      data.password,
-      data.name,
-    );
-    return initWalletStr;
+    return await FfiWorker.instance.call<String>('initWallet', {
+      'config': data.config,
+      'mnemonic': data.mnemonic,
+      'password': data.password,
+      'name': data.name,
+    });
   }
 
   ///
@@ -103,15 +103,12 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _initializeWalletWrapper,
-          (
-            config: config,
-            mnemonic: mnemonic,
-            password: password,
-            name: name,
-          ),
-        );
+        final result = await _initializeWalletWrapper((
+          config: config,
+          mnemonic: mnemonic,
+          password: password,
+          name: name,
+        ));
 
         _checkForError(result);
 
@@ -132,11 +129,11 @@ abstract class LibEpiccash {
       int minimumConfirmations,
     }) data,
   ) async {
-    return lib_epiccash.getWalletInfo(
-      data.wallet,
-      data.refreshFromNode,
-      data.minimumConfirmations,
-    );
+    return await FfiWorker.instance.call<String>('getWalletInfo', {
+      'wallet': data.wallet,
+      'refreshFromNode': data.refreshFromNode,
+      'minimumConfirmations': data.minimumConfirmations,
+    });
   }
 
   ///
@@ -155,14 +152,11 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final String balances = await compute(
-          _walletBalancesWrapper,
-          (
-            wallet: wallet,
-            refreshFromNode: refreshFromNode,
-            minimumConfirmations: minimumConfirmations,
-          ),
-        );
+        final String balances = await _walletBalancesWrapper((
+          wallet: wallet,
+          refreshFromNode: refreshFromNode,
+          minimumConfirmations: minimumConfirmations,
+        ));
 
         //If balances is valid json return, else return error
         if (balances.toUpperCase().contains("ERROR")) {
@@ -198,11 +192,11 @@ abstract class LibEpiccash {
       int numberOfBlocks,
     }) data,
   ) async {
-    return lib_epiccash.scanOutPuts(
-      data.wallet,
-      data.startHeight,
-      data.numberOfBlocks,
-    );
+    return await FfiWorker.instance.call<String>('scanOutPuts', {
+      'wallet': data.wallet,
+      'startHeight': data.startHeight,
+      'numberOfBlocks': data.numberOfBlocks,
+    });
   }
 
   ///
@@ -215,14 +209,11 @@ abstract class LibEpiccash {
   }) async {
     try {
       final result = await m.protect(() async {
-        return await compute(
-          _scanOutputsWrapper,
-          (
-            wallet: wallet,
-            startHeight: startHeight,
-            numberOfBlocks: numberOfBlocks,
-          ),
-        );
+        return await _scanOutputsWrapper((
+          wallet: wallet,
+          startHeight: startHeight,
+          numberOfBlocks: numberOfBlocks,
+        ));
       });
       final response = int.tryParse(result);
       if (response == null) {
@@ -248,15 +239,15 @@ abstract class LibEpiccash {
       String note,
     }) data,
   ) async {
-    return lib_epiccash.createTransaction(
-      data.wallet,
-      data.amount,
-      data.address,
-      data.secretKeyIndex,
-      data.epicboxConfig,
-      data.minimumConfirmations,
-      data.note,
-    );
+    return await FfiWorker.instance.call<String>('createTransaction', {
+      'wallet': data.wallet,
+      'amount': data.amount,
+      'address': data.address,
+      'secretKeyIndex': data.secretKeyIndex,
+      'epicboxConfig': data.epicboxConfig,
+      'minimumConfirmations': data.minimumConfirmations,
+      'note': data.note,
+    });
   }
 
   ///
@@ -273,18 +264,15 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final String result = await compute(
-          _createTransactionWrapper,
-          (
-            wallet: wallet,
-            amount: amount,
-            address: address,
-            secretKeyIndex: secretKeyIndex,
-            epicboxConfig: epicboxConfig,
-            minimumConfirmations: minimumConfirmations,
-            note: note,
-          ),
-        );
+        final String result = await _createTransactionWrapper((
+          wallet: wallet,
+          amount: amount,
+          address: address,
+          secretKeyIndex: secretKeyIndex,
+          epicboxConfig: epicboxConfig,
+          minimumConfirmations: minimumConfirmations,
+          note: note,
+        ));
 
         if (result.toUpperCase().contains("ERROR")) {
           throw Exception("Error creating transaction ${result.toString()}");
@@ -321,10 +309,10 @@ abstract class LibEpiccash {
       int refreshFromNode,
     }) data,
   ) async {
-    return lib_epiccash.getTransactions(
-      data.wallet,
-      data.refreshFromNode,
-    );
+    return await FfiWorker.instance.call<String>('getTransactions', {
+      'wallet': data.wallet,
+      'refreshFromNode': data.refreshFromNode,
+    });
   }
 
   ///
@@ -336,13 +324,10 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _getTransactionsWrapper,
-          (
-            wallet: wallet,
-            refreshFromNode: refreshFromNode,
-          ),
-        );
+        final result = await _getTransactionsWrapper((
+          wallet: wallet,
+          refreshFromNode: refreshFromNode,
+        ));
 
         if (result.toUpperCase().contains("ERROR")) {
           throw Exception(
@@ -374,10 +359,10 @@ abstract class LibEpiccash {
       String transactionId,
     }) data,
   ) async {
-    return lib_epiccash.cancelTransaction(
-      data.wallet,
-      data.transactionId,
-    );
+    return await FfiWorker.instance.call<String>('cancelTransaction', {
+      'wallet': data.wallet,
+      'transactionId': data.transactionId,
+    });
   }
 
   ///
@@ -390,13 +375,10 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _cancelTransactionWrapper,
-          (
-            wallet: wallet,
-            transactionId: transactionId,
-          ),
-        );
+        final result = await _cancelTransactionWrapper((
+          wallet: wallet,
+          transactionId: transactionId,
+        ));
 
         _checkForError(result);
 
@@ -412,7 +394,9 @@ abstract class LibEpiccash {
       String config,
     }) data,
   ) async {
-    return lib_epiccash.getChainHeight(data.config);
+    return await FfiWorker.instance.call<int>('getChainHeight', {
+      'config': data.config,
+    });
   }
 
   static Future<int> getChainHeight({
@@ -420,7 +404,7 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        return await compute(_chainHeightWrapper, (config: config,));
+        return await _chainHeightWrapper((config: config,));
       } catch (e) {
         throw ("Error getting chain height : ${e.toString()}");
       }
@@ -437,11 +421,11 @@ abstract class LibEpiccash {
       String epicboxConfig,
     }) data,
   ) async {
-    return lib_epiccash.getAddressInfo(
-      data.wallet,
-      data.index,
-      data.epicboxConfig,
-    );
+    return await FfiWorker.instance.call<String>('getAddressInfo', {
+      'wallet': data.wallet,
+      'index': data.index,
+      'epicboxConfig': data.epicboxConfig,
+    });
   }
 
   ///
@@ -454,14 +438,11 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _addressInfoWrapper,
-          (
-            wallet: wallet,
-            index: index,
-            epicboxConfig: epicboxConfig,
-          ),
-        );
+        final result = await _addressInfoWrapper((
+          wallet: wallet,
+          index: index,
+          epicboxConfig: epicboxConfig,
+        ));
 
         _checkForError(result);
 
@@ -482,11 +463,11 @@ abstract class LibEpiccash {
       int minimumConfirmations,
     }) data,
   ) async {
-    return lib_epiccash.getTransactionFees(
-      data.wallet,
-      data.amount,
-      data.minimumConfirmations,
-    );
+    return await FfiWorker.instance.call<String>('getTransactionFees', {
+      'wallet': data.wallet,
+      'amount': data.amount,
+      'minimumConfirmations': data.minimumConfirmations,
+    });
   }
 
   ///
@@ -505,14 +486,11 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        String fees = await compute(
-          _transactionFeesWrapper,
-          (
-            wallet: wallet,
-            amount: amount,
-            minimumConfirmations: minimumConfirmations,
-          ),
-        );
+        String fees = await _transactionFeesWrapper((
+          wallet: wallet,
+          amount: amount,
+          minimumConfirmations: minimumConfirmations,
+        ));
 
         if (available == amount) {
           if (fees.contains("Required")) {
@@ -533,14 +511,11 @@ abstract class LibEpiccash {
                     .toInt();
             final amountSending = amount - largestSatoshiFee;
             //Get fees for this new amount
-            fees = await compute(
-              _transactionFeesWrapper,
-              (
-                wallet: wallet,
-                amount: amountSending,
-                minimumConfirmations: minimumConfirmations,
-              ),
-            );
+            fees = await _transactionFeesWrapper((
+              wallet: wallet,
+              amount: amountSending,
+              minimumConfirmations: minimumConfirmations,
+            ));
           }
         }
 
@@ -578,12 +553,12 @@ abstract class LibEpiccash {
       String name,
     }) data,
   ) async {
-    return lib_epiccash.recoverWallet(
-      data.config,
-      data.password,
-      data.mnemonic,
-      data.name,
-    );
+    return await FfiWorker.instance.call<String>('recoverWallet', {
+      'config': data.config,
+      'password': data.password,
+      'mnemonic': data.mnemonic,
+      'name': data.name,
+    });
   }
 
   ///
@@ -596,15 +571,12 @@ abstract class LibEpiccash {
     required String name,
   }) async {
     try {
-      await compute(
-        _recoverWalletWrapper,
-        (
-          config: config,
-          password: password,
-          mnemonic: mnemonic,
-          name: name,
-        ),
-      );
+      await _recoverWalletWrapper((
+        config: config,
+        password: password,
+        mnemonic: mnemonic,
+        name: name,
+      ));
     } catch (e) {
       throw (e.toString());
     }
@@ -619,10 +591,10 @@ abstract class LibEpiccash {
       String config,
     }) data,
   ) async {
-    return lib_epiccash.deleteWallet(
-      data.wallet,
-      data.config,
-    );
+    return await FfiWorker.instance.call<String>('deleteWallet', {
+      'wallet': data.wallet,
+      'config': data.config,
+    });
   }
 
   ///
@@ -633,13 +605,10 @@ abstract class LibEpiccash {
     required String config,
   }) async {
     try {
-      final result = await compute(
-        _deleteWalletWrapper,
-        (
-          wallet: wallet,
-          config: config,
-        ),
-      );
+      final result = await _deleteWalletWrapper((
+        wallet: wallet,
+        config: config,
+      ));
 
       _checkForError(result);
 
@@ -658,10 +627,10 @@ abstract class LibEpiccash {
       String password,
     }) data,
   ) async {
-    return lib_epiccash.openWallet(
-      data.config,
-      data.password,
-    );
+    return await FfiWorker.instance.call<String>('openWallet', {
+      'config': data.config,
+      'password': data.password,
+    });
   }
 
   ///
@@ -672,13 +641,10 @@ abstract class LibEpiccash {
     required String password,
   }) async {
     try {
-      final result = await compute(
-        _openWalletWrapper,
-        (
-          config: config,
-          password: password,
-        ),
-      );
+      final result = await _openWalletWrapper((
+        config: config,
+        password: password,
+      ));
 
       _checkForError(result);
 
@@ -701,14 +667,14 @@ abstract class LibEpiccash {
       String address,
     }) data,
   ) async {
-    return lib_epiccash.txHttpSend(
-      data.wallet,
-      data.selectionStrategyIsAll,
-      data.minimumConfirmations,
-      data.message,
-      data.amount,
-      data.address,
-    );
+    return await FfiWorker.instance.call<String>('txHttpSend', {
+      'wallet': data.wallet,
+      'selectionStrategyIsAll': data.selectionStrategyIsAll,
+      'minimumConfirmations': data.minimumConfirmations,
+      'message': data.message,
+      'amount': data.amount,
+      'address': data.address,
+    });
   }
 
   ///
@@ -723,17 +689,14 @@ abstract class LibEpiccash {
     required String address,
   }) async {
     try {
-      final result = await compute(
-        _txHttpSendWrapper,
-        (
-          wallet: wallet,
-          selectionStrategyIsAll: selectionStrategyIsAll,
-          minimumConfirmations: minimumConfirmations,
-          message: message,
-          amount: amount,
-          address: address,
-        ),
-      );
+      final result = await _txHttpSendWrapper((
+        wallet: wallet,
+        selectionStrategyIsAll: selectionStrategyIsAll,
+        minimumConfirmations: minimumConfirmations,
+        message: message,
+        amount: amount,
+        address: address,
+      ));
       if (result.toUpperCase().contains("ERROR")) {
         throw Exception("Error creating transaction ${result.toString()}");
       }
