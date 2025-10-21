@@ -29,6 +29,7 @@ functions:
     - rust_get_tx_fees
     - rust_epicbox_listener_start
     - _listener_cancel
+    - rust_string_free
 comments:
   style: any
   length: full

@@ -1000,6 +1000,16 @@ pub unsafe extern "C" fn _listener_cancel(handler: *mut c_void) -> *const c_char
     ptr
 }
 
+/// Free a C string previously allocated by Rust and returned over FFI.
+/// Always use this to free results from this library.
+#[no_mangle]
+pub unsafe extern "C" fn rust_string_free(s: *mut c_char) {
+    if !s.is_null() {
+        // Reconstruct CString so Rust's allocator drops it.
+        let _ = CString::from_raw(s);
+    }
+}
+
 #[cfg(test)]
 mod mnemonic_tests {
     use super::*;
@@ -1122,6 +1132,20 @@ mod mnemonic_tests {
             Err(e) => {
                 panic!("Failed to generate mnemonic: {:?}", e);
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod ffi_free_tests {
+    use super::*;
+
+    #[test]
+    fn test_rust_string_free() {
+        unsafe {
+            let raw = CString::new("hello").unwrap().into_raw();
+            // Should not crash or leak catastrophically; ASan/valgrind can verify.
+            rust_string_free(raw);
         }
     }
 }

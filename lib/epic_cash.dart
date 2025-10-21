@@ -4,14 +4,37 @@ import 'dart:io' as io;
 import 'package:ffi/ffi.dart';
 import 'src/bindings_generated.dart';
 
-final DynamicLibrary epicCashNative = io.Platform.isWindows
-    ? DynamicLibrary.open("libepic_cash_wallet.dll")
-    : io.Platform.environment.containsKey('FLUTTER_TEST')
-        ? DynamicLibrary.open(
-            'crypto_plugins/flutter_libepiccash/scripts/linux/build/libepic_cash_wallet.so')
-        : io.Platform.isAndroid || io.Platform.isLinux
-            ? DynamicLibrary.open('libepic_cash_wallet.so')
-            : DynamicLibrary.process();
+DynamicLibrary _openEpicLib() {
+  if (io.Platform.isWindows) {
+    try {
+      return DynamicLibrary.open('libepic_cash_wallet.dll');
+    } catch (_) {
+      // Fallback to common Windows naming without lib- prefix
+      return DynamicLibrary.open('epic_cash_wallet.dll');
+    }
+  }
+
+  if (io.Platform.isAndroid || io.Platform.isLinux) {
+    // Expect library at script build outputs; fall back to name.
+    const candidates = [
+      'linux/bin/x86_64-unknown-linux-gnu/release/libepic_cash_wallet.so',
+      'linux/bin/aarch64-unknown-linux-gnu/release/libepic_cash_wallet.so',
+      'libepic_cash_wallet.so',
+    ];
+    for (final path in candidates) {
+      if (io.File(path).existsSync()) {
+        return DynamicLibrary.open(path);
+      }
+    }
+    // Final fallback lets system search path/LD_LIBRARY_PATH resolve it.
+    return DynamicLibrary.open('libepic_cash_wallet.so');
+  }
+
+  // For iOS/macOS when statically linked.
+  return DynamicLibrary.process();
+}
+
+final DynamicLibrary epicCashNative = _openEpicLib();
 
 final EpicCashWalletBindings _bindings = EpicCashWalletBindings(epicCashNative);
 
@@ -24,7 +47,7 @@ String walletMnemonic() {
     rethrow;
   } finally {
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -59,7 +82,7 @@ String initWallet(
     malloc.free(passwordPtr);
     malloc.free(namePtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -91,7 +114,7 @@ Future<String> getWalletInfo(
     malloc.free(refreshFromNodePtr);
     malloc.free(minConfPtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -126,7 +149,7 @@ String recoverWallet(
     malloc.free(mnemonicPtr);
     malloc.free(namePtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -158,7 +181,7 @@ Future<String> scanOutPuts(
     malloc.free(startHeightPtr);
     malloc.free(numberOfBlocksPtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -187,12 +210,12 @@ String epicboxListenerStop(Pointer<Void> handler) {
 
   try {
     ptr = _bindings.listener_cancel(handler.cast()).cast<Utf8>();
-    return ptr.toDartString();
+    return ptr!.toDartString();
   } catch (_) {
     rethrow;
   } finally {
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -240,7 +263,7 @@ Future<String> createTransaction(
     malloc.free(minConfPtr);
     malloc.free(notePtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -265,7 +288,7 @@ Future<String> getTransactions(String wallet, int refreshFromNode) async {
     malloc.free(walletPtr);
     malloc.free(refreshFromNodePtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -289,7 +312,7 @@ String cancelTransaction(String wallet, String transactionId) {
     malloc.free(walletPtr);
     malloc.free(transactionIdPtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -307,7 +330,7 @@ int getChainHeight(String config) {
   } finally {
     malloc.free(configPtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -334,7 +357,7 @@ String getAddressInfo(String wallet, int index, String epicboxConfig) {
     malloc.free(indexPtr);
     malloc.free(epicboxConfigPtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -351,7 +374,7 @@ String validateSendAddress(String address) {
   } finally {
     malloc.free(addressPtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -382,7 +405,7 @@ Future<String> getTransactionFees(
     malloc.free(amountPtr);
     malloc.free(minConfPtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -400,7 +423,7 @@ Future<String> deleteWallet(String wallet, String config) async {
     malloc.free(configPtr);
     malloc.free(walletPtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -418,7 +441,7 @@ String openWallet(String config, String password) {
     malloc.free(configPtr);
     malloc.free(pwPtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
@@ -465,7 +488,7 @@ Future<String> txHttpSend(
     malloc.free(amountPtr);
     malloc.free(addressPtr);
     if (ptr != null) {
-      malloc.free(ptr);
+      _bindings.rust_string_free(ptr.cast());
     }
   }
 }
