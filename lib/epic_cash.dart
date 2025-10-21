@@ -2,6 +2,7 @@ import 'dart:ffi';
 import 'dart:io' as io;
 
 import 'package:ffi/ffi.dart';
+import 'src/bindings_generated.dart';
 
 final DynamicLibrary epicCashNative = io.Platform.isWindows
     ? DynamicLibrary.open("libepic_cash_wallet.dll")
@@ -12,95 +13,12 @@ final DynamicLibrary epicCashNative = io.Platform.isWindows
             ? DynamicLibrary.open('libepic_cash_wallet.so')
             : DynamicLibrary.process();
 
-typedef WalletMnemonic = Pointer<Utf8> Function();
-typedef WalletMnemonicFFI = Pointer<Utf8> Function();
-
-typedef WalletInit = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
-typedef WalletInitFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
-
-typedef WalletInfo = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
-typedef WalletInfoFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
-
-typedef RecoverWallet = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
-typedef RecoverWalletFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
-
-typedef WalletPhrase = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
-typedef WalletPhraseFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
-
-typedef ScanOutPuts = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
-typedef ScanOutPutsFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
-
-typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
-typedef CreateTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<Utf8>);
-
-typedef EpicboxListenerStart = Pointer<Void> Function(
-    Pointer<Utf8>, Pointer<Utf8>);
-typedef EpicboxListenerStartFFI = Pointer<Void> Function(
-    Pointer<Utf8>, Pointer<Utf8>);
-
-typedef EpicboxListenerStop = Pointer<Utf8> Function(Pointer<Void>);
-typedef EpicboxListenerStopFFI = Pointer<Utf8> Function(Pointer<Void>);
-
-typedef GetTransactions = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>);
-typedef GetTransactionsFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>);
-
-typedef CancelTransaction = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>);
-typedef CancelTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>);
-
-typedef GetChainHeight = Pointer<Utf8> Function(Pointer<Utf8>);
-typedef GetChainHeightFFI = Pointer<Utf8> Function(Pointer<Utf8>);
-
-typedef AddressInfo = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
-typedef AddressInfoFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
-
-typedef ValidateAddress = Pointer<Utf8> Function(Pointer<Utf8>);
-typedef ValidateAddressFFI = Pointer<Utf8> Function(Pointer<Utf8>);
-
-typedef TransactionFees = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
-typedef TransactionFeesFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
-
-typedef DeleteWallet = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
-typedef DeleteWalletFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
-
-typedef OpenWallet = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
-typedef OpenWalletFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
-
-typedef TxHttpSend = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
-    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
-typedef TxHttpSendFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
-    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
-
-final WalletMnemonic _walletMnemonic = epicCashNative
-    .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
-    .asFunction();
+final EpicCashWalletBindings _bindings = EpicCashWalletBindings(epicCashNative);
 
 String walletMnemonic() {
   Pointer<Utf8>? ptr;
   try {
-    ptr = _walletMnemonic();
+    ptr = _bindings.get_mnemonic().cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -110,10 +28,6 @@ String walletMnemonic() {
     }
   }
 }
-
-final WalletInit _initWallet = epicCashNative
-    .lookup<NativeFunction<WalletInitFFI>>("wallet_init")
-    .asFunction();
 
 String initWallet(
   String config,
@@ -128,7 +42,14 @@ String initWallet(
   final namePtr = name.toNativeUtf8();
 
   try {
-    ptr = _initWallet(configPtr, mnemonicPtr, passwordPtr, namePtr);
+    ptr = _bindings
+        .wallet_init(
+          configPtr.cast(),
+          mnemonicPtr.cast(),
+          passwordPtr.cast(),
+          namePtr.cast(),
+        )
+        .cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -143,10 +64,6 @@ String initWallet(
   }
 }
 
-final WalletInfo _walletInfo = epicCashNative
-    .lookup<NativeFunction<WalletInfoFFI>>("rust_wallet_balances")
-    .asFunction();
-
 Future<String> getWalletInfo(
   String wallet,
   int refreshFromNode,
@@ -159,11 +76,13 @@ Future<String> getWalletInfo(
   final minConfPtr = min_confirmations.toString().toNativeUtf8().cast<Int8>();
 
   try {
-    ptr = _walletInfo(
-      walletPtr,
-      refreshFromNodePtr,
-      minConfPtr,
-    );
+    ptr = _bindings
+        .rust_wallet_balances(
+          walletPtr.cast(),
+          refreshFromNodePtr.cast(),
+          minConfPtr.cast(),
+        )
+        .cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -176,10 +95,6 @@ Future<String> getWalletInfo(
     }
   }
 }
-
-final RecoverWallet _recoverWallet = epicCashNative
-    .lookup<NativeFunction<RecoverWalletFFI>>("rust_recover_from_mnemonic")
-    .asFunction();
 
 String recoverWallet(
   String config,
@@ -194,7 +109,14 @@ String recoverWallet(
   final namePtr = name.toNativeUtf8();
 
   try {
-    ptr = _recoverWallet(configPtr, passwordPtr, mnemonicPtr, namePtr);
+    ptr = _bindings
+        .rust_recover_from_mnemonic(
+          configPtr.cast(),
+          passwordPtr.cast(),
+          mnemonicPtr.cast(),
+          namePtr.cast(),
+        )
+        .cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -209,10 +131,6 @@ String recoverWallet(
   }
 }
 
-final ScanOutPuts _scanOutPuts = epicCashNative
-    .lookup<NativeFunction<ScanOutPutsFFI>>("rust_wallet_scan_outputs")
-    .asFunction();
-
 Future<String> scanOutPuts(
   String wallet,
   int startHeight,
@@ -225,11 +143,13 @@ Future<String> scanOutPuts(
       numberOfBlocks.toString().toNativeUtf8().cast<Int8>();
 
   try {
-    ptr = _scanOutPuts(
-      walletPtr,
-      startHeightPtr,
-      numberOfBlocksPtr,
-    );
+    ptr = _bindings
+        .rust_wallet_scan_outputs(
+          walletPtr.cast(),
+          startHeightPtr.cast(),
+          numberOfBlocksPtr.cast(),
+        )
+        .cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -243,17 +163,17 @@ Future<String> scanOutPuts(
   }
 }
 
-final EpicboxListenerStart _epicboxListenerStart = epicCashNative
-    .lookup<NativeFunction<EpicboxListenerStartFFI>>(
-        "rust_epicbox_listener_start")
-    .asFunction();
-
 Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
   final walletPtr = wallet.toNativeUtf8();
   final epicboxConfigPtr = epicboxConfig.toNativeUtf8();
 
   try {
-    return _epicboxListenerStart(walletPtr, epicboxConfigPtr);
+    return _bindings
+        .rust_epicbox_listener_start(
+          walletPtr.cast(),
+          epicboxConfigPtr.cast(),
+        )
+        .cast<Void>();
   } catch (_) {
     rethrow;
   } finally {
@@ -262,15 +182,11 @@ Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
   }
 }
 
-final EpicboxListenerStop _epicboxListenerStop = epicCashNative
-    .lookup<NativeFunction<EpicboxListenerStopFFI>>("_listener_cancel")
-    .asFunction();
-
 String epicboxListenerStop(Pointer<Void> handler) {
   Pointer<Utf8>? ptr;
 
   try {
-    ptr = _epicboxListenerStop(handler);
+    ptr = _bindings.listener_cancel(handler.cast()).cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -280,10 +196,6 @@ String epicboxListenerStop(Pointer<Void> handler) {
     }
   }
 }
-
-final CreateTransaction _createTransaction = epicCashNative
-    .lookup<NativeFunction<CreateTransactionFFI>>("rust_create_tx")
-    .asFunction();
 
 Future<String> createTransaction(
   String wallet,
@@ -305,15 +217,17 @@ Future<String> createTransaction(
   final notePtr = note.toNativeUtf8();
 
   try {
-    ptr = _createTransaction(
-      walletPtr,
-      amountPtr,
-      addressPtr,
-      secretKeyPtr,
-      epicboxConfigPtr,
-      minConfPtr,
-      notePtr,
-    );
+    ptr = _bindings
+        .rust_create_tx(
+          walletPtr.cast(),
+          amountPtr.cast(),
+          addressPtr.cast(),
+          secretKeyPtr.cast(),
+          epicboxConfigPtr.cast(),
+          minConfPtr.cast(),
+          notePtr.cast(),
+        )
+        .cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -331,10 +245,6 @@ Future<String> createTransaction(
   }
 }
 
-final GetTransactions _getTransactions = epicCashNative
-    .lookup<NativeFunction<GetTransactionsFFI>>("rust_txs_get")
-    .asFunction();
-
 Future<String> getTransactions(String wallet, int refreshFromNode) async {
   Pointer<Utf8>? ptr;
   final walletPtr = wallet.toNativeUtf8();
@@ -342,7 +252,12 @@ Future<String> getTransactions(String wallet, int refreshFromNode) async {
       refreshFromNode.toString().toNativeUtf8().cast<Int8>();
 
   try {
-    ptr = _getTransactions(walletPtr, refreshFromNodePtr);
+    ptr = _bindings
+        .rust_txs_get(
+          walletPtr.cast(),
+          refreshFromNodePtr.cast(),
+        )
+        .cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -355,17 +270,18 @@ Future<String> getTransactions(String wallet, int refreshFromNode) async {
   }
 }
 
-final CancelTransaction _cancelTransaction = epicCashNative
-    .lookup<NativeFunction<CancelTransactionFFI>>("rust_tx_cancel")
-    .asFunction();
-
 String cancelTransaction(String wallet, String transactionId) {
   Pointer<Utf8>? ptr;
   final walletPtr = wallet.toNativeUtf8();
   final transactionIdPtr = transactionId.toNativeUtf8();
 
   try {
-    ptr = _cancelTransaction(walletPtr, transactionIdPtr);
+    ptr = _bindings
+        .rust_tx_cancel(
+          walletPtr.cast(),
+          transactionIdPtr.cast(),
+        )
+        .cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -378,16 +294,12 @@ String cancelTransaction(String wallet, String transactionId) {
   }
 }
 
-final GetChainHeight _getChainHeight = epicCashNative
-    .lookup<NativeFunction<GetChainHeightFFI>>("rust_get_chain_height")
-    .asFunction();
-
 int getChainHeight(String config) {
   Pointer<Utf8>? ptr;
   final configPtr = config.toNativeUtf8();
 
   try {
-    ptr = _getChainHeight(configPtr);
+    ptr = _bindings.rust_get_chain_height(configPtr.cast()).cast<Utf8>();
     final latestHeight = ptr.toDartString();
     return int.parse(latestHeight);
   } catch (_) {
@@ -400,10 +312,6 @@ int getChainHeight(String config) {
   }
 }
 
-final AddressInfo _addressInfo = epicCashNative
-    .lookup<NativeFunction<AddressInfoFFI>>("rust_get_wallet_address")
-    .asFunction();
-
 String getAddressInfo(String wallet, int index, String epicboxConfig) {
   Pointer<Utf8>? ptr;
   final walletPtr = wallet.toNativeUtf8();
@@ -411,7 +319,13 @@ String getAddressInfo(String wallet, int index, String epicboxConfig) {
   final epicboxConfigPtr = epicboxConfig.toNativeUtf8();
 
   try {
-    ptr = _addressInfo(walletPtr, indexPtr, epicboxConfigPtr);
+    ptr = _bindings
+        .rust_get_wallet_address(
+          walletPtr.cast(),
+          indexPtr.cast(),
+          epicboxConfigPtr.cast(),
+        )
+        .cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -425,16 +339,12 @@ String getAddressInfo(String wallet, int index, String epicboxConfig) {
   }
 }
 
-final ValidateAddress _validateSendAddress = epicCashNative
-    .lookup<NativeFunction<ValidateAddressFFI>>("rust_validate_address")
-    .asFunction();
-
 String validateSendAddress(String address) {
   Pointer<Utf8>? ptr;
   final addressPtr = address.toNativeUtf8();
 
   try {
-    ptr = _validateSendAddress(addressPtr);
+    ptr = _bindings.rust_validate_address(addressPtr.cast()).cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -445,10 +355,6 @@ String validateSendAddress(String address) {
     }
   }
 }
-
-final TransactionFees _transactionFees = epicCashNative
-    .lookup<NativeFunction<TransactionFeesFFI>>("rust_get_tx_fees")
-    .asFunction();
 
 Future<String> getTransactionFees(
   String wallet,
@@ -461,8 +367,13 @@ Future<String> getTransactionFees(
   final minConfPtr = minimumConfirmations.toString().toNativeUtf8();
 
   try {
-    ptr = _transactionFees(
-        walletPtr, amountPtr.cast<Int8>(), minConfPtr.cast<Int8>());
+    ptr = _bindings
+        .rust_get_tx_fees(
+          walletPtr.cast(),
+          amountPtr.cast(),
+          minConfPtr.cast(),
+        )
+        .cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -476,16 +387,12 @@ Future<String> getTransactionFees(
   }
 }
 
-final DeleteWallet _deleteWallet = epicCashNative
-    .lookup<NativeFunction<DeleteWalletFFI>>("rust_delete_wallet")
-    .asFunction();
-
 Future<String> deleteWallet(String wallet, String config) async {
   Pointer<Utf8>? ptr;
   final configPtr = config.toNativeUtf8();
   final walletPtr = wallet.toNativeUtf8();
   try {
-    ptr = _deleteWallet(walletPtr, configPtr);
+    ptr = _bindings.rust_delete_wallet(walletPtr.cast(), configPtr.cast()).cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -498,16 +405,12 @@ Future<String> deleteWallet(String wallet, String config) async {
   }
 }
 
-final OpenWallet _openWallet = epicCashNative
-    .lookup<NativeFunction<OpenWalletFFI>>("rust_open_wallet")
-    .asFunction();
-
 String openWallet(String config, String password) {
   Pointer<Utf8>? ptr;
   final configPtr = config.toNativeUtf8();
   final pwPtr = password.toNativeUtf8();
   try {
-    ptr = _openWallet(configPtr, pwPtr);
+    ptr = _bindings.rust_open_wallet(configPtr.cast(), pwPtr.cast()).cast<Utf8>();
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -519,10 +422,6 @@ String openWallet(String config, String password) {
     }
   }
 }
-
-final TxHttpSend _txHttpSend = epicCashNative
-    .lookup<NativeFunction<TxHttpSendFFI>>("rust_tx_send_http")
-    .asFunction();
 
 Future<String> txHttpSend(
   String wallet,
@@ -544,14 +443,16 @@ Future<String> txHttpSend(
   final addressPtr = address.toNativeUtf8();
 
   try {
-    ptr = _txHttpSend(
-      walletPtr,
-      stratPtr,
-      minConfsPtr,
-      messagePtr,
-      amountPtr,
-      addressPtr,
-    );
+    ptr = _bindings
+        .rust_tx_send_http(
+          walletPtr.cast(),
+          stratPtr.cast(),
+          minConfsPtr.cast(),
+          messagePtr.cast(),
+          amountPtr.cast(),
+          addressPtr.cast(),
+        )
+        .cast<Utf8>();
 
     return ptr.toDartString();
   } catch (_) {

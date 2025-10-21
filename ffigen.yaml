@@ -1,0 +1,34 @@
+name: EpicCashWalletBindings
+description: Auto-generated bindings for epic_cash_wallet C API.
+output: lib/src/bindings_generated.dart
+headers:
+  entry-points:
+    - rust/target/epic_cash_wallet.h
+llvm-path:
+  - "/usr/lib/llvm-14"
+  - "/usr/lib/llvm-13"
+  - "/usr/lib/llvm-12"
+  - "/usr/local/opt/llvm"
+  - "/opt/homebrew/opt/llvm"
+functions:
+  include:
+    - wallet_init
+    - get_mnemonic
+    - rust_open_wallet
+    - rust_wallet_balances
+    - rust_recover_from_mnemonic
+    - rust_wallet_scan_outputs
+    - rust_create_tx
+    - rust_txs_get
+    - rust_tx_cancel
+    - rust_get_chain_height
+    - rust_delete_wallet
+    - rust_tx_send_http
+    - rust_get_wallet_address
+    - rust_validate_address
+    - rust_get_tx_fees
+    - rust_epicbox_listener_start
+    - _listener_cancel
+comments:
+  style: any
+  length: full
