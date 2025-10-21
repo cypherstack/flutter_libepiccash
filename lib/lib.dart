@@ -153,20 +153,7 @@ abstract class LibEpiccash {
         //If balances is valid json return, else return error
         _checkForError(balances);
         final unwrappedBalances = epic_errors.unwrapOkData(balances);
-        final jsonBalances = json.decode(unwrappedBalances);
-        //Return balances as record
-        final ({
-          double spendable,
-          double pending,
-          double total,
-          double awaitingFinalization
-        }) balancesRecord = (
-          spendable: jsonBalances['amount_currently_spendable'],
-          pending: jsonBalances['amount_awaiting_finalization'],
-          total: jsonBalances['total'],
-          awaitingFinalization: jsonBalances['amount_awaiting_finalization'],
-        );
-        return balancesRecord;
+        return parsing.parseBalances(unwrappedBalances);
       } catch (e) {
         throw ("Error getting wallet info : ${e.toString()}");
       }
@@ -306,13 +293,10 @@ abstract class LibEpiccash {
 
         _checkForError(result);
         final unwrappedResult = epic_errors.unwrapOkData(result);
-        //Parse the returned data as an EpicTransaction
         final List<Transaction> finalResult = [];
-        final jsonResult = json.decode(unwrappedResult) as List;
-
+        final jsonResult = parsing.parseTransactionsRawList(unwrappedResult);
         for (final tx in jsonResult) {
-          final Transaction itemTx = Transaction.fromJson(tx);
-          finalResult.add(itemTx);
+          finalResult.add(Transaction.fromJson(tx));
         }
         return finalResult;
       } catch (e) {

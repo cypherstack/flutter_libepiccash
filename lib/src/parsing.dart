@@ -69,3 +69,35 @@ import 'errors.dart';
   }
 }
 
+({double spendable, double pending, double total, double awaitingFinalization})
+    parseBalances(String balancesJson) {
+  try {
+    final m = convert.jsonDecode(balancesJson);
+    if (m is! Map) throw EpicFfiException('Unexpected balances format');
+    return (
+      spendable: (m['amount_currently_spendable'] as num).toDouble(),
+      pending: (m['amount_awaiting_finalization'] as num).toDouble(),
+      total: (m['total'] as num).toDouble(),
+      awaitingFinalization:
+          (m['amount_awaiting_finalization'] as num).toDouble(),
+    );
+  } catch (e) {
+    if (e is EpicFfiException) rethrow;
+    throw EpicFfiException('Failed to parse balances: $e');
+  }
+}
+
+List<dynamic> _decodeList(String json) {
+  final v = convert.jsonDecode(json);
+  if (v is! List) throw EpicFfiException('Expected a JSON array');
+  return v;
+}
+
+List<dynamic> parseTransactionsRawList(String txsJson) {
+  try {
+    return _decodeList(txsJson);
+  } catch (e) {
+    if (e is EpicFfiException) rethrow;
+    throw EpicFfiException('Failed to parse transactions: $e');
+  }
+}
