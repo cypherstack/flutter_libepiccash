@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+set -e
+rm -rf build
 mkdir build
 echo ''$(git log -1 --pretty=format:"%H")' '$(date) >> build/git_commit_version.txt
 VERSIONS_FILE=../../lib/git_versions.dart
@@ -8,7 +10,7 @@ if [ ! -f "$VERSIONS_FILE" ]; then
 fi
 COMMIT=$(git log -1 --pretty=format:"%H")
 OS="IOS"
-sed -i '' "/\/\*${OS}_VERSION/c\\/\*${OS}_VERSION\*\/ const ${OS}_VERSION = \"$COMMIT\";" $VERSIONS_FILE
+sed -i '' '/\/\*${OS}_VERSION/c\'$'\n''/\*${OS}_VERSION\*\/ const ${OS}_VERSION = "'"$COMMIT"'";' "$VERSIONS_FILE"
 cp -r ../../rust build/rust
 cd build/rust
 
@@ -16,7 +18,11 @@ rustup target add aarch64-apple-ios x86_64-apple-ios
 
 # building
 cp target/epic_cash_wallet.h libepic_cash_wallet.h
-cargo lipo --release
+
+export IPHONEOS_DEPLOYMENT_TARGET=15.0
+export RUSTFLAGS="-C link-arg=-mios-version-min=15.0"
+cargo build --release --target aarch64-apple-ios
+#cargo lipo --release
 
 # moving files to the ios project
 inc=../../../../ios/include
