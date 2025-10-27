@@ -33,8 +33,7 @@ rust/default/
 ios/include/
 ios/libs/
 linux/bin/
-macos/include/
-macos/libs/
+macos/framework
 
 lib/git_versions.dart
 rust/src/bin
