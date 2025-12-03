@@ -14,12 +14,11 @@ A new Flutter plugin project.
   s.author           = { 'Your Company' => 'email@example.com' }
 
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*'
-  s.static_framework = true
-  s.vendored_libraries = "**/*.a"
+  s.source_files     = 'Classes/**/*'
+  s.vendored_frameworks = 'framework/EpicWallet.xcframework'
   s.dependency 'FlutterMacOS'
 
-  s.platform = :osx, '10.11'
+  s.platform = :osx, '10.15'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=macosx*]' => 'x86_64' }
   s.swift_version = '5.0'
 end
