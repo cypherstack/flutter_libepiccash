@@ -39,6 +39,7 @@ class EpicInitTransactionView extends StatefulWidget {
 
 class _EpicInitTransactionView extends State<EpicInitTransactionView> {
   var amount = "";
+  var address = "";
   var walletConfig = "";
   final storage = new FlutterSecureStorage();
   var initTxResponse = "";
@@ -47,18 +48,29 @@ class _EpicInitTransactionView extends State<EpicInitTransactionView> {
     walletConfig = await EpicboxConfig.getDefaultConfig('walletName');
   }
 
-  String _initTransaction(String config, String password, int amount,
-      String minimumConfirmations, String selectionStrategyUseAll) {
+  Future<String> _initTransaction(String config, String password, int amount,
+      String address, String minimumConfirmations) async {
     try {
-      return createTransaction(
-        config,
+      // Open wallet to get wallet pointer (similar to Stack Wallet).
+      final wallet = openWallet(config, password);
+      if (wallet.contains('Error')) {
+        return 'Error opening wallet: $wallet';
+      }
+
+      // Get epicbox config.
+      final epicboxConfig = await EpicboxConfig.getDefaultConfig('walletName');
+
+      // Create transaction with wallet pointer (not config).
+      final result = await createTransaction(
+        wallet, // wallet pointer, not config.
         amount,
-        '',
-        0, // Assuming default secretKeyIndex = 0
-        '{}', // Assuming no specific epicboxConfig
+        address,
+        0, // secretKeyIndex
+        epicboxConfig,
         int.parse(minimumConfirmations),
-        '', // Assuming no note
-      ).toString();
+        'Example transaction', // note.
+      );
+      return result;
     } catch (e) {
       return "Error initiating transaction: $e";
     }
@@ -66,7 +78,13 @@ class _EpicInitTransactionView extends State<EpicInitTransactionView> {
 
   void _setAmount(value) {
     setState(() {
-      amount = amount + value;
+      amount = value;
+    });
+  }
+
+  void _setAddress(value) {
+    setState(() {
+      address = value;
     });
   }
 
@@ -89,52 +107,81 @@ class _EpicInitTransactionView extends State<EpicInitTransactionView> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: Form(
-          key: _formKey,
-          child: Column(
-            children: <Widget>[
-              TextFormField(
-                // The validator receives the text that the user has entered.
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter some text';
-                  }
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: <Widget>[
+                TextFormField(
+                  decoration: const InputDecoration(
+                    labelText: 'Amount (in smallest unit)',
+                    hintText: 'Enter amount',
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter amount';
+                    }
+                    if (int.tryParse(value) == null) {
+                      return 'Please enter valid number';
+                    }
+                    _setAmount(value);
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  decoration: const InputDecoration(
+                    labelText: 'Recipient Address',
+                    hintText: 'Enter Epic address',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter address';
+                    }
+                    _setAddress(value);
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (_formKey.currentState!.validate()) {
+                      String walletConfig =
+                          await EpicboxConfig.getDefaultConfig('walletName');
 
-                  _setAmount(value);
+                      const minimumConfirmations = "10";
 
-                  return null;
-                },
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    String walletConfig =
-                        await EpicboxConfig.getDefaultConfig('walletName');
-
-                    const minimumConfirmations = "10";
-                    const selectionStrategyUseAll = "0";
-
-                    String transaction = _initTransaction(
-                      walletConfig,
-                      widget.password,
-                      int.parse(amount),
-                      minimumConfirmations,
-                      selectionStrategyUseAll,
-                    );
-                    _setInitTxResponse(transaction);
-                  }
-                },
-                child: const Text('Init Transaction'),
-              ),
-
-              TextFormField(
-                decoration: InputDecoration(hintText: initTxResponse),
-                enabled: false,
-                maxLines: 10,
-                // The validator receives the text that the user has entered.
-              ),
-              // Add TextFormFields and ElevatedButton here.
-            ],
+                      String transaction = await _initTransaction(
+                        walletConfig,
+                        widget.password,
+                        int.parse(amount),
+                        address,
+                        minimumConfirmations,
+                      );
+                      _setInitTxResponse(transaction);
+                    }
+                  },
+                  child: const Text('Create Transaction'),
+                ),
+                const SizedBox(height: 24),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        hintText: initTxResponse.isEmpty
+                            ? 'Transaction result will appear here'
+                            : initTxResponse,
+                        border: const OutlineInputBorder(),
+                      ),
+                      enabled: false,
+                      maxLines: null,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ));
   }
