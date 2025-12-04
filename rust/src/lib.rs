@@ -1071,6 +1071,8 @@ mod tests {
             let fake_tx_id = "550e8400-e29b-41d4-a716-446655440000"; // Valid UUID format.
             println!("\nAttempting to cancel transaction: {}", fake_tx_id);
 
+            let start = std::time::Instant::now();
+
             let tx_id_ptr = str_to_cchar(fake_tx_id);
             let cancel_ptr = rust_tx_cancel(
                 str_to_cchar(wallet_data),
@@ -1078,7 +1080,16 @@ mod tests {
             );
             let cancel_result = CStr::from_ptr(cancel_ptr).to_str().unwrap();
 
+            let elapsed = start.elapsed();
+
             println!("Cancel result: {}", cancel_result);
+            println!("Operation took: {:?}", elapsed);
+
+            // Verify the operation completed within timeout.
+            assert!(
+                elapsed.as_secs() < 15,
+                "Operation should complete within 15 seconds (timeout is 10s + 5s buffer)"
+            );
 
             // Verify the result.
             // Since the transaction doesn't exist, we expect an error.

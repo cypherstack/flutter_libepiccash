@@ -19,7 +19,8 @@ use epic_wallet_libwallet::NodeClient;
 use epic_keychain::Keychain;
 use epic_wallet_impls::DefaultWalletImpl;
 use std::cmp::Ordering;
-
+use std::thread;
+use std::time::Duration;
 /// Wallet type.
 pub type Wallet = Arc<
     Mutex<
@@ -184,14 +185,30 @@ pub fn tx_create(
 
 /// Cancel a transaction by ID.
 pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id: Uuid) -> Result<String, Error> {
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
-    match  api.cancel_tx(keychain_mask.as_ref(), None, Some(tx_slate_id)) {
-        Ok(_) => {
-            Ok("cancelled".to_owned())
-        },Err(e) => {
-            return Err(e);
-        }
+    use std::sync::mpsc;
+
+    let (tx, rx) = mpsc::channel();
+    let wallet_clone = wallet.clone();
+    let keychain_mask_clone = keychain_mask.clone();
+
+    // Spawn the cancel operation in a separate thread.
+    thread::spawn(move || {
+        let is_stopped = Arc::new(AtomicBool::new(false));
+        let api = Owner::new(wallet_clone, None, is_stopped.clone());
+
+        let result = match api.cancel_tx(keychain_mask_clone.as_ref(), None, Some(tx_slate_id)) {
+            Ok(_) => Ok("cancelled".to_owned()),
+            Err(e) => Err(e)
+        };
+
+        // Send result back through channel (ignore if receiver dropped).
+        let _ = tx.send(result);
+    });
+
+    // Wait for result with timeout.
+    match rx.recv_timeout(Duration::from_secs(10)) {
+        Ok(result) => result,
+        Err(_) => Err(Error::GenericError("Operation timed out after 10 seconds".to_string()))
     }
 }
 
