@@ -22,7 +22,7 @@ analyzer:
 linter:
   rules:
     prefer_relative_imports: true
-    avoid_relative_lib_imports: true
+    avoid_relative_lib_imports: false
     no_leading_underscores_for_local_identifiers: false
     no_leading_underscores_for_library_prefixes: false
     avoid_print: true
