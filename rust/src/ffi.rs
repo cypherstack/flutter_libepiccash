@@ -876,12 +876,35 @@ pub fn get_wallet_address(
     index: u32,
     epicbox_config: &str,
 ) -> String {
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
 
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
-    let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
-    format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain.as_deref().unwrap_or(""))
+    let (tx, rx) = mpsc::channel();
+    let wallet_clone = wallet.clone();
+    let keychain_mask_clone = keychain_mask.clone();
+    let epicbox_domain = epicbox_conf.epicbox_domain.clone();
+
+    // Spawn the get address operation in a separate thread.
+    thread::spawn(move || {
+        let is_stopped = Arc::new(AtomicBool::new(false));
+        let api = Owner::new(wallet_clone, None, is_stopped.clone());
+
+        let result = match api.get_public_address(keychain_mask_clone.as_ref(), index) {
+            Ok(address) => format!("{}@{}", address.public_key, epicbox_domain.as_deref().unwrap_or("")),
+            Err(e) => format!("Error: {}", e)
+        };
+
+        // Send result back through channel (ignore if receiver dropped).
+        let _ = tx.send(result);
+    });
+
+    // Wait for result with timeout.
+    match rx.recv_timeout(Duration::from_secs(5)) {
+        Ok(result) => result,
+        Err(_) => "Error: Operation timed out after 5 seconds".to_string()
+    }
 }
 
 /// Validate an address via FFI.

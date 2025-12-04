@@ -99,23 +99,36 @@ pub fn txs_get(
     keychain_mask: Option<SecretKey>,
     refresh_from_node: bool,
 ) -> Result<String, Error> {
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
-    let res = match api.retrieve_txs(
-        keychain_mask.as_ref(),
-        refresh_from_node,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ) {
-        Ok(result) => result,
-        Err(e) => return Err(e),
-    };
+    use std::sync::mpsc;
 
-    let result = res.txs;
-    Ok(serde_json::to_string(&result).unwrap())
+    let (tx, rx) = mpsc::channel();
+    let wallet_clone = wallet.clone();
+    let keychain_mask_clone = keychain_mask.clone();
+
+    // Spawn the retrieve operation in a separate thread.
+    thread::spawn(move || {
+        let is_stopped = Arc::new(AtomicBool::new(false));
+        let api = Owner::new(wallet_clone, None, is_stopped.clone());
+
+        let result = api.retrieve_txs(
+            keychain_mask_clone.as_ref(),
+            refresh_from_node,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ).map(|res| serde_json::to_string(&res.txs).unwrap());
+
+        // Send result back through channel (ignore if receiver dropped).
+        let _ = tx.send(result);
+    });
+
+    // Wait for result with timeout.
+    match rx.recv_timeout(Duration::from_secs(30)) {
+        Ok(result) => result,
+        Err(_) => Err(Error::GenericError("Operation timed out after 30 seconds".to_string()))
+    }
 }
 
 /// Initialize a transaction as sender.
@@ -129,57 +142,76 @@ pub fn tx_create(
     address: &str,
     note: &str,
 ) -> Result<String, Error> {
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    let owner_api = Owner::new(wallet.clone(), None, is_stopped.clone());
-    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
+    use std::sync::mpsc;
 
-    owner_api.set_epicbox_config(Some(epicbox_conf));
-    let init_send_args = InitTxSendArgs {
-        method: "epicbox".to_string(),
-        dest: address.to_string(),
-        finalize: false,
-        post_tx: false,
-        fluff: false
-    };
+    let (tx, rx) = mpsc::channel();
+    let wallet_clone = wallet.clone();
+    let keychain_mask_clone = keychain_mask.clone();
+    let epicbox_config = epicbox_config.to_string();
+    let address = address.to_string();
+    let note = note.to_string();
 
-    let args = InitTxArgs {
-        src_acct_name: Some("default".to_string()),
-        amount,
-        minimum_confirmations,
-        max_outputs: 500,
-        num_change_outputs: 1,
-        selection_strategy_is_use_all,
-        send_args: Some(init_send_args),
-        message: Some(note.to_string()),
-        ..Default::default()
-    };
+    // Spawn the create operation in a separate thread.
+    thread::spawn(move || {
+        let is_stopped = Arc::new(AtomicBool::new(false));
+        let owner_api = Owner::new(wallet_clone, None, is_stopped.clone());
+        let epicbox_conf = serde_json::from_str::<EpicboxConfig>(&epicbox_config).unwrap();
 
-    match owner_api.init_send_tx(keychain_mask.as_ref(), args, is_stopped.clone()) {
-        Ok(slate)=> {
-            debug!("SLATE SEND RESPONSE IS  {:?}", slate);
-            // Get transaction for the slate, we will use type to determing if we should finalize or receive tx.
-            let txs_result = match owner_api.retrieve_txs(
-                keychain_mask.as_ref(),
-                false,
-                None,
-                Some(slate.id),
-                None,
-                None,
-                None,
-            ) {
-                Ok(txs_result) => txs_result,
-                Err(e) => return Err(e),
-            };
-            let final_result = (
-                serde_json::to_string(&txs_result.txs).unwrap(),
-                serde_json::to_string(&slate).unwrap()
-            );
-            let str_result = serde_json::to_string(&final_result).unwrap();
-            Ok(str_result)
-        },
-        Err(e)=> {
-            return Err(e);
-        }
+        owner_api.set_epicbox_config(Some(epicbox_conf));
+        let init_send_args = InitTxSendArgs {
+            method: "epicbox".to_string(),
+            dest: address.to_string(),
+            finalize: false,
+            post_tx: false,
+            fluff: false
+        };
+
+        let args = InitTxArgs {
+            src_acct_name: Some("default".to_string()),
+            amount,
+            minimum_confirmations,
+            max_outputs: 500,
+            num_change_outputs: 1,
+            selection_strategy_is_use_all,
+            send_args: Some(init_send_args),
+            message: Some(note.to_string()),
+            ..Default::default()
+        };
+
+        let result = match owner_api.init_send_tx(keychain_mask_clone.as_ref(), args, is_stopped.clone()) {
+            Ok(slate)=> {
+                debug!("SLATE SEND RESPONSE IS  {:?}", slate);
+                // Get transaction for the slate, we will use type to determing if we should finalize or receive tx.
+                match owner_api.retrieve_txs(
+                    keychain_mask_clone.as_ref(),
+                    false,
+                    None,
+                    Some(slate.id),
+                    None,
+                    None,
+                    None,
+                ) {
+                    Ok(txs_result) => {
+                        let final_result = (
+                            serde_json::to_string(&txs_result.txs).unwrap(),
+                            serde_json::to_string(&slate).unwrap()
+                        );
+                        Ok(serde_json::to_string(&final_result).unwrap())
+                    },
+                    Err(e) => Err(e),
+                }
+            },
+            Err(e)=> Err(e),
+        };
+
+        // Send result back through channel (ignore if receiver dropped).
+        let _ = tx.send(result);
+    });
+
+    // Wait for result with timeout.
+    match rx.recv_timeout(Duration::from_secs(30)) {
+        Ok(result) => result,
+        Err(_) => Err(Error::GenericError("Operation timed out after 30 seconds".to_string()))
     }
 }
 
@@ -214,11 +246,29 @@ pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id:
 
 /// Get a transaction by slate ID.
 pub fn tx_get(wallet: &Wallet, refresh_from_node: bool, tx_slate_id: &str) -> Result<String, Error> {
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
+    use std::sync::mpsc;
+
     let uuid = Uuid::parse_str(tx_slate_id).map_err(|e| Error::GenericError(e.to_string()))?;
-    let res = api.retrieve_txs(None, refresh_from_node, None, Some(uuid), None, None, None)?;
-    Ok(serde_json::to_string(&res.txs).unwrap())
+    let (tx, rx) = mpsc::channel();
+    let wallet_clone = wallet.clone();
+
+    // Spawn the get operation in a separate thread.
+    thread::spawn(move || {
+        let is_stopped = Arc::new(AtomicBool::new(false));
+        let api = Owner::new(wallet_clone, None, is_stopped.clone());
+
+        let result = api.retrieve_txs(None, refresh_from_node, None, Some(uuid), None, None, None)
+            .map(|res| serde_json::to_string(&res.txs).unwrap());
+
+        // Send result back through channel (ignore if receiver dropped).
+        let _ = tx.send(result);
+    });
+
+    // Wait for result with timeout.
+    match rx.recv_timeout(Duration::from_secs(10)) {
+        Ok(result) => result,
+        Err(_) => Err(Error::GenericError("Operation timed out after 10 seconds".to_string()))
+    }
 }
 
 /// Convert decimal to nano.
@@ -340,32 +390,41 @@ pub fn validate_address(str_address: &str) -> bool {
 
 /// Delete a wallet.
 pub fn delete_wallet(config: Config) -> Result<String, Error> {
-    let mut result = String::from("");
+    use std::sync::mpsc;
+
     // get wallet object in order to use class methods
     let wallet = match get_wallet(&config) {
-        Ok(wllet) => {
-            wllet
-        }
-        Err(e) => {
-            return  Err(e);
-        }
+        Ok(wllet) => wllet,
+        Err(e) => return Err(e),
     };
+
     //First close the wallet
     if let Ok(_) = close_wallet(&wallet) {
-        let is_stopped = Arc::new(AtomicBool::new(false));
-        let api = Owner::new(wallet.clone(), None, is_stopped.clone());
-        match api.delete_wallet(None) {
-            Ok(_) => {
-                result.push_str("deleted");
-            }
-            Err(err) => {
-                return  Err(err);
-            }
-        };
+        let (tx, rx) = mpsc::channel();
+        let wallet_clone = wallet.clone();
+
+        // Spawn the delete operation in a separate thread.
+        thread::spawn(move || {
+            let is_stopped = Arc::new(AtomicBool::new(false));
+            let api = Owner::new(wallet_clone, None, is_stopped.clone());
+
+            let result = match api.delete_wallet(None) {
+                Ok(_) => Ok("deleted".to_string()),
+                Err(err) => Err(err),
+            };
+
+            // Send result back through channel (ignore if receiver dropped).
+            let _ = tx.send(result);
+        });
+
+        // Wait for result with timeout.
+        match rx.recv_timeout(Duration::from_secs(10)) {
+            Ok(result) => result,
+            Err(_) => Err(Error::GenericError("Operation timed out after 10 seconds".to_string()))
+        }
     } else {
-        return Err(Error::GenericError("Error closing wallet".to_string()));
+        Err(Error::GenericError("Error closing wallet".to_string()))
     }
-    Ok(result)
 }
 
 /// Send a transaction via HTTP.
@@ -378,55 +437,74 @@ pub fn tx_send_http(
     amount: u64,
     address: &str,
 ) -> Result<String, Error>{
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
-    let init_send_args = InitTxSendArgs {
-        method: "http".to_string(),
-        dest: address.to_string(),
-        finalize: true,
-        post_tx: true,
-        fluff: true
-    };
+    use std::sync::mpsc;
 
-    let args = InitTxArgs {
-        src_acct_name: Some("default".to_string()),
-        amount,
-        minimum_confirmations,
-        max_outputs: 500,
-        num_change_outputs: 1,
-        selection_strategy_is_use_all,
-        message: Some(message.to_string()),
-        send_args: Some(init_send_args),
-        ..Default::default()
-    };
+    let (tx, rx) = mpsc::channel();
+    let wallet_clone = wallet.clone();
+    let keychain_mask_clone = keychain_mask.clone();
+    let message = message.to_string();
+    let address = address.to_string();
 
-    match api.init_send_tx(keychain_mask.as_ref(), args, is_stopped.clone()) {
-        Ok(slate) => {
-            println!("{}", "CREATE_TX_SUCCESS");
-            //Get transaction for slate, for UI display
-            let txs_result = match api.retrieve_txs(
-                keychain_mask.as_ref(),
-                false,
-                None,
-                Some(slate.id),
-                None,
-                None,
-                None,
-            ) {
-                Ok(txs_result) => txs_result,
-                Err(e) => return Err(e),
-            };
+    // Spawn the send operation in a separate thread.
+    thread::spawn(move || {
+        let is_stopped = Arc::new(AtomicBool::new(false));
+        let api = Owner::new(wallet_clone, None, is_stopped.clone());
+        let init_send_args = InitTxSendArgs {
+            method: "http".to_string(),
+            dest: address.to_string(),
+            finalize: true,
+            post_tx: true,
+            fluff: true
+        };
 
-            let tx_data = (
-                serde_json::to_string(&txs_result.txs).unwrap(),
-                serde_json::to_string(&slate).unwrap()
-            );
-            let str_tx_data = serde_json::to_string(&tx_data).unwrap();
-            Ok(str_tx_data)
-        } Err(err) => {
-            println!("CREATE_TX_ERROR_IN_HTTP_SEND {}", err.to_string());
-            return  Err(err);
-        }
+        let args = InitTxArgs {
+            src_acct_name: Some("default".to_string()),
+            amount,
+            minimum_confirmations,
+            max_outputs: 500,
+            num_change_outputs: 1,
+            selection_strategy_is_use_all,
+            message: Some(message.to_string()),
+            send_args: Some(init_send_args),
+            ..Default::default()
+        };
+
+        let result = match api.init_send_tx(keychain_mask_clone.as_ref(), args, is_stopped.clone()) {
+            Ok(slate) => {
+                println!("{}", "CREATE_TX_SUCCESS");
+                //Get transaction for slate, for UI display
+                match api.retrieve_txs(
+                    keychain_mask_clone.as_ref(),
+                    false,
+                    None,
+                    Some(slate.id),
+                    None,
+                    None,
+                    None,
+                ) {
+                    Ok(txs_result) => {
+                        let tx_data = (
+                            serde_json::to_string(&txs_result.txs).unwrap(),
+                            serde_json::to_string(&slate).unwrap()
+                        );
+                        Ok(serde_json::to_string(&tx_data).unwrap())
+                    },
+                    Err(e) => Err(e),
+                }
+            } Err(err) => {
+                println!("CREATE_TX_ERROR_IN_HTTP_SEND {}", err.to_string());
+                Err(err)
+            }
+        };
+
+        // Send result back through channel (ignore if receiver dropped).
+        let _ = tx.send(result);
+    });
+
+    // Wait for result with timeout.
+    match rx.recv_timeout(Duration::from_secs(60)) {
+        Ok(result) => result,
+        Err(_) => Err(Error::GenericError("Operation timed out after 60 seconds".to_string()))
     }
 }
 
@@ -527,27 +605,46 @@ pub fn get_wallet_info(
     refresh_from_node: bool,
     min_confirmations: u64
 ) -> Result<WalletInfoFormatted, Error> {
-    println!(">> get_wallet_info called with refresh_from_node={refresh_from_node}, min_confirmations={min_confirmations}");
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
+    use std::sync::mpsc;
 
-    match api.retrieve_summary_info(keychain_mask.as_ref(), refresh_from_node, min_confirmations) {
-        Ok((_, wallet_summary)) => {
-            println!(">> raw wallet_summary: {wallet_summary:?}");
-            Ok(WalletInfoFormatted {
-                last_confirmed_height: wallet_summary.last_confirmed_height,
-                minimum_confirmations: wallet_summary.minimum_confirmations,
-                total: nano_to_deci(wallet_summary.total),
-                amount_awaiting_finalization: nano_to_deci(wallet_summary.amount_awaiting_finalization),
-                amount_awaiting_confirmation: nano_to_deci(wallet_summary.amount_awaiting_confirmation),
-                amount_immature: nano_to_deci(wallet_summary.amount_immature),
-                amount_currently_spendable: nano_to_deci(wallet_summary.amount_currently_spendable),
-                amount_locked: nano_to_deci(wallet_summary.amount_locked)
-            })
-        }, Err(e) => {
-            println!(">> get_wallet_info error: {e}");
-            Err(e)
-        }
+    println!(">> get_wallet_info called with refresh_from_node={refresh_from_node}, min_confirmations={min_confirmations}");
+
+    let (tx, rx) = mpsc::channel();
+    let wallet_clone = wallet.clone();
+    let keychain_mask_clone = keychain_mask.clone();
+
+    // Spawn the retrieve operation in a separate thread.
+    thread::spawn(move || {
+        let is_stopped = Arc::new(AtomicBool::new(false));
+        let api = Owner::new(wallet_clone, None, is_stopped.clone());
+
+        let result = match api.retrieve_summary_info(keychain_mask_clone.as_ref(), refresh_from_node, min_confirmations) {
+            Ok((_, wallet_summary)) => {
+                println!(">> raw wallet_summary: {wallet_summary:?}");
+                Ok(WalletInfoFormatted {
+                    last_confirmed_height: wallet_summary.last_confirmed_height,
+                    minimum_confirmations: wallet_summary.minimum_confirmations,
+                    total: nano_to_deci(wallet_summary.total),
+                    amount_awaiting_finalization: nano_to_deci(wallet_summary.amount_awaiting_finalization),
+                    amount_awaiting_confirmation: nano_to_deci(wallet_summary.amount_awaiting_confirmation),
+                    amount_immature: nano_to_deci(wallet_summary.amount_immature),
+                    amount_currently_spendable: nano_to_deci(wallet_summary.amount_currently_spendable),
+                    amount_locked: nano_to_deci(wallet_summary.amount_locked)
+                })
+            }, Err(e) => {
+                println!(">> get_wallet_info error: {e}");
+                Err(e)
+            }
+        };
+
+        // Send result back through channel (ignore if receiver dropped).
+        let _ = tx.send(result);
+    });
+
+    // Wait for result with timeout.
+    match rx.recv_timeout(Duration::from_secs(30)) {
+        Ok(result) => result,
+        Err(_) => Err(Error::GenericError("Operation timed out after 30 seconds".to_string()))
     }
 }
 
