@@ -110,9 +110,20 @@ class _WalletInfoViewState extends State<WalletInfoView> {
     });
 
     try {
-      final result = await scanOutPuts(_walletConfig!, 0, 100);
+      final walletResult = openWallet(_walletConfig!, widget.password);
+      if (walletResult.contains('Error')) {
+        setState(() {
+          _resultMessage = 'Error opening wallet: $walletResult';
+        });
+        return;
+      }
+
+      // Scan outputs returns the last scanned block height as a string.
+      final String resultStr = await scanOutPuts(walletResult, 0, 100);
+      final int lastScannedBlock = int.parse(resultStr);
       setState(() {
-        _resultMessage = "Scan Outputs Result: $result";
+        _resultMessage = "Scanned up to block height: $lastScannedBlock\n"
+            "(This is the last block height scanned, not the count of outputs found)";
       });
     } catch (e) {
       setState(() {
