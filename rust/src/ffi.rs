@@ -42,6 +42,59 @@ use crate::init_logger;
 use ffi_helpers::task::TaskHandle;
 use serde_json::json as serde_json_json;
 
+/// Wrapper struct for wallet data to ensure consistent serialization.
+/// This replaces the tuple `(i64, Option<SecretKey>)` which can have
+/// inconsistent JSON serialization behavior across epic versions.
+/// SecretKey is serialized as a hex string to avoid version-specific serialization issues.
+#[derive(serde::Serialize, serde::Deserialize)]
+struct WalletData {
+    wallet_ptr: i64,
+    #[serde(
+        serialize_with = "serialize_secret_key",
+        deserialize_with = "deserialize_secret_key"
+    )]
+    keychain_mask: Option<SecretKey>,
+}
+
+fn serialize_secret_key<S>(
+    key: &Option<SecretKey>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    use epic_util::secp::constants::SECRET_KEY_SIZE;
+    match key {
+        Some(k) => {
+            let bytes = &k.0[..SECRET_KEY_SIZE];
+            let hex_string = hex::encode(bytes);
+            serializer.serialize_some(&hex_string)
+        }
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_secret_key<'de, D>(
+    deserializer: D,
+) -> Result<Option<SecretKey>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    use serde::de::Error;
+    use epic_util::secp::Secp256k1;
+
+    let opt: Option<String> = Option::deserialize(deserializer)?;
+    match opt {
+        Some(hex_string) => {
+            let bytes = hex::decode(&hex_string).map_err(D::Error::custom)?;
+            let secp = Secp256k1::new();
+            SecretKey::from_slice(&secp, &bytes).map_err(D::Error::custom).map(Some)
+        }
+        None => Ok(None),
+    }
+}
+
 fn is_error_str(s: &str) -> bool {
     s.starts_with("Error ") || s.to_uppercase().contains("ERROR")
 }
@@ -352,8 +405,12 @@ fn _open_wallet(
             let wlt = res.0;
             let sek_key = res.1;
             let wallet_int = Box::into_raw(Box::new(wlt)) as i64;
-            let wallet_data = (wallet_int, sek_key);
+            let wallet_data = WalletData {
+                wallet_ptr: wallet_int,
+                keychain_mask: sek_key,
+            };
             let wallet_ptr = serde_json::to_string(&wallet_data).unwrap();
+            println!("DEBUG: Serialized wallet data: {}", wallet_ptr);
             result.push_str(&wallet_ptr);
         }
         Err(err) => {
@@ -386,9 +443,9 @@ pub unsafe extern "C"  fn rust_wallet_balances(
     };
 
     let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
+    let deserialized_wallet_data: WalletData = serde_json::from_str(wallet_data).unwrap();
+    let wlt = deserialized_wallet_data.wallet_ptr;
+    let sek_key = deserialized_wallet_data.keychain_mask;
 
     ensure_wallet!(wlt, wallet);
 
@@ -532,9 +589,9 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
     let number_of_blocks: u64 = c_number_of_blocks.to_str().unwrap().to_string().parse().unwrap();
 
     let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
+    let deserialized_wallet_data: WalletData = serde_json::from_str(wallet_data).unwrap();
+    let wlt = deserialized_wallet_data.wallet_ptr;
+    let sek_key = deserialized_wallet_data.keychain_mask;
 
     ensure_wallet!(wlt, wallet);
 
@@ -616,7 +673,7 @@ pub unsafe extern "C" fn rust_create_tx(
     let key_index: u32 = CStr::from_ptr(secret_key_index).to_str().unwrap().parse().unwrap();
     let epicbox_config = CStr::from_ptr(epicbox_config).to_str().unwrap();
 
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
+    let deserialized_wallet_data: WalletData = serde_json::from_str(wallet_data).unwrap();
 
     let listen = Listener {
         wallet_ptr_str: wallet_data.to_string(),
@@ -627,8 +684,8 @@ pub unsafe extern "C" fn rust_create_tx(
     listener_cancel(handle);
     debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
 
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
+    let wlt = deserialized_wallet_data.wallet_ptr;
+    let sek_key = deserialized_wallet_data.keychain_mask;
 
     ensure_wallet!(wlt, wallet);
 
@@ -714,9 +771,9 @@ pub unsafe extern "C" fn rust_txs_get(
     };
 
     let wallet_data = c_wallet.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
+    let deserialized_wallet_data: WalletData = serde_json::from_str(wallet_data).unwrap();
+    let wlt = deserialized_wallet_data.wallet_ptr;
+    let sek_key = deserialized_wallet_data.keychain_mask;
 
     ensure_wallet!(wlt, wallet);
 
@@ -776,9 +833,9 @@ pub unsafe extern "C" fn rust_tx_cancel(
     let uuid = Uuid::parse_str(tx_id).map_err(|e| EpicWalletControllerError::GenericError(e.to_string())).unwrap();
 
     let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
+    let deserialized_wallet_data: WalletData = serde_json::from_str(wallet_data).unwrap();
+    let wlt = deserialized_wallet_data.wallet_ptr;
+    let sek_key = deserialized_wallet_data.keychain_mask;
 
     ensure_wallet!(wlt, wallet);
 
@@ -933,9 +990,9 @@ pub unsafe extern "C" fn rust_tx_send_http(
     let str_address = c_address.to_str().unwrap();
 
     let wallet_data = c_wallet.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
+    let deserialized_wallet_data: WalletData = serde_json::from_str(wallet_data).unwrap();
+    let wlt = deserialized_wallet_data.wallet_ptr;
+    let sek_key = deserialized_wallet_data.keychain_mask;
     ensure_wallet!(wlt, wallet);
 
     let result = match _tx_send_http(
@@ -1010,9 +1067,9 @@ pub unsafe extern "C" fn rust_get_wallet_address(
     let index: u32 = index.to_str().unwrap().to_string().parse().unwrap();
 
     let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
+    let deserialized_wallet_data: WalletData = serde_json::from_str(wallet_data).unwrap();
+    let wlt = deserialized_wallet_data.wallet_ptr;
+    let sek_key = deserialized_wallet_data.keychain_mask;
 
     ensure_wallet!(wlt, wallet);
     let result = match _get_wallet_address(
@@ -1098,9 +1155,9 @@ pub unsafe extern "C" fn rust_get_tx_fees(
     let amount: u64 = amount.to_str().unwrap().to_string().parse().unwrap();
 
     let wallet_data = wallet_ptr.to_str().unwrap();
-    let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let wlt = tuple_wallet_data.0;
-    let sek_key = tuple_wallet_data.1;
+    let deserialized_wallet_data: WalletData = serde_json::from_str(wallet_data).unwrap();
+    let wlt = deserialized_wallet_data.wallet_ptr;
+    let sek_key = deserialized_wallet_data.keychain_mask;
 
     ensure_wallet!(wlt, wallet);
 

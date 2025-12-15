@@ -400,7 +400,7 @@ abstract class LibEpiccash {
 
         _checkForError(result);
 
-        return result;
+        return epic_errors.unwrapOkData(result);
       } catch (e) {
         throw ("Error getting address info : ${e.toString()}");
       }

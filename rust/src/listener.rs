@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use anyhow::anyhow;
 use ffi_helpers::{export_task, Task};
 use ffi_helpers::task::CancellationToken;
 use epic_util::Mutex;
@@ -7,6 +8,7 @@ use epic_wallet_config::{EpicboxConfig, TorConfig};
 use epic_wallet_impls::EpicboxListenChannel;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc as StdArc;
+use serde::Deserialize;
 
 use crate::wallet::Wallet;
 
@@ -26,10 +28,7 @@ impl Task for Listener {
         let mut spins = 0;
 
         let wallet_data_str = &self.wallet_ptr_str;
-        // let wallet_data = wallet_ptr.to_str().unwrap();
-        let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data_str).unwrap();
-        let wlt = tuple_wallet_data.0;
-        let sek_key = tuple_wallet_data.1;
+        let (wlt, sek_key) = parse_wallet_data(wallet_data_str)?;
 
         // let wallet_data = &self.wallet_data;
         // let wlt = wallet_data.clone().0;
@@ -66,4 +65,44 @@ export_task! {
     cancelled: listener_cancelled;
     handle_destroy: listener_handle_destroy;
     result_destroy: listener_result_destroy;
+}
+
+#[derive(Deserialize)]
+struct WalletData {
+    wallet_ptr: i64,
+    #[serde(deserialize_with = "deserialize_secret_key")]
+    keychain_mask: Option<SecretKey>,
+}
+
+fn deserialize_secret_key<'de, D>(
+    deserializer: D,
+) -> Result<Option<SecretKey>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt = Option::<String>::deserialize(deserializer)?;
+    match opt {
+        Some(hex_str) => {
+            let bytes = hex::decode(hex_str).map_err(serde::de::Error::custom)?;
+            let secp = epic_util::secp::Secp256k1::new();
+            SecretKey::from_slice(&secp, bytes.as_slice())
+                .map(Some)
+                .map_err(serde::de::Error::custom)
+        }
+        None => Ok(None),
+    }
+}
+
+fn parse_wallet_data(wallet_data_str: &str) -> Result<(i64, Option<SecretKey>), anyhow::Error> {
+    serde_json::from_str::<WalletData>(wallet_data_str)
+        .map(|d| (d.wallet_ptr, d.keychain_mask))
+        .or_else(|map_err| {
+            serde_json::from_str::<(i64, Option<SecretKey>)>(wallet_data_str)
+                .map(|t| (t.0, t.1))
+                .map_err(|tuple_err| {
+                    anyhow!(
+                        "Failed to parse wallet data (map err: {map_err}; tuple err: {tuple_err})"
+                    )
+                })
+        })
 }

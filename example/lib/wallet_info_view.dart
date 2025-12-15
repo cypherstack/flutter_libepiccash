@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_libepiccash/epic_cash.dart';
@@ -60,9 +62,19 @@ class _WalletInfoViewState extends State<WalletInfoView> {
         return;
       }
 
+      // Unwrap the JSON envelope.
+      final envelope = jsonDecode(walletResult);
+      if (envelope['ok'] != true) {
+        setState(() {
+          _resultMessage = 'Error opening wallet: ${envelope['error'] ?? 'Unknown error'}';
+        });
+        return;
+      }
+      final walletData = envelope['data'];
+
       final epicboxConfig =
           await EpicboxConfig.getDefaultConfig(widget.walletName);
-      final address = getAddressInfo(walletResult, 0, epicboxConfig);
+      final address = getAddressInfo(walletData, 0, epicboxConfig);
       setState(() {
         _resultMessage = "Address Info: $address";
       });
@@ -271,9 +283,16 @@ class _WalletInfoViewState extends State<WalletInfoView> {
         return 'Error opening wallet: $walletResult';
       }
 
+      // Unwrap the JSON envelope.
+      final envelope = jsonDecode(walletResult);
+      if (envelope['ok'] != true) {
+        return 'Error opening wallet: ${envelope['error'] ?? 'Unknown error'}';
+      }
+      final walletData = envelope['data'];
+
       final epicboxConfig =
           await EpicboxConfig.getDefaultConfig(widget.walletName);
-      final address = getAddressInfo(walletResult, 0, epicboxConfig);
+      final address = getAddressInfo(walletData, 0, epicboxConfig);
       return address;
     } catch (e) {
       return 'Error getting address: $e';
