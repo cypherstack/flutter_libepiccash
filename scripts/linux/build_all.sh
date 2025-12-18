@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# Prevent caching of build artifacts.
+if [ -d "build" ]; then
+    rm -rf build
+fi
+# Prevent caching for example app.
+if [ -f "../../example/build/linux/x64/debug/bundle/lib/libepic_cash_wallet.so" ]; then
+    rm ../../example/build/linux/x64/debug/bundle/lib/libepic_cash_wallet.so
+fi
+# Prevent caching the library for Stack Wallet (if applicable).
+if [ -f "../../../../build/linux/x64/debug/bundle/lib/libepic_cash_wallet.so" ]; then
+    rm ../../../../build/linux/x64/debug/bundle/lib/libepic_cash_wallet.so
+fi
+
 mkdir build
 echo ''$(git log -1 --pretty=format:"%H")' '$(date) >> build/git_commit_version.txt
 VERSIONS_FILE=../../lib/git_versions.dart
