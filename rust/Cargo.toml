@@ -33,13 +33,12 @@ epic_keychain = { git = "https://github.com/EpicCash/epic.git", branch = "master
 epic_util = { git = "https://github.com/EpicCash/epic.git", branch = "master" }
 epic_core = { git = "https://github.com/EpicCash/epic.git", branch = "master" }
 
-# Wallet crates from official v4.0.0 tag
-epic_wallet_api = { git = "https://github.com/EpicCash/epic-wallet", tag = "v4.0.0-beta" }
-epic_wallet_impls = { git = "https://github.com/EpicCash/epic-wallet", tag = "v4.0.0-beta" }
-epic_wallet_libwallet = { git = "https://github.com/EpicCash/epic-wallet", tag = "v4.0.0-beta" }
-epic_wallet_config = { git = "https://github.com/EpicCash/epic-wallet", tag = "v4.0.0-beta" }
-epic_wallet_util = { git = "https://github.com/EpicCash/epic-wallet", tag = "v4.0.0-beta" }
-epic_wallet_controller = { git = "https://github.com/EpicCash/epic-wallet", tag = "v4.0.0-beta" }
+epic_wallet_api = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
+epic_wallet_impls = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
+epic_wallet_libwallet = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
+epic_wallet_config = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
+epic_wallet_util = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
+epic_wallet_controller = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
 
 url = "2.1.0"
 futures = "0.3.15"
@@ -70,14 +69,3 @@ crate-type = ["staticlib", "cdylib"]
 
 [patch.crates-io]
 liblmdb-sys = { git = "https://github.com/i1skn/lmdb-rs" }
-# Force all epic crates to resolve from git v4.0.0-beta.
-epic_api = { git = "https://github.com/EpicCash/epic.git", tag = "v4.0.0-beta" }
-epic_chain = { git = "https://github.com/EpicCash/epic.git", tag = "v4.0.0-beta" }
-epic_config = { git = "https://github.com/EpicCash/epic.git", tag = "v4.0.0-beta" }
-epic_core = { git = "https://github.com/EpicCash/epic.git", tag = "v4.0.0-beta" }
-epic_keychain = { git = "https://github.com/EpicCash/epic.git", tag = "v4.0.0-beta" }
-epic_p2p = { git = "https://github.com/EpicCash/epic.git", tag = "v4.0.0-beta" }
-epic_pool = { git = "https://github.com/EpicCash/epic.git", tag = "v4.0.0-beta" }
-epic_servers = { git = "https://github.com/EpicCash/epic.git", tag = "v4.0.0-beta" }
-epic_store = { git = "https://github.com/EpicCash/epic.git", tag = "v4.0.0-beta" }
-epic_util = { git = "https://github.com/EpicCash/epic.git", tag = "v4.0.0-beta" }
