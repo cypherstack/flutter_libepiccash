@@ -774,10 +774,10 @@ pub fn wallet_scan_outputs(
                 }
             };
 
-
+            // Return the last scanned block height for tracking progress.
             let result = info.height;
-            Ok(serde_json::to_string(&result).unwrap())
-            // Ok(serde_json::to_string(&info).unwrap())
+            let json_result = serde_json::to_string(&result).unwrap();
+            Ok(json_result)
         }, Err(e) => {
             return  Err(e);
         }
