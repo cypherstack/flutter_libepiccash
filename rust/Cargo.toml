@@ -80,3 +80,6 @@ epic_pool = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
 epic_servers = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
 epic_store = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
 epic_util = { git = "https://github.com/EpicCash/epic", tag = "v3.6.0" }
+
+[patch."https://github.com/EpicCash/randomx-rust.git"]
+randomx = { git = "https://github.com/sneurlax/randomx-rust", branch = "fix/macos-v3.6" }

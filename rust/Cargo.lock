@@ -1276,7 +1276,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_api"
 version = "3.6.0"
-source = "git+https://github.com/EpicCash/epic-wallet?tag=v3.6.0#03fc494409742e001d2389f4f80b3389a80d7263"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=fix%2F3.6#9da26758f8ff918e11e52ca84a3784ed64a203a9"
 dependencies = [
  "base64 0.9.3",
  "chrono",
@@ -1300,7 +1300,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_config"
 version = "3.6.0"
-source = "git+https://github.com/EpicCash/epic-wallet?tag=v3.6.0#03fc494409742e001d2389f4f80b3389a80d7263"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=fix%2F3.6#9da26758f8ff918e11e52ca84a3784ed64a203a9"
 dependencies = [
  "dirs 1.0.5",
  "epic_wallet_util",
@@ -1313,7 +1313,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_controller"
 version = "3.6.0"
-source = "git+https://github.com/EpicCash/epic-wallet?tag=v3.6.0#03fc494409742e001d2389f4f80b3389a80d7263"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=fix%2F3.6#9da26758f8ff918e11e52ca84a3784ed64a203a9"
 dependencies = [
  "chrono",
  "easy-jsonrpc-mw",
@@ -1343,7 +1343,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_impls"
 version = "3.6.0"
-source = "git+https://github.com/EpicCash/epic-wallet?tag=v3.6.0#03fc494409742e001d2389f4f80b3389a80d7263"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=fix%2F3.6#9da26758f8ff918e11e52ca84a3784ed64a203a9"
 dependencies = [
  "bitvec",
  "blake2-rfc",
@@ -1386,7 +1386,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_libwallet"
 version = "3.6.0"
-source = "git+https://github.com/EpicCash/epic-wallet?tag=v3.6.0#03fc494409742e001d2389f4f80b3389a80d7263"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=fix%2F3.6#9da26758f8ff918e11e52ca84a3784ed64a203a9"
 dependencies = [
  "aead",
  "blake2-rfc",
@@ -1419,7 +1419,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_util"
 version = "3.6.0"
-source = "git+https://github.com/EpicCash/epic-wallet?tag=v3.6.0#03fc494409742e001d2389f4f80b3389a80d7263"
+source = "git+https://github.com/cypherstack/epic-wallet?branch=fix%2F3.6#9da26758f8ff918e11e52ca84a3784ed64a203a9"
 dependencies = [
  "dirs 1.0.5",
  "epic_api",
@@ -1884,6 +1884,12 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "hex-literal"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e712f64ec3850b98572bffac52e2c6f282b29fe6c5fa6d42334b30be438d95c1"
 
 [[package]]
 name = "hmac"
@@ -2892,6 +2898,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-bigint"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
+dependencies = [
+ "num-integer",
+ "num-traits 0.2.19",
+]
+
+[[package]]
 name = "num-complex"
 version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3753,14 +3769,15 @@ dependencies = [
 [[package]]
 name = "randomx"
 version = "0.1.1"
-source = "git+https://github.com/EpicCash/randomx-rust.git?tag=v0.1.1#2d42b569b11a4c98954702c106c733c7578ed2b9"
+source = "git+https://github.com/sneurlax/randomx-rust?branch=fix%2Fmacos-v3.6#395535a90e6bbd7c644378306d5194b013240740"
 dependencies = [
- "bigint",
  "bindgen",
- "byteorder 0.5.3",
+ "byteorder 1.5.0",
  "cmake",
  "filetime",
+ "hex-literal",
  "libc",
+ "num-bigint 0.4.6",
 ]
 
 [[package]]
@@ -5692,7 +5709,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
