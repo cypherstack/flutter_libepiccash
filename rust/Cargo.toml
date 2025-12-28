@@ -71,4 +71,4 @@ crate-type = ["staticlib", "cdylib"]
 liblmdb-sys = { git = "https://github.com/i1skn/lmdb-rs" }
 
 [patch."https://github.com/EpicCash/randomx-rust.git"]
-randomx = { git = "https://github.com/sneurlax/randomx-rust", branch = "fix/apple-v3.6" }
+randomx = { git = "https://github.com/cypherstack/randomx-rust", branch = "fix/apple-v3.6" }
