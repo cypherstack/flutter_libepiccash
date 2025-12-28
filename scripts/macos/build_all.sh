@@ -31,8 +31,22 @@ cd build/rust
 cp target/epic_cash_wallet.h libepic_cash_wallet.h
 cargo lipo --release --targets aarch64-apple-darwin
 
+# Find and merge librandomx.a with libepic_cash_wallet.a
+RANDOMX_LIB=$(find target/aarch64-apple-darwin/release/build -name "librandomx.a" | head -n 1)
+if [ -f "$RANDOMX_LIB" ]; then
+    echo "Found RandomX library at: $RANDOMX_LIB"
+    # Merge the libraries using libtool
+    libtool -static -o target/aarch64-apple-darwin/release/libepic_cash_wallet_combined.a \
+        target/aarch64-apple-darwin/release/libepic_cash_wallet.a \
+        "$RANDOMX_LIB"
+    MAIN_LIB=target/aarch64-apple-darwin/release/libepic_cash_wallet_combined.a
+else
+    echo "Warning: librandomx.a not found, using libepic_cash_wallet.a only"
+    MAIN_LIB=target/aarch64-apple-darwin/release/libepic_cash_wallet.a
+fi
+
 xcodebuild -create-xcframework \
-  -library target/aarch64-apple-darwin/release/libepic_cash_wallet.a \
+  -library "$MAIN_LIB" \
   -headers libepic_cash_wallet.h \
   -output ../EpicWallet.xcframework
 
