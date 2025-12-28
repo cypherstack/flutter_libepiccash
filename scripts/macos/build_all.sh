@@ -3,15 +3,15 @@ set -e
 
 # Prevent caching of build artifacts.
 if [ -d "build" ]; then
-    rm -rf build
+    rm -rf build/
 fi
 # Prevent caching for example app.
 if [ -d "../../example/macos/Pods" ]; then
-    rm -rf ../../example/macos/Pods
+    rm -rf ../../example/macos/Pods/
 fi
 # Prevent caching the library for Stack Wallet (if applicable).
 if [ -f "../../../../macos/Pods" ]; then
-    rm -rf ../../../../macos/Pods
+    rm -rf ../../../../macos/Pods/
 fi
 
 mkdir build
