@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 set -e
-rm -rf build
+
+# Prevent caching of build artifacts.
+if [ -d "build" ]; then
+    rm -rf build
+fi
+# Prevent caching for example app.
+if [ -d "../../example/ios/Pods" ]; then
+    rm -rf ../../example/ios/Pods
+fi
+# Prevent caching the library for Stack Wallet (if applicable).
+if [ -f "../../../../ios/Pods" ]; then
+    rm -rf ../../../../ios/Pods
+fi
+
 mkdir build
 echo ''$(git log -1 --pretty=format:"%H")' '$(date) >> build/git_commit_version.txt
 VERSIONS_FILE=../../lib/git_versions.dart
