@@ -17,6 +17,7 @@ A new Flutter plugin project.
   s.source_files     = 'Classes/**/*'
   s.vendored_frameworks = 'framework/EpicWallet.xcframework'
   s.dependency 'FlutterMacOS'
+  s.library = 'sqlite3'
 
   s.platform = :osx, '10.15'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=macosx*]' => 'x86_64' }
