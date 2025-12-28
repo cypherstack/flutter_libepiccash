@@ -27,17 +27,16 @@ sed -i '' '/\/\*${OS}_VERSION/c\'$'\n''/\*${OS}_VERSION\*\/ const ${OS}_VERSION 
 cp -r ../../rust build/rust
 cd build/rust
 
-rustup target add aarch64-apple-ios x86_64-apple-ios
+rustup target add aarch64-apple-ios
 
-# building
+# Build for iOS device only.
 cp target/epic_cash_wallet.h libepic_cash_wallet.h
 
 export IPHONEOS_DEPLOYMENT_TARGET=15.0
 export RUSTFLAGS="-C link-arg=-mios-version-min=15.0"
 cargo build --release --target aarch64-apple-ios
-#cargo lipo --release
 
-# Find and merge librandomx.a with libepic_cash_wallet.a
+# Find and merge librandomx.a with libepic_cash_wallet.a.
 RANDOMX_LIB=$(find target/aarch64-apple-ios/release/build -name "librandomx.a" | head -n 1)
 if [ -f "$RANDOMX_LIB" ]; then
     echo "Found RandomX library at: $RANDOMX_LIB"
@@ -51,14 +50,12 @@ else
     MAIN_LIB=target/aarch64-apple-ios/release/libepic_cash_wallet.a
 fi
 
-# moving files to the ios project
+# Move files to iOS project (device-only, no XCFramework needed).
 inc=../../../../ios/include
 libs=../../../../ios/libs
 
 rm -rf ${inc} ${libs}
+mkdir -p ${inc} ${libs}
 
-mkdir ${inc}
-mkdir ${libs}
-
-cp libepic_cash_wallet.h ${inc}
+cp libepic_cash_wallet.h ${inc}/
 cp "$MAIN_LIB" ${libs}/libepic_cash_wallet.a
