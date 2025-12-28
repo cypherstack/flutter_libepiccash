@@ -18,6 +18,7 @@ A new Flutter plugin project.
   s.static_framework = true
   s.vendored_libraries = "**/*.a"
   s.dependency 'Flutter'
+  s.library = 'sqlite3'
   s.platform = :ios, '9.0'
 
   # Flutter.framework does not contain a i386 slice.
