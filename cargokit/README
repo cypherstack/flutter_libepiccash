@@ -1,0 +1,44 @@
+Experimental repository to provide glue for seamlessly integrating cargo build
+with flutter plugins and packages.
+
+See https://matejknopp.com/post/flutter_plugin_in_rust_with_no_prebuilt_binaries/
+for a tutorial on how to use Cargokit.
+
+Example plugin available at https://github.com/irondash/hello_rust_ffi_plugin.
+
+## Local build caching
+Build caching has been added as an optional feature in order to reduce build times as a Quality of Life feature for developers.  Rust build artifacts from the first build are reused on subsequent builds.  Cached builds are invalidated when source code changes, effectively automatically rebuilding as needed.
+
+### Enabling local build caching
+Add to `cargokit_options.yaml` in your project root:
+```yaml
+cache_local_builds: true
+```
+
+### Cache location
+Cached artifacts are stored under `CARGOKIT_TARGET_TEMP_DIR/precompiled/<hash>/<config>/<target>/`:
+
+- **Gradle** (Android): `${project.buildDir}/cargokit/` (e.g., `android/app/build/cargokit/`)
+- **CocoaPods** (iOS/macOS): `$TARGET_TEMP_DIR` (under Xcode DerivedData)
+- **CMake** (Linux/Windows): `${CMAKE_CURRENT_BINARY_DIR}/cargokit_build/`
+
+The cache is cleared when you run:
+- `flutter clean`
+- `gradle clean` (Android)
+- `xcodebuild clean` (iOS/macOS)
+
+## Precompiled binaries
+The [silence-laboratories' precompiled binaries PR](https://github.com/irondash/cargokit/pull/91), adapting work from flutter_rust_bridge, is included in this repository as a non-default option.  To use it, follow these steps:
+
+1. Create local precompiled binaries using command `precompile-local-binaries`
+```sh
+flutter pub run bin/build_tool.dart precompile-local-binaries -v --manifest-dir ../../rust --android-sdk-location=/Users/asdf/Library/Android/sdk --android-ndk-version=28.0.12674087 --android-min-sdk-version=23 --temp-dir tempDir
+```
+
+2. Update `cargokit_options.yaml`
+```yaml
+use_local_precompiled_binaries: true
+use_precompiled_binaries: true
+```
+
+3. Commit and/or publish precompiled binaries for a build-free usage option.
