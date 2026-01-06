@@ -9,9 +9,15 @@ fi
 if [ -d "../../example/macos/Pods" ]; then
     rm -rf ../../example/macos/Pods/
 fi
+if [ -f "../../example/macos/Podfile.lock" ]; then
+    rm -f ../../example/macos/Podfile.lock
+fi
 # Prevent caching the library for Stack Wallet (if applicable).
-if [ -f "../../../../macos/Pods" ]; then
+if [ -d "../../../../macos/Pods" ]; then
     rm -rf ../../../../macos/Pods/
+fi
+if [ -f "../../../../macos/Podfile.lock" ]; then
+    rm -f ../../../../macos/Podfile.lock
 fi
 
 mkdir build
