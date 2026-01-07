@@ -42,6 +42,13 @@ export IPHONEOS_DEPLOYMENT_TARGET=15.0
 export RUSTFLAGS="-C link-arg=-mios-version-min=15.0"
 cargo build --release --target aarch64-apple-ios
 
+# Generate the C header file using cbindgen.
+cbindgen --config cbindgen.toml --crate epic-cash-wallet --output target/epic_cash_wallet.h
+
+# Copy the generated header file.
+cp target/epic_cash_wallet.h libepic_cash_wallet.h
+cp target/epic_cash_wallet.h ../../../../ios/Classes/FlutterLibepiccashPlugin.h
+
 # Find and merge librandomx.a with libepic_cash_wallet.a.
 RANDOMX_LIB=$(find target/aarch64-apple-ios/release/build -name "librandomx.a" | head -n 1)
 if [ -f "$RANDOMX_LIB" ]; then
