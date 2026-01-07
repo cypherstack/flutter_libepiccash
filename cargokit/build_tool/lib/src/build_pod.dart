@@ -52,7 +52,7 @@ class BuildPod {
         .where((element) => element.type == AritifactType.dylib)
         .toList();
 
-    final libName = environment.crateInfo.packageName;
+    final libName = environment.crateInfo.libraryName;
 
     // If there is static lib, use it and link it with pod
     if (staticLibs.isNotEmpty) {

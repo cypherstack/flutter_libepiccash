@@ -20,9 +20,12 @@ class ManifestException {
 }
 
 class CrateInfo {
-  CrateInfo({required this.packageName});
+  CrateInfo({required this.packageName, String? libraryName})
+      : libraryName = libraryName ??
+            packageName.replaceAll('-', '_'); // Rust converts - to _
 
   final String packageName;
+  final String libraryName;
 
   static CrateInfo parseManifest(String manifest, {final String? fileName}) {
     final toml = TomlDocument.parse(manifest);
@@ -34,7 +37,15 @@ class CrateInfo {
     if (name == null) {
       throw ManifestException('Missing package name', fileName: fileName);
     }
-    return CrateInfo(packageName: name);
+
+    // Try to read library name from [lib] section
+    String? libName;
+    final lib = toml.toMap()['lib'];
+    if (lib != null && lib is Map) {
+      libName = lib['name'];
+    }
+
+    return CrateInfo(packageName: name, libraryName: libName);
   }
 
   static CrateInfo load(String manifestDir) {
