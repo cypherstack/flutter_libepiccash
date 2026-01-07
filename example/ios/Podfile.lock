@@ -26,7 +26,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_libepiccash: 804dfb5cdf490294417cd820ed6fdc124ed25308
+  flutter_libepiccash: f7d82f79b102f80b0f361d334fd9fcccee24ed47
   flutter_secure_storage: 2c2ff13db9e0a5647389bff88b0ecac56e3f3418
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
 

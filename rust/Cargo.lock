@@ -3769,7 +3769,7 @@ dependencies = [
 [[package]]
 name = "randomx"
 version = "0.1.1"
-source = "git+https://github.com/sneurlax/randomx-rust?branch=fix%2Fmacos-v3.6#395535a90e6bbd7c644378306d5194b013240740"
+source = "git+https://github.com/cypherstack/randomx-rust?branch=fix%2Fapple-v3.6#38d8381e5c7eb7e0ed0c1e53e2dafd290afb8091"
 dependencies = [
  "bindgen",
  "byteorder 1.5.0",
