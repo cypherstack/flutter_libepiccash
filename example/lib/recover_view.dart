@@ -65,15 +65,9 @@ class _RecoverWalletViewState extends State<RecoverWalletView> {
                 controller: _passwordController,
                 obscureText: true,
                 decoration: const InputDecoration(
-                  hintText: 'Enter new wallet password',
+                  hintText: 'Enter new wallet password (optional)',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a password';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 24.0),
               if (_errorMessage.isNotEmpty)
