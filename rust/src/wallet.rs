@@ -12,7 +12,6 @@ use epic_wallet_libwallet::{address, scan, wallet_lock, AddressType, EpicboxAddr
 use epic_wallet_libwallet::api_impl::owner;
 use uuid::Uuid;
 use crate::config::{create_wallet_config, Config};
-use crate::EpicWalletControllerError;
 use epic_wallet_libwallet::Address;
 use epic_wallet_libwallet::WalletLCProvider;
 use epic_wallet_libwallet::NodeClient;
@@ -133,6 +132,7 @@ pub fn tx_create(
     let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
 
     owner_api.set_epicbox_config(Some(epicbox_conf));
+
     let init_send_args = InitTxSendArgs {
         method: "epicbox".to_string(),
         dest: address.to_string(),
@@ -169,6 +169,7 @@ pub fn tx_create(
                 Ok(txs_result) => txs_result,
                 Err(e) => return Err(e),
             };
+
             let final_result = (
                 serde_json::to_string(&txs_result.txs).unwrap(),
                 serde_json::to_string(&slate).unwrap()
@@ -510,13 +511,11 @@ pub fn get_wallet_info(
     refresh_from_node: bool,
     min_confirmations: u64
 ) -> Result<WalletInfoFormatted, Error> {
-    println!(">> get_wallet_info called with refresh_from_node={refresh_from_node}, min_confirmations={min_confirmations}");
     let is_stopped = Arc::new(AtomicBool::new(false));
     let api = Owner::new(wallet.clone(), None, is_stopped.clone());
 
     match api.retrieve_summary_info(keychain_mask.as_ref(), refresh_from_node, min_confirmations) {
         Ok((_, wallet_summary)) => {
-            println!(">> raw wallet_summary: {wallet_summary:?}");
             Ok(WalletInfoFormatted {
                 last_confirmed_height: wallet_summary.last_confirmed_height,
                 minimum_confirmations: wallet_summary.minimum_confirmations,
@@ -528,7 +527,6 @@ pub fn get_wallet_info(
                 amount_locked: nano_to_deci(wallet_summary.amount_locked)
             })
         }, Err(e) => {
-            println!(">> get_wallet_info error: {e}");
             Err(e)
         }
     }
@@ -730,8 +728,6 @@ pub fn wallet_scan_outputs(
         &None,
     ) {
         Ok(info) => {
-            println!("Info type: {:?}", info);
-
             let parent_key_id = {
                 wallet_lock!(wallet, w);
                 w.parent_key_id().clone()
