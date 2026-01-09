@@ -54,7 +54,7 @@ class _WalletInfoViewState extends State<WalletInfoView> {
   Future<void> _loadWalletConfig() async {
     try {
       final config = await EpicboxConfig.getDefaultConfig(widget.walletName);
-      final epicboxConfig = await EpicboxConfig.getDefaultConfig(widget.walletName);
+      final epicboxConfig = EpicboxConfig.getEpicboxServerConfig();
       final wallet = await LibEpiccash.openWallet(
         config: config,
         password: widget.password,
@@ -638,7 +638,7 @@ class _WalletInfoViewState extends State<WalletInfoView> {
         index: 0,
         epicboxConfig: _epicboxConfig!,
       );
-      return "${address}epicbox.stackwallet.com";
+      return address;
     } catch (e) {
       return 'Error getting address: $e';
     }
