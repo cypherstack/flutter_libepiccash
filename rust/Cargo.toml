@@ -33,12 +33,12 @@ epic_keychain = { git = "https://github.com/EpicCash/epic.git", branch = "master
 epic_util = { git = "https://github.com/EpicCash/epic.git", branch = "master" }
 epic_core = { git = "https://github.com/EpicCash/epic.git", branch = "master" }
 
-epic_wallet_api = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
-epic_wallet_impls = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
-epic_wallet_libwallet = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
-epic_wallet_config = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
-epic_wallet_util = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
-epic_wallet_controller = { git = "https://github.com/cypherstack/epic-wallet", branch = "fix/4.0" }
+epic_wallet_api = { git = "https://github.com/cypherstack/epic-wallet" }
+epic_wallet_impls = { git = "https://github.com/cypherstack/epic-wallet" }
+epic_wallet_libwallet = { git = "https://github.com/cypherstack/epic-wallet" }
+epic_wallet_config = { git = "https://github.com/cypherstack/epic-wallet" }
+epic_wallet_util = { git = "https://github.com/cypherstack/epic-wallet" }
+epic_wallet_controller = { git = "https://github.com/cypherstack/epic-wallet" }
 
 url = "2.1.0"
 futures = "0.3.15"
