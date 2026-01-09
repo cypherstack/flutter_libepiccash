@@ -156,7 +156,7 @@ pub fn tx_create(
     match owner_api.init_send_tx(keychain_mask.as_ref(), args, is_stopped.clone()) {
         Ok(slate)=> {
             debug!("SLATE SEND RESPONSE IS  {:?}", slate);
-            // Get transaction for the slate, we will use type to determing if we should finalize or receive tx.
+            // Get transaction for the slate, we will use type to determine if we should finalize or receive tx.
             let txs_result = match owner_api.retrieve_txs(
                 keychain_mask.as_ref(),
                 false,
