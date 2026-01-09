@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 class EpicboxConfig {
-  /// Returns the default Epicbox configuration as a JSON-encoded string.
+  /// Returns the default wallet configuration as a JSON-encoded string.
   static Future<String> getDefaultConfig(String walletName) async {
     Directory appDocDir = await getApplicationDocumentsDirectory();
     String walletDir = '${appDocDir.path}/flutter_libepiccash/$walletName';
@@ -23,5 +23,18 @@ class EpicboxConfig {
     };
 
     return json.encode(config);
+  }
+
+  /// Returns the epicbox server configuration as a JSON-encoded string.
+  /// This is used for epicbox relay (sending/receiving transactions via epicbox).
+  static String getEpicboxServerConfig() {
+    var epicboxConfig = {
+      "epicbox_domain": "epicbox.stackwallet.com",
+      "epicbox_port": 443,
+      "epicbox_protocol_unsecure": false,
+      "epicbox_address_index": 0,
+    };
+
+    return json.encode(epicboxConfig);
   }
 }

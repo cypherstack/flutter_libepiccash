@@ -16,7 +16,7 @@ failure = "0.1.8"
 failure_derive = "0.1.8"
 prettytable-rs = "0.7"
 log = "0.4"
-uuid = { version = "0.7", features = ["serde", "v4"] }
+uuid = { version = "1", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 serde_derive = "1"
@@ -27,18 +27,18 @@ rand = "0.6"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 rustc-serialize = "0.3.24"
 android_logger = "0.11.0"
-chrono = "0.4.24"
+chrono = "0.4.41"
 
-stack_epic_keychain = "3.6.0"
-stack_epic_util = "3.6.0"
-stack_epic_core = "3.6.0"
+epic_keychain = { git = "https://github.com/EpicCash/epic.git", branch = "master" }
+epic_util = { git = "https://github.com/EpicCash/epic.git", branch = "master" }
+epic_core = { git = "https://github.com/EpicCash/epic.git", branch = "master" }
 
-stack_epic_wallet_api = { path = "epic-wallet/api" }
-stack_epic_wallet_impls = { path = "epic-wallet/impls" }
-stack_epic_wallet_libwallet = { path = "epic-wallet/libwallet" }
-stack_epic_wallet_config = { path = "epic-wallet/config" }
-stack_epic_wallet_util = { path = "epic-wallet/util" }
-stack_epic_wallet_controller = { path = "epic-wallet/controller" }
+epic_wallet_api = { git = "https://github.com/cypherstack/epic-wallet" }
+epic_wallet_impls = { git = "https://github.com/cypherstack/epic-wallet" }
+epic_wallet_libwallet = { git = "https://github.com/cypherstack/epic-wallet" }
+epic_wallet_config = { git = "https://github.com/cypherstack/epic-wallet" }
+epic_wallet_util = { git = "https://github.com/cypherstack/epic-wallet" }
+epic_wallet_controller = { git = "https://github.com/cypherstack/epic-wallet" }
 
 url = "2.1.0"
 futures = "0.3.15"
@@ -70,3 +70,10 @@ crate-type = ["staticlib", "cdylib"]
 [patch.crates-io]
 liblmdb-sys = { git = "https://github.com/i1skn/lmdb-rs" }
 
+[patch."https://github.com/EpicCash/randomx-rust.git"]
+randomx = { git = "https://github.com/cypherstack/randomx-rust", branch = "fix/apple-v4.0" }
+
+[patch."https://github.com/EpicCash/epic.git"]
+epic_core = { git = "https://github.com/cypherstack/epic.git", branch = "fix/randomx-v0.2.0-api" }
+epic_util = { git = "https://github.com/cypherstack/epic.git", branch = "fix/randomx-v0.2.0-api" }
+epic_keychain = { git = "https://github.com/cypherstack/epic.git", branch = "fix/randomx-v0.2.0-api" }
