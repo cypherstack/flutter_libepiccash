@@ -38,8 +38,16 @@ typedef ScanOutPuts = Pointer<Utf8> Function(
 typedef ScanOutPutsFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
-typedef CreateTransaction = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+typedef CreateTransaction = Pointer<Utf8> Function(
+    Pointer<Utf8>, // wallet
+    Pointer<Int8>, // amount
+    Pointer<Utf8>, // to_address
+    Pointer<Int8>, // secret_key_index
+    Pointer<Utf8>, // epicbox_config
+    Pointer<Int8>, // confirmations
+    Pointer<Utf8>, // note
+    Pointer<Int8>, // return_slate_flag
+    );
 typedef CreateTransactionFFI = Pointer<Utf8> Function(
     Pointer<Utf8>,
     Pointer<Int8>,
@@ -47,7 +55,9 @@ typedef CreateTransactionFFI = Pointer<Utf8> Function(
     Pointer<Int8>,
     Pointer<Utf8>,
     Pointer<Int8>,
-    Pointer<Utf8>);
+    Pointer<Utf8>,
+    Pointer<Int8>, // return_slate_flag
+    );
 
 typedef EpicboxListenerStart = Pointer<Void> Function(
     Pointer<Utf8>, Pointer<Utf8>);
@@ -320,8 +330,9 @@ Future<String> createTransaction(
   int secretKey,
   String epicboxConfig,
   int minimumConfirmations,
-  String note,
-) async {
+  String note, {
+  bool returnSlate = false,
+}) async {
   Pointer<Utf8>? ptr;
   final walletPtr = wallet.toNativeUtf8();
   final amountPtr = amount.toString().toNativeUtf8().cast<Int8>();
@@ -331,6 +342,7 @@ Future<String> createTransaction(
   final minConfPtr =
       minimumConfirmations.toString().toNativeUtf8().cast<Int8>();
   final notePtr = note.toNativeUtf8();
+  final returnSlatePtr = (returnSlate ? '1' : '0').toNativeUtf8().cast<Int8>();
 
   try {
     ptr = _createTransaction(
@@ -341,6 +353,7 @@ Future<String> createTransaction(
       epicboxConfigPtr,
       minConfPtr,
       notePtr,
+      returnSlatePtr,
     );
     return ptr.toDartString();
   } catch (_) {
@@ -353,6 +366,7 @@ Future<String> createTransaction(
     malloc.free(epicboxConfigPtr);
     malloc.free(minConfPtr);
     malloc.free(notePtr);
+    malloc.free(returnSlatePtr);
     if (ptr != null) {
       malloc.free(ptr);
     }
@@ -591,6 +605,68 @@ Future<String> txHttpSend(
     malloc.free(messagePtr);
     malloc.free(amountPtr);
     malloc.free(addressPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
+}
+
+// Typedef for tx_receive FFI.
+typedef TxReceive = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef TxReceiveFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+
+final TxReceive _txReceive = epicCashNative
+    .lookup<NativeFunction<TxReceiveFFI>>("rust_tx_receive")
+    .asFunction();
+
+/// Receive a slate (step 2 of 3-part transaction).
+///
+/// The receiver opens an incoming slate, adds its output and partial signature,
+/// then returns the updated slate.
+String txReceive(String wallet, String slateJson) {
+  Pointer<Utf8>? ptr;
+  final walletPtr = wallet.toNativeUtf8();
+  final slateJsonPtr = slateJson.toNativeUtf8();
+
+  try {
+    ptr = _txReceive(walletPtr, slateJsonPtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(slateJsonPtr);
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
+}
+
+// Typedef for tx_finalize FFI.
+typedef TxFinalize = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+typedef TxFinalizeFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
+
+final TxFinalize _txFinalize = epicCashNative
+    .lookup<NativeFunction<TxFinalizeFFI>>("rust_tx_finalize")
+    .asFunction();
+
+/// Finalize a slate (step 3 of 3-part transaction).
+///
+/// The original sender finalizes the transaction with the receiver's response
+/// and broadcasts it to the network.
+String txFinalize(String wallet, String slateJson) {
+  Pointer<Utf8>? ptr;
+  final walletPtr = wallet.toNativeUtf8();
+  final slateJsonPtr = slateJson.toNativeUtf8();
+
+  try {
+    ptr = _txFinalize(walletPtr, slateJsonPtr);
+    return ptr.toDartString();
+  } catch (_) {
+    rethrow;
+  } finally {
+    malloc.free(walletPtr);
+    malloc.free(slateJsonPtr);
     if (ptr != null) {
       malloc.free(ptr);
     }

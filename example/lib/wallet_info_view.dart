@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_libepiccash/lib.dart';
 import 'package:flutter_libepiccash_example/send_transaction_view.dart';
+import 'package:flutter_libepiccash_example/slate_transaction_view.dart';
 import 'package:flutter_libepiccash_example/transaction_view.dart';
 import 'package:flutter_libepiccash_example/wallet_state_manager.dart';
 
@@ -688,9 +689,33 @@ class _WalletInfoViewState extends State<WalletInfoView>
                         await _refreshAll();
                       },
                       icon: const Icon(Icons.send),
-                      label: const Text('Send Transaction'),
+                      label: const Text('Send via Epicbox'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SlateTransactionView(
+                              walletName: widget.walletName,
+                              password: widget.password,
+                              wallet: _wallet!,
+                              epicboxConfig: _epicboxConfig!,
+                            ),
+                          ),
+                        );
+                        // Refresh after slate transactions.
+                        await _refreshAll();
+                      },
+                      icon: const Icon(Icons.description),
+                      label: const Text('Slate Transactions'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
                         foregroundColor: Colors.white,
                       ),
                     ),
