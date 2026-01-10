@@ -57,6 +57,9 @@ typedef EpicboxListenerStartFFI = Pointer<Void> Function(
 typedef EpicboxListenerStop = Pointer<Utf8> Function(Pointer<Void>);
 typedef EpicboxListenerStopFFI = Pointer<Utf8> Function(Pointer<Void>);
 
+typedef EpicboxListenerIsRunning = Pointer<Utf8> Function(Pointer<Void>);
+typedef EpicboxListenerIsRunningFFI = Pointer<Utf8> Function(Pointer<Void>);
+
 typedef GetTransactions = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>);
 typedef GetTransactionsFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Int8>);
@@ -274,6 +277,31 @@ String epicboxListenerStop(Pointer<Void> handler) {
     return ptr.toDartString();
   } catch (_) {
     rethrow;
+  } finally {
+    if (ptr != null) {
+      malloc.free(ptr);
+    }
+  }
+}
+
+final EpicboxListenerIsRunning _epicboxListenerIsRunning = epicCashNative
+    .lookup<NativeFunction<EpicboxListenerIsRunningFFI>>("_listener_is_running")
+    .asFunction();
+
+/// Check if the epicbox listener is still running.
+/// Returns true if the listener is alive, false if it has stopped or handler is null.
+bool epicboxListenerIsRunning(Pointer<Void>? handler) {
+  if (handler == null) {
+    return false;
+  }
+
+  Pointer<Utf8>? ptr;
+
+  try {
+    ptr = _epicboxListenerIsRunning(handler);
+    return ptr.toDartString() == "true";
+  } catch (_) {
+    return false;
   } finally {
     if (ptr != null) {
       malloc.free(ptr);

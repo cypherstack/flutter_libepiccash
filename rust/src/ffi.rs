@@ -38,6 +38,7 @@ use crate::listener::listener_spawn;
 use crate::listener::listener_cancel;
 use crate::listener::listener_cancelled;
 use crate::listener::listener_handle_destroy;
+use crate::listener::listener_poll;
 use crate::init_logger;
 
 use ffi_helpers::task::TaskHandle;
@@ -1009,6 +1010,33 @@ pub unsafe extern "C" fn _listener_cancel(handler: *mut c_void) -> *const c_char
     let error_msg_ptr = CString::new(error_msg).unwrap();
     let ptr = error_msg_ptr.as_ptr();
     std::mem::forget(error_msg_ptr);
+    ptr
+}
+
+/// Check if the listener is still running via FFI.
+/// Returns "true" if the listener is alive (task not completed), "false" if it has stopped.
+/// Returns "false" if the handler is null.
+#[no_mangle]
+pub unsafe extern "C" fn _listener_is_running(handler: *mut c_void) -> *const c_char {
+    // Validate handler is not null
+    if handler.is_null() {
+        let result = CString::new("false").unwrap();
+        let ptr = result.as_ptr();
+        std::mem::forget(result);
+        return ptr;
+    }
+
+    let handle = handler as *mut TaskHandle<usize>;
+
+    // Poll the task to check if it's still running
+    // listener_poll returns a null pointer if the task is still running,
+    // or a non-null pointer to the result if the task has completed
+    let poll_result = listener_poll(handle);
+    let is_running = poll_result.is_null();
+
+    let result = CString::new(if is_running { "true" } else { "false" }).unwrap();
+    let ptr = result.as_ptr();
+    std::mem::forget(result);
     ptr
 }
 
