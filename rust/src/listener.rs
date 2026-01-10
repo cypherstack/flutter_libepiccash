@@ -22,8 +22,6 @@ impl Task for Listener {
     type Output = usize;
 
     fn run(&self, cancel_tok: &CancellationToken) -> Result<Self::Output, anyhow::Error> {
-        let mut spins = 0;
-
         let wallet_data_str = &self.wallet_ptr_str;
         let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data_str).unwrap();
         let wlt = tuple_wallet_data.0;
@@ -34,7 +32,8 @@ impl Task for Listener {
 
             crate::ensure_wallet!(wlt, wallet);
 
-            while !cancel_tok.cancelled() {
+            // Only attempt connection if not cancelled
+            if !cancel_tok.cancelled() {
                 let listener = EpicboxListenChannel::new().unwrap();
 
                 let mut reconnections = 0;
@@ -49,16 +48,17 @@ impl Task for Listener {
                     StdArc::new(AtomicBool::new(true)),
                     TorConfig::default(),
                 ) {
-                    Ok(_) => {}
+                    Ok(_) => {
+                        // Graceful close (server sent Close message or clean shutdown).
+                        // Do not reconnect - the caller can restart the listener if needed.
+                    }
                     Err(e) => {
                         return Err(anyhow::Error::msg(format!("Epicbox listener error: {}", e)));
                     }
                 }
-
-                spins += 1;
             }
         }
-        Ok(spins)
+        Ok(0)
     }
 }
 

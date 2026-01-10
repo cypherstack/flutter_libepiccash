@@ -759,17 +759,29 @@ abstract class LibEpiccash {
     required String wallet,
     required String epicboxConfig,
   }) {
+    // Stop any existing listener before starting a new one to avoid orphaned connections
+    stopEpicboxListener();
+
     try {
       ListenerManager.pointer =
           lib_epiccash.epicboxListenerStart(wallet, epicboxConfig);
     } catch (e) {
+      // Ensure pointer is null if start fails
+      ListenerManager.pointer = null;
       throw ("Error starting wallet listener ${e.toString()}");
     }
   }
 
   static void stopEpicboxListener() {
-    if (ListenerManager.pointer != null) {
-      lib_epiccash.epicboxListenerStop(ListenerManager.pointer!);
+    // Capture pointer locally to avoid any potential issues with
+    // the static field changing during the operation
+    final currentPointer = ListenerManager.pointer;
+    if (currentPointer != null) {
+      // Clear the pointer FIRST to indicate no listener is running,
+      // preventing any concurrent access from using a stale pointer
+      ListenerManager.pointer = null;
+      // Then stop the actual listener (Rust side handles null gracefully)
+      lib_epiccash.epicboxListenerStop(currentPointer);
     }
   }
 }

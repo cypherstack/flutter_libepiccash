@@ -37,6 +37,7 @@ use crate::listener::Listener;
 use crate::listener::listener_spawn;
 use crate::listener::listener_cancel;
 use crate::listener::listener_cancelled;
+use crate::listener::listener_handle_destroy;
 use crate::init_logger;
 
 use ffi_helpers::task::TaskHandle;
@@ -988,12 +989,30 @@ pub unsafe extern "C" fn rust_epicbox_listener_start(
     Box::into_raw(boxed_handler) as *mut _
 }
 
-/// Cancel a listener via FFI.
+/// Cancel and destroy a listener via FFI.
+/// This cancels the listener task and frees the associated handle memory.
 #[no_mangle]
 pub unsafe extern "C" fn _listener_cancel(handler: *mut c_void) -> *const c_char {
+    // Validate handler is not null
+    if handler.is_null() {
+        let error_msg = CString::new("false").unwrap();
+        let ptr = error_msg.as_ptr();
+        std::mem::forget(error_msg);
+        return ptr;
+    }
+
     let handle = handler as *mut TaskHandle<usize>;
+
+    // Request cancellation of the listener task
     listener_cancel(handle);
-    let error_msg = format!("{}", listener_cancelled(handle));
+    let was_cancelled = listener_cancelled(handle);
+
+    // Destroy the handle to free resources
+    // Note: listener_handle_destroy takes ownership and frees the memory,
+    // so we must NOT also call Box::from_raw (that would be a double-free)
+    listener_handle_destroy(handle);
+
+    let error_msg = format!("{}", was_cancelled);
     let error_msg_ptr = CString::new(error_msg).unwrap();
     let ptr = error_msg_ptr.as_ptr();
     std::mem::forget(error_msg_ptr);
