@@ -137,6 +137,13 @@ class _CancelTransactionsViewState extends State<CancelTransactionsView> {
     }
   }
 
+  String _getDisplayAmount(Transaction tx) {
+    if (tx.txType == TransactionType.TxSent) {
+      return tx.amountDebited;
+    }
+    return tx.amountCredited;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -265,7 +272,7 @@ class _CancelTransactionsViewState extends State<CancelTransactionsView> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Amount: ${_formatAmount(tx.amountCredited)} EPIC',
+                                        'Amount: ${_formatAmount(_getDisplayAmount(tx))} EPIC',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                         ),

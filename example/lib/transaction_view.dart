@@ -136,8 +136,8 @@ class _TransactionViewState extends State<TransactionView> {
     }
   }
 
-  Color _getStatusColor(TransactionType txType) {
-    switch (txType) {
+  Color _getStatusColor(Transaction tx) {
+    switch (tx.txType) {
       case TransactionType.TxReceived:
       case TransactionType.ConfirmedCoinbase:
         return Colors.green;
@@ -148,13 +148,14 @@ class _TransactionViewState extends State<TransactionView> {
         return Colors.orange;
       case TransactionType.UnconfirmedCoinbase:
         return Colors.blue;
-      default:
-        return Colors.grey;
+      case TransactionType.Unknown:
+        // Show orange for pending outgoing, grey otherwise.
+        return _isOutgoingUnknown(tx) ? Colors.orange : Colors.grey;
     }
   }
 
-  String _formatTxType(TransactionType txType) {
-    switch (txType) {
+  String _formatTxType(Transaction tx) {
+    switch (tx.txType) {
       case TransactionType.TxReceived:
         return 'Received';
       case TransactionType.TxSent:
@@ -168,12 +169,12 @@ class _TransactionViewState extends State<TransactionView> {
       case TransactionType.UnconfirmedCoinbase:
         return 'Coinbase (Unconfirmed)';
       case TransactionType.Unknown:
-        return 'Unknown';
+        return _isOutgoingUnknown(tx) ? 'Pending Send' : 'Unknown';
     }
   }
 
-  IconData _getTxIcon(TransactionType txType) {
-    switch (txType) {
+  IconData _getTxIcon(Transaction tx) {
+    switch (tx.txType) {
       case TransactionType.TxReceived:
       case TransactionType.ConfirmedCoinbase:
       case TransactionType.UnconfirmedCoinbase:
@@ -183,9 +184,49 @@ class _TransactionViewState extends State<TransactionView> {
       case TransactionType.TxReceivedCancelled:
       case TransactionType.TxSentCancelled:
         return Icons.cancel;
-      default:
-        return Icons.sync;
+      case TransactionType.Unknown:
+        // Show send icon for pending outgoing, sync otherwise.
+        return _isOutgoingUnknown(tx) ? Icons.arrow_upward : Icons.sync;
     }
+  }
+
+  String _getDisplayAmount(Transaction tx) {
+    print("DEBUG _getDisplayAmount: txType=${tx.txType}, debited=${tx.amountDebited}, credited=${tx.amountCredited}");
+    final debited = int.tryParse(tx.amountDebited) ?? 0;
+    final credited = int.tryParse(tx.amountCredited) ?? 0;
+
+    switch (tx.txType) {
+      case TransactionType.TxSent:
+      case TransactionType.TxSentCancelled:
+        // For sent transactions, show net amount (debited - credited = amount sent + fee).
+        final netAmount = debited - credited;
+        print("DEBUG: TxSent/Cancelled - debited=$debited, credited=$credited, net=$netAmount");
+        return netAmount.toString();
+      case TransactionType.TxReceived:
+      case TransactionType.TxReceivedCancelled:
+      case TransactionType.ConfirmedCoinbase:
+      case TransactionType.UnconfirmedCoinbase:
+        return tx.amountCredited;
+      case TransactionType.Unknown:
+        // For Unknown transactions, check if it's an outgoing tx
+        // (has debited amount, meaning spending).
+        print("DEBUG: Unknown tx - debited=$debited, credited=$credited");
+        if (debited > 0) {
+          // Outgoing transaction: show net amount (debited - credited = sent + fee).
+          final netAmount = debited - credited;
+          print("DEBUG: Outgoing Unknown - returning net: $netAmount");
+          return netAmount.toString();
+        }
+        // Otherwise treat as incoming.
+        print("DEBUG: Incoming Unknown - returning credited: ${tx.amountCredited}");
+        return tx.amountCredited;
+    }
+  }
+
+  bool _isOutgoingUnknown(Transaction tx) {
+    if (tx.txType != TransactionType.Unknown) return false;
+    final debited = int.tryParse(tx.amountDebited) ?? 0;
+    return debited > 0;
   }
 
   @override
@@ -233,9 +274,9 @@ class _TransactionViewState extends State<TransactionView> {
                       itemCount: _transactions!.length,
                       itemBuilder: (context, index) {
                         final tx = _transactions![index];
-                        final txType = _formatTxType(tx.txType);
-                        final statusColor = _getStatusColor(tx.txType);
-                        final icon = _getTxIcon(tx.txType);
+                        final txType = _formatTxType(tx);
+                        final statusColor = _getStatusColor(tx);
+                        final icon = _getTxIcon(tx);
 
                         return Card(
                           margin: const EdgeInsets.symmetric(
@@ -255,7 +296,7 @@ class _TransactionViewState extends State<TransactionView> {
                               ),
                             ),
                             subtitle: Text(
-                              'Amount: ${_formatAmount(tx.amountCredited)} EPIC',
+                              'Amount: ${_formatAmount(_getDisplayAmount(tx))} EPIC',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
