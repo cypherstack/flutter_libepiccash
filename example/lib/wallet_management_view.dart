@@ -104,7 +104,7 @@ class _WalletManagementViewState extends State<WalletManagementView>
       },
     );
 
-    if (result != null && result.isNotEmpty) {
+    if (result != null) {
       await Navigator.push(
         context,
         MaterialPageRoute(

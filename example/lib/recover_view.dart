@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash/lib.dart';
 import 'package:flutter_libepiccash_example/wallet_info_view.dart';
+import 'package:flutter_libepiccash_example/wallet_state_manager.dart';
 
 import 'epicbox_config.dart';
 
@@ -16,9 +17,17 @@ class RecoverWalletView extends StatefulWidget {
 class _RecoverWalletViewState extends State<RecoverWalletView> {
   final TextEditingController _mnemonicController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _startHeightController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   String _errorMessage = '';
+  int _chainHeight = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchChainHeight();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,15 +74,43 @@ class _RecoverWalletViewState extends State<RecoverWalletView> {
                 controller: _passwordController,
                 obscureText: true,
                 decoration: const InputDecoration(
-                  hintText: 'Enter new wallet password',
+                  hintText: 'Enter new wallet password (optional)',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a password';
-                  }
-                  return null;
-                },
+              ),
+              const SizedBox(height: 24.0),
+              const Text(
+                'Scan start height (optional)',
+                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8.0),
+              const Text(
+                'Enter the approximate block height from when your wallet was created to speed up scanning.',
+                style: TextStyle(fontSize: 12.0, color: Colors.grey),
+              ),
+              const SizedBox(height: 8.0),
+              TextFormField(
+                controller: _startHeightController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: '0 (scan from genesis)',
+                  border: const OutlineInputBorder(),
+                  helperText: _chainHeight > 0
+                      ? 'Current chain height: $_chainHeight'
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 8.0),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: 8.0,
+                children: [
+                  _suggestedHeightButton('Jan 2026', 3150000),
+                  _suggestedHeightButton('Dec 2025', 3100000),
+                  _suggestedHeightButton('Jan 2025', 2750000),
+                  _suggestedHeightButton('Jan 2024', 2225000),
+                  _suggestedHeightButton('Jan 2023', 1700000),
+                ],
               ),
               const SizedBox(height: 24.0),
               if (_errorMessage.isNotEmpty)
@@ -97,10 +134,38 @@ class _RecoverWalletViewState extends State<RecoverWalletView> {
     );
   }
 
+  Future<void> _fetchChainHeight() async {
+    try {
+      String config = await EpicboxConfig.getDefaultConfig(widget.name);
+      final height = await LibEpiccash.getChainHeight(config: config);
+      setState(() {
+        _chainHeight = height;
+      });
+    } catch (e) {
+      // Ignore errors - chain height display is optional.
+    }
+  }
+
+  Widget _suggestedHeightButton(String label, int height) {
+    return OutlinedButton(
+      onPressed: () {
+        setState(() {
+          _startHeightController.text = height.toString();
+        });
+      },
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      ),
+      child: Text(label, style: const TextStyle(fontSize: 12.0)),
+    );
+  }
+
   Future<void> _recoverWallet() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    final startHeight = int.tryParse(_startHeightController.text) ?? 0;
 
     setState(() {
       _isLoading = true;
@@ -110,6 +175,10 @@ class _RecoverWalletViewState extends State<RecoverWalletView> {
     try {
       String config = await EpicboxConfig.getDefaultConfig(widget.name);
 
+      // Save the start height before recovery so wallet_info_view uses it.
+      await WalletStateManager.saveDefaultStartHeight(widget.name, startHeight);
+      await WalletStateManager.saveLastScannedBlock(widget.name, startHeight);
+
       try {
         await LibEpiccash.recoverWallet(
           config: config,
@@ -118,6 +187,8 @@ class _RecoverWalletViewState extends State<RecoverWalletView> {
           name: widget.name,
         );
       } catch (e) {
+        // Clear saved state on failure.
+        await WalletStateManager.clearWalletState(widget.name);
         setState(() {
           _errorMessage = 'Error recovering wallet: $e';
         });

@@ -116,15 +116,9 @@ class _MnemonicViewState extends State<MnemonicView> {
                   controller: _passwordController,
                   obscureText: true,
                   decoration: const InputDecoration(
-                    hintText: 'Enter Password',
+                    hintText: 'Enter Password (optional)',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a password';
-                    }
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 20.0),
                 _isLoading
