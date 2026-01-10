@@ -440,14 +440,9 @@ pub unsafe extern "C" fn rust_create_tx(
 
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
 
-    let listen = Listener {
-        wallet_ptr_str: wallet_data.to_string(),
-        epicbox_config: epicbox_config.parse().unwrap()
-    };
-
-    let handle = listener_spawn(&listen);
-    listener_cancel(handle);
-    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
+    // Note: Listener management is now handled by Dart via startEpicboxListener/stopEpicboxListener.
+    // Previously this code spawned/canceled/re-spawned listeners here.
+    // The Dart layer should ensure a listener is running before calling this function.
 
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
@@ -465,8 +460,6 @@ pub unsafe extern "C" fn rust_create_tx(
         note
     ) {
         Ok(slate) => {
-            // Spawn listener again.
-            listener_spawn(&listen);
             slate
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
