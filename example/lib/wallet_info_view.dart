@@ -151,18 +151,13 @@ class _WalletInfoViewState extends State<WalletInfoView> {
     }
   }
 
-  void _startListener() async {
+  Future<void> _startListener() async {
     if (_wallet == null || _epicboxConfig == null) {
-      setState(() {
-        _resultMessage = "Wallet or epicbox config not loaded";
-      });
-      return;
+      throw Exception("Wallet or epicbox config not loaded");
     }
 
     if (_listenerRunning) {
-      setState(() {
-        _resultMessage = "Listener already running";
-      });
+      // Already running, nothing to do.
       return;
     }
 
@@ -180,6 +175,7 @@ class _WalletInfoViewState extends State<WalletInfoView> {
       setState(() {
         _resultMessage = "Error starting listener: $e";
       });
+      rethrow;
     }
   }
 
@@ -561,6 +557,8 @@ class _WalletInfoViewState extends State<WalletInfoView> {
                               password: widget.password,
                               wallet: _wallet!,
                               epicboxConfig: _epicboxConfig!,
+                              listenerRunning: _listenerRunning,
+                              onStartListener: _startListener,
                             ),
                           ),
                         );

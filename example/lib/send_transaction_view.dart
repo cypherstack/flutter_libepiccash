@@ -6,6 +6,8 @@ class SendTransactionView extends StatefulWidget {
   final String password;
   final String wallet;
   final String epicboxConfig;
+  final bool listenerRunning;
+  final Future<void> Function() onStartListener;
 
   const SendTransactionView({
     Key? key,
@@ -13,6 +15,8 @@ class SendTransactionView extends StatefulWidget {
     required this.password,
     required this.wallet,
     required this.epicboxConfig,
+    required this.listenerRunning,
+    required this.onStartListener,
   }) : super(key: key);
 
   @override
@@ -29,6 +33,13 @@ class _SendTransactionViewState extends State<SendTransactionView> {
   String _statusMessage = "";
   String? _slateId;
   String? _commitId;
+  late bool _listenerRunning;
+
+  @override
+  void initState() {
+    super.initState();
+    _listenerRunning = widget.listenerRunning;
+  }
 
   @override
   void dispose() {
@@ -91,6 +102,28 @@ class _SendTransactionViewState extends State<SendTransactionView> {
         });
       } else {
         // Use Epicbox send.
+        // Check if listener is running, start it if not.
+        if (!_listenerRunning) {
+          setState(() {
+            _statusMessage = "Starting epicbox listener...";
+          });
+
+          try {
+            await widget.onStartListener();
+            // Wait for the listener to be ready.
+            await Future.delayed(const Duration(seconds: 2));
+            setState(() {
+              _listenerRunning = true;
+              _statusMessage = "Listener started. Sending via Epicbox...";
+            });
+          } catch (e) {
+            setState(() {
+              _statusMessage = "Failed to start listener: $e";
+            });
+            return;
+          }
+        }
+
         setState(() {
           _statusMessage = "Sending via Epicbox...\nRecipient: $address";
         });
