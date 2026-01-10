@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_libepiccash/lib.dart';
@@ -21,13 +23,18 @@ class WalletInfoView extends StatefulWidget {
   State<WalletInfoView> createState() => _WalletInfoViewState();
 }
 
-class _WalletInfoViewState extends State<WalletInfoView> {
+class _WalletInfoViewState extends State<WalletInfoView>
+    with WidgetsBindingObserver {
   String _resultMessage = "";
   bool _isLoading = false;
   String? _walletConfig;
   String? _wallet;
   String? _epicboxConfig;
   bool _listenerRunning = false;
+
+  // Timer for polling listener health.
+  Timer? _listenerHealthTimer;
+  static const _healthCheckInterval = Duration(seconds: 20);
 
   // Balance info.
   double _totalBalance = 0.0;
@@ -42,13 +49,52 @@ class _WalletInfoViewState extends State<WalletInfoView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadWalletConfig();
+    _startHealthCheckTimer();
   }
 
   @override
   void dispose() {
-    _stopListener();
+    _listenerHealthTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    // Note: We do NOT stop the listener here - it keeps running when navigating away.
+    // The listener is only stopped on app close (see didChangeAppLifecycleState).
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Stop ALL listeners when app goes to background or is terminated.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      LibEpiccash.stopAllEpicboxListeners();
+      setState(() {
+        _listenerRunning = false;
+      });
+    }
+  }
+
+  void _startHealthCheckTimer() {
+    _listenerHealthTimer?.cancel();
+    _listenerHealthTimer = Timer.periodic(_healthCheckInterval, (_) {
+      _checkListenerHealth();
+    });
+    // Also check immediately.
+    _checkListenerHealth();
+  }
+
+  void _checkListenerHealth() {
+    final isRunning =
+        LibEpiccash.isEpicboxListenerRunning(walletId: widget.walletName);
+    if (isRunning != _listenerRunning) {
+      setState(() {
+        _listenerRunning = isRunning;
+        if (!isRunning && _listenerRunning) {
+          _resultMessage = "Listener stopped unexpectedly";
+        }
+      });
+    }
   }
 
   Future<void> _loadWalletConfig() async {
@@ -156,22 +202,33 @@ class _WalletInfoViewState extends State<WalletInfoView> {
       throw Exception("Wallet or epicbox config not loaded");
     }
 
-    if (_listenerRunning) {
-      // Already running, nothing to do.
+    // Check if already running using health check.
+    if (LibEpiccash.isEpicboxListenerRunning(walletId: widget.walletName)) {
+      setState(() {
+        _listenerRunning = true;
+        _resultMessage = "Epicbox listener already running for ${widget.walletName}";
+      });
       return;
     }
 
     try {
       LibEpiccash.startEpicboxListener(
+        walletId: widget.walletName,
         wallet: _wallet!,
         epicboxConfig: _epicboxConfig!,
       );
 
+      // Immediately verify listener started.
+      final isRunning =
+          LibEpiccash.isEpicboxListenerRunning(walletId: widget.walletName);
       setState(() {
-        _listenerRunning = true;
-        _resultMessage = "Epicbox listener started successfully";
+        _listenerRunning = isRunning;
+        _resultMessage = isRunning
+            ? "Epicbox listener started for ${widget.walletName}"
+            : "Epicbox listener start returned but health check says not running";
       });
     } catch (e) {
+      _checkListenerHealth(); // Update state to reflect actual status.
       setState(() {
         _resultMessage = "Error starting listener: $e";
       });
@@ -180,15 +237,27 @@ class _WalletInfoViewState extends State<WalletInfoView> {
   }
 
   void _stopListener() {
-    if (!_listenerRunning) return;
-
-    try {
-      LibEpiccash.stopEpicboxListener();
+    // Check actual status first.
+    if (!LibEpiccash.isEpicboxListenerRunning(walletId: widget.walletName)) {
       setState(() {
         _listenerRunning = false;
-        _resultMessage = "Epicbox listener stopped";
+      });
+      return;
+    }
+
+    try {
+      LibEpiccash.stopEpicboxListener(walletId: widget.walletName);
+      // Verify it actually stopped.
+      final stillRunning =
+          LibEpiccash.isEpicboxListenerRunning(walletId: widget.walletName);
+      setState(() {
+        _listenerRunning = stillRunning;
+        _resultMessage = stillRunning
+            ? "Epicbox listener stop called but still running"
+            : "Epicbox listener stopped for ${widget.walletName}";
       });
     } catch (e) {
+      _checkListenerHealth(); // Update state to reflect actual status.
       setState(() {
         _resultMessage = "Error stopping listener: $e";
       });
@@ -366,11 +435,12 @@ class _WalletInfoViewState extends State<WalletInfoView> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        _stopListener();
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        // Note: We do NOT stop the listener here - it keeps running across navigation.
         Navigator.of(context).popUntil((route) => route.isFirst);
-        return false;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -378,7 +448,7 @@ class _WalletInfoViewState extends State<WalletInfoView> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () {
-              _stopListener();
+              // Note: We do NOT stop the listener here - it keeps running across navigation.
               Navigator.of(context).popUntil((route) => route.isFirst);
             },
           ),
@@ -439,13 +509,65 @@ class _WalletInfoViewState extends State<WalletInfoView> {
                             const SizedBox(height: 12),
                             Text('Chain Height: $_chainHeight'),
                             Text('Last Scanned Block: $_lastScannedBlock'),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _listenerRunning
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Listener: ${_listenerRunning ? "Running" : "Stopped"}',
+                                  style: TextStyle(
+                                    color: _listenerRunning
+                                        ? Colors.green
+                                        : Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Spacer(),
+                                TextButton.icon(
+                                  onPressed: _checkListenerHealth,
+                                  icon: const Icon(Icons.health_and_safety,
+                                      size: 16),
+                                  label: const Text('Check'),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8),
+                                  ),
+                                ),
+                              ],
+                            ),
                             Text(
-                              'Listener: ${_listenerRunning ? "Running" : "Stopped"}',
-                              style: TextStyle(
-                                color:
-                                    _listenerRunning ? Colors.green : Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              'Health check every ${_healthCheckInterval.inSeconds}s',
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 8),
+                            // Show all active listeners across all wallets.
+                            Builder(
+                              builder: (context) {
+                                final activeListeners =
+                                    LibEpiccash.getActiveListenerWalletIds();
+                                if (activeListeners.isEmpty) {
+                                  return const Text(
+                                    'No active listeners',
+                                    style: TextStyle(
+                                        fontSize: 11, color: Colors.grey),
+                                  );
+                                }
+                                return Text(
+                                  'Active listeners: ${activeListeners.join(", ")}',
+                                  style: const TextStyle(
+                                      fontSize: 11, color: Colors.blue),
+                                );
+                              },
                             ),
                           ],
                         ),

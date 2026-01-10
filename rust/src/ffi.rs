@@ -37,6 +37,8 @@ use crate::listener::Listener;
 use crate::listener::listener_spawn;
 use crate::listener::listener_cancel;
 use crate::listener::listener_cancelled;
+use crate::listener::listener_handle_destroy;
+use crate::listener::listener_poll;
 use crate::init_logger;
 
 use ffi_helpers::task::TaskHandle;
@@ -439,14 +441,9 @@ pub unsafe extern "C" fn rust_create_tx(
 
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
 
-    let listen = Listener {
-        wallet_ptr_str: wallet_data.to_string(),
-        epicbox_config: epicbox_config.parse().unwrap()
-    };
-
-    let handle = listener_spawn(&listen);
-    listener_cancel(handle);
-    debug!("LISTENER CANCELLED IS {}", listener_cancelled(handle));
+    // Note: Listener management is now handled by Dart via startEpicboxListener/stopEpicboxListener.
+    // Previously this code spawned/canceled/re-spawned listeners here.
+    // The Dart layer should ensure a listener is running before calling this function.
 
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
@@ -464,8 +461,6 @@ pub unsafe extern "C" fn rust_create_tx(
         note
     ) {
         Ok(slate) => {
-            // Spawn listener again.
-            listener_spawn(&listen);
             slate
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
@@ -988,15 +983,60 @@ pub unsafe extern "C" fn rust_epicbox_listener_start(
     Box::into_raw(boxed_handler) as *mut _
 }
 
-/// Cancel a listener via FFI.
+/// Cancel and destroy a listener via FFI.
+/// This cancels the listener task and frees the associated handle memory.
 #[no_mangle]
 pub unsafe extern "C" fn _listener_cancel(handler: *mut c_void) -> *const c_char {
+    // Validate handler is not null
+    if handler.is_null() {
+        let error_msg = CString::new("false").unwrap();
+        let ptr = error_msg.as_ptr();
+        std::mem::forget(error_msg);
+        return ptr;
+    }
+
     let handle = handler as *mut TaskHandle<usize>;
+
+    // Request cancellation of the listener task
     listener_cancel(handle);
-    let error_msg = format!("{}", listener_cancelled(handle));
+    let was_cancelled = listener_cancelled(handle);
+
+    // Destroy the handle to free resources
+    // Note: listener_handle_destroy takes ownership and frees the memory,
+    // so we must NOT also call Box::from_raw (that would be a double-free)
+    listener_handle_destroy(handle);
+
+    let error_msg = format!("{}", was_cancelled);
     let error_msg_ptr = CString::new(error_msg).unwrap();
     let ptr = error_msg_ptr.as_ptr();
     std::mem::forget(error_msg_ptr);
+    ptr
+}
+
+/// Check if the listener is still running via FFI.
+/// Returns "true" if the listener is alive (task not completed), "false" if it has stopped.
+/// Returns "false" if the handler is null.
+#[no_mangle]
+pub unsafe extern "C" fn _listener_is_running(handler: *mut c_void) -> *const c_char {
+    // Validate handler is not null
+    if handler.is_null() {
+        let result = CString::new("false").unwrap();
+        let ptr = result.as_ptr();
+        std::mem::forget(result);
+        return ptr;
+    }
+
+    let handle = handler as *mut TaskHandle<usize>;
+
+    // Poll the task to check if it's still running
+    // listener_poll returns a null pointer if the task is still running,
+    // or a non-null pointer to the result if the task has completed
+    let poll_result = listener_poll(handle);
+    let is_running = poll_result.is_null();
+
+    let result = CString::new(if is_running { "true" } else { "false" }).unwrap();
+    let ptr = result.as_ptr();
+    std::mem::forget(result);
     ptr
 }
 

@@ -19,8 +19,30 @@ class BadEpicHttpAddressException implements Exception {
   }
 }
 
+/// Manages listener pointers per wallet.
+/// Each wallet can have its own listener running simultaneously.
 abstract class ListenerManager {
-  static Pointer<Void>? pointer;
+  /// Map of wallet identifiers to their listener pointers.
+  static final Map<String, Pointer<Void>> _pointers = {};
+
+  /// Get the pointer for a specific wallet (or null if not running).
+  static Pointer<Void>? getPointer(String walletId) => _pointers[walletId];
+
+  /// Set the pointer for a specific wallet.
+  static void setPointer(String walletId, Pointer<Void> pointer) {
+    _pointers[walletId] = pointer;
+  }
+
+  /// Remove the pointer for a specific wallet.
+  static void removePointer(String walletId) {
+    _pointers.remove(walletId);
+  }
+
+  /// Get all wallet IDs with active listeners.
+  static Iterable<String> get activeWalletIds => _pointers.keys;
+
+  /// Check if any listeners are running.
+  static bool get hasActiveListeners => _pointers.isNotEmpty;
 }
 
 ///
@@ -755,21 +777,76 @@ abstract class LibEpiccash {
     }
   }
 
+  /// Start an epicbox listener for a specific wallet.
+  /// Each wallet can have its own listener running simultaneously.
+  ///
+  /// [walletId] - Unique identifier for the wallet (e.g., wallet name or UUID)
+  /// [wallet] - The wallet handle from openWallet()
+  /// [epicboxConfig] - The epicbox server configuration
   static void startEpicboxListener({
+    required String walletId,
     required String wallet,
     required String epicboxConfig,
   }) {
+    // Stop any existing listener for this wallet before starting a new one
+    stopEpicboxListener(walletId: walletId);
+
     try {
-      ListenerManager.pointer =
-          lib_epiccash.epicboxListenerStart(wallet, epicboxConfig);
+      final pointer = lib_epiccash.epicboxListenerStart(wallet, epicboxConfig);
+      ListenerManager.setPointer(walletId, pointer);
     } catch (e) {
+      // Ensure pointer is removed if start fails
+      ListenerManager.removePointer(walletId);
       throw ("Error starting wallet listener ${e.toString()}");
     }
   }
 
-  static void stopEpicboxListener() {
-    if (ListenerManager.pointer != null) {
-      lib_epiccash.epicboxListenerStop(ListenerManager.pointer!);
+  /// Stop the epicbox listener for a specific wallet.
+  ///
+  /// [walletId] - The wallet identifier used when starting the listener
+  static void stopEpicboxListener({required String walletId}) {
+    // Capture pointer locally to avoid any potential issues with
+    // the map changing during the operation
+    final currentPointer = ListenerManager.getPointer(walletId);
+    if (currentPointer != null) {
+      // Remove the pointer FIRST to indicate no listener is running,
+      // preventing any concurrent access from using a stale pointer
+      ListenerManager.removePointer(walletId);
+      // Then stop the actual listener (Rust side handles null gracefully)
+      lib_epiccash.epicboxListenerStop(currentPointer);
     }
+  }
+
+  /// Stop all running epicbox listeners.
+  /// Useful for app shutdown or cleanup.
+  static void stopAllEpicboxListeners() {
+    // Get a copy of the keys to avoid concurrent modification
+    final walletIds = ListenerManager.activeWalletIds.toList();
+    for (final walletId in walletIds) {
+      stopEpicboxListener(walletId: walletId);
+    }
+  }
+
+  /// Check if the epicbox listener for a specific wallet is currently running.
+  /// This polls the actual Rust task to see if it's alive, not just checking
+  /// if we have a pointer (which could be stale if the listener stopped unexpectedly).
+  ///
+  /// [walletId] - The wallet identifier used when starting the listener
+  static bool isEpicboxListenerRunning({required String walletId}) {
+    final currentPointer = ListenerManager.getPointer(walletId);
+    if (currentPointer == null) {
+      return false;
+    }
+    final isRunning = lib_epiccash.epicboxListenerIsRunning(currentPointer);
+    // If the health check says the listener stopped, clean up the stale pointer
+    if (!isRunning) {
+      ListenerManager.removePointer(walletId);
+    }
+    return isRunning;
+  }
+
+  /// Get a list of wallet IDs that currently have listeners running.
+  static List<String> getActiveListenerWalletIds() {
+    return ListenerManager.activeWalletIds.toList();
   }
 }
