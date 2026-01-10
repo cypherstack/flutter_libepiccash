@@ -29,6 +29,8 @@ use crate::wallet::tx_strategies;
 use crate::wallet::tx_create;
 use crate::wallet::txs_get;
 use crate::wallet::tx_cancel;
+use crate::wallet::tx_receive;
+use crate::wallet::tx_finalize;
 use crate::wallet::delete_wallet;
 use crate::wallet::tx_send_http;
 use crate::wallet::get_chain_height;
@@ -428,7 +430,8 @@ pub unsafe extern "C" fn rust_create_tx(
     secret_key_index: *const c_char,
     epicbox_config: *const c_char,
     confirmations: *const c_char,
-    note: *const c_char
+    note: *const c_char,
+    return_slate_flag: *const c_char,
 ) -> *const c_char {
 
     let wallet_data = CStr::from_ptr(wallet).to_str().unwrap();
@@ -439,11 +442,15 @@ pub unsafe extern "C" fn rust_create_tx(
     let key_index: u32 = CStr::from_ptr(secret_key_index).to_str().unwrap().parse().unwrap();
     let epicbox_config = CStr::from_ptr(epicbox_config).to_str().unwrap();
 
+    let c_return_slate = CStr::from_ptr(return_slate_flag);
+    let return_slate_u64: u64 = c_return_slate.to_str().unwrap().parse().unwrap_or(0);
+    let return_slate = return_slate_u64 != 0;
+
     let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
 
     // Note: Listener management is now handled by Dart via startEpicboxListener/stopEpicboxListener.
     // Previously this code spawned/canceled/re-spawned listeners here.
-    // The Dart layer should ensure a listener is running before calling this function.
+    // The Dart layer should ensure a listener is running before calling this function (when not using slates).
 
     let wlt = tuple_wallet_data.0;
     let sek_key = tuple_wallet_data.1;
@@ -458,7 +465,8 @@ pub unsafe extern "C" fn rust_create_tx(
         key_index,
         epicbox_config,
         min_confirmations,
-        note
+        note,
+        return_slate,
     ) {
         Ok(slate) => {
             slate
@@ -483,9 +491,10 @@ fn _create_tx(
     _secret_key_index: u32,
     epicbox_config: &str,
     minimum_confirmations: u64,
-    note: &str
+    note: &str,
+    return_slate: bool,
 ) -> Result<*const c_char, Error> {
-    let  mut message = String::from("");
+    let mut message = String::from("");
     match tx_create(
         &wallet,
         keychain_mask.clone(),
@@ -494,7 +503,9 @@ fn _create_tx(
         false,
         epicbox_config,
         address,
-        note) {
+        note,
+        Some(return_slate),
+    ) {
         Ok(slate) => {
             let empty_json = format!(r#"{{"slate_msg": ""}}"#);
             let create_response = (&slate, &empty_json);
@@ -511,8 +522,6 @@ fn _create_tx(
     let p = s.as_ptr();
     std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
     Ok(p)
-
-
 }
 
 /// Get transactions via FFI.
@@ -1038,6 +1047,116 @@ pub unsafe extern "C" fn _listener_is_running(handler: *mut c_void) -> *const c_
     let ptr = result.as_ptr();
     std::mem::forget(result);
     ptr
+}
+
+/// Receive a slate via FFI.
+///
+/// This is step 2 of the 3-part transaction process for slates/slatepacks.
+/// The receiver opens an incoming slate, adds its output and partial signature,
+/// then returns the updated slate.
+#[no_mangle]
+pub unsafe extern "C" fn rust_tx_receive(
+    wallet: *const c_char,
+    slate_json: *const c_char,
+) -> *const c_char {
+    let wallet_str = CStr::from_ptr(wallet).to_str().unwrap();
+    let slate_str = CStr::from_ptr(slate_json).to_str().unwrap();
+
+    let (wlt, sek_key): (i64, Option<SecretKey>) =
+        serde_json::from_str(wallet_str).unwrap();
+
+    ensure_wallet!(wlt, wallet);
+
+    match _tx_receive(wallet, sek_key, slate_str) {
+        Ok(ptr) => ptr,
+        Err(e) => {
+            let err = CString::new(format!("Error {}", e)).unwrap();
+            let p = err.as_ptr();
+            std::mem::forget(err);
+            p
+        }
+    }
+}
+
+/// Helper for tx_receive.
+fn _tx_receive(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    slate_json: &str,
+) -> Result<*const c_char, Error> {
+    let mut out = String::new();
+
+    match tx_receive(wallet, keychain_mask, slate_json, None) {
+        Ok(processed_slate) => {
+            // Keep the outer API uniform with (<slate>, {"slate_msg":""}).
+            let empty_json = r#"{"slate_msg": ""}"#;
+            let response_tuple = (&processed_slate, &empty_json);
+            out.push_str(&serde_json::to_string(&response_tuple).unwrap());
+        }
+        Err(e) => {
+            return Err(e);
+        }
+    }
+
+    let c_out = CString::new(out).unwrap();
+    let p = c_out.as_ptr();
+    std::mem::forget(c_out);
+    Ok(p)
+}
+
+/// Finalize a slate via FFI.
+///
+/// This is step 3 of the 3-part transaction process for slates/slatepacks.
+/// The original sender finalizes the transaction with the receiver's response
+/// and broadcasts it to the network.
+#[no_mangle]
+pub unsafe extern "C" fn rust_tx_finalize(
+    wallet: *const c_char,
+    slate_json: *const c_char,
+) -> *const c_char {
+    let wallet_str = CStr::from_ptr(wallet).to_str().unwrap();
+    let slate_str = CStr::from_ptr(slate_json).to_str().unwrap();
+
+    let (wlt, sek_key): (i64, Option<SecretKey>) =
+        serde_json::from_str(wallet_str).unwrap();
+
+    ensure_wallet!(wlt, wallet);
+
+    match _tx_finalize(wallet, sek_key, slate_str) {
+        Ok(ptr) => ptr,
+        Err(e) => {
+            let err = CString::new(format!("Error {}", e)).unwrap();
+            let p = err.as_ptr();
+            std::mem::forget(err);
+            p
+        }
+    }
+}
+
+/// Helper for tx_finalize.
+fn _tx_finalize(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    slate_json: &str,
+) -> Result<*const c_char, Error> {
+    let mut out = String::new();
+
+    match tx_finalize(wallet, keychain_mask, slate_json) {
+        Ok(finalized_slate) => {
+            // Same tuple shape as elsewhere.
+            let empty_json = r#"{"slate_msg": ""}"#;
+            let response_tuple = (&finalized_slate, &empty_json);
+            out.push_str(&serde_json::to_string(&response_tuple).unwrap());
+        }
+        Err(e) => {
+            return Err(e);
+        }
+    }
+
+    let c_out = CString::new(out).unwrap();
+    let p = c_out.as_ptr();
+    std::mem::forget(c_out);
+    Ok(p)
 }
 
 #[cfg(test)]

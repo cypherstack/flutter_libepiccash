@@ -8,8 +8,9 @@ use epic_util::secp::{PublicKey, Secp256k1, SecretKey};
 use epic_wallet_api::Owner;
 use epic_wallet_config::{EpicboxConfig, WalletConfig};
 use epic_wallet_impls::{DefaultLCProvider, HTTPNodeClient};
-use epic_wallet_libwallet::{address, scan, wallet_lock, AddressType, EpicboxAddress, Error, InitTxArgs, InitTxSendArgs, WalletInst};
+use epic_wallet_libwallet::{address, scan, wallet_lock, AddressType, EpicboxAddress, Error, InitTxArgs, InitTxSendArgs, WalletInst, Slate};
 use epic_wallet_libwallet::api_impl::owner;
+use epic_wallet_libwallet::api_impl::foreign;
 use uuid::Uuid;
 use crate::config::{create_wallet_config, Config};
 use epic_wallet_libwallet::Address;
@@ -117,6 +118,14 @@ pub fn txs_get(
 }
 
 /// Initialize a transaction as sender.
+///
+/// Will use Epicbox for tx relay by default. Override default behavior by setting return_slate.
+///
+/// When return_slate is true, the slate is returned directly for manual exchange (slates/slatepacks).
+/// When return_slate is false (default), the transaction is sent via Epicbox.
+///
+/// Step 1 of the 3-part transaction process (if return_slate is set).
+#[allow(clippy::too_many_arguments)]
 pub fn tx_create(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
@@ -126,61 +135,75 @@ pub fn tx_create(
     epicbox_config: &str,
     address: &str,
     note: &str,
+    return_slate: Option<bool>,
 ) -> Result<String, Error> {
+    let return_slate = return_slate.unwrap_or(false);
+
     let is_stopped = Arc::new(AtomicBool::new(false));
     let owner_api = Owner::new(wallet.clone(), None, is_stopped.clone());
-    let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
 
-    owner_api.set_epicbox_config(Some(epicbox_conf));
-
-    let init_send_args = InitTxSendArgs {
-        method: "epicbox".to_string(),
-        dest: address.to_string(),
-        finalize: false,
-        post_tx: false,
-        fluff: false
+    // Only set epicbox config and send args if we want the wallet to relay via Epicbox.
+    let send_args = if return_slate {
+        None
+    } else {
+        let epicbox_conf = serde_json::from_str::<EpicboxConfig>(epicbox_config).unwrap();
+        owner_api.set_epicbox_config(Some(epicbox_conf));
+        Some(InitTxSendArgs {
+            method: "epicbox".into(),
+            dest: address.into(),
+            finalize: false,
+            post_tx: false,
+            fluff: false,
+        })
     };
 
     let args = InitTxArgs {
-        src_acct_name: Some("default".to_string()),
+        src_acct_name: Some("default".into()),
         amount,
         minimum_confirmations,
         max_outputs: 500,
         num_change_outputs: 1,
         selection_strategy_is_use_all,
-        send_args: Some(init_send_args),
-        message: Some(note.to_string()),
+        send_args,
+        message: Some(note.into()),
         ..Default::default()
     };
 
-    match owner_api.init_send_tx(keychain_mask.as_ref(), args, is_stopped.clone()) {
-        Ok(slate)=> {
-            debug!("SLATE SEND RESPONSE IS  {:?}", slate);
-            // Get transaction for the slate, we will use type to determine if we should finalize or receive tx.
-            let txs_result = match owner_api.retrieve_txs(
-                keychain_mask.as_ref(),
-                false,
-                None,
-                Some(slate.id),
-                None,
-                None,
-                None,
-            ) {
-                Ok(txs_result) => txs_result,
-                Err(e) => return Err(e),
-            };
+    // Create the transaction.
+    let slate: Slate = owner_api.init_send_tx(keychain_mask.as_ref(), args, is_stopped.clone())?;
 
-            let final_result = (
-                serde_json::to_string(&txs_result.txs).unwrap(),
-                serde_json::to_string(&slate).unwrap()
-            );
-            let str_result = serde_json::to_string(&final_result).unwrap();
-            Ok(str_result)
-        },
-        Err(e)=> {
-            return Err(e);
-        }
+    // For slate mode, we need to lock the outputs immediately.
+    // This creates the TxLogEntry which is required for finalization.
+    // When using epicbox, this is done by the send adapter, but in slate mode
+    // we need to do it ourselves.
+    if return_slate {
+        owner_api.tx_lock_outputs(keychain_mask.as_ref(), &slate, 0, None)?;
     }
+
+    // Fetch tx-log entries.
+    // We can use type to determine if we should finalize or receive tx.
+    let txs_result = owner_api.retrieve_txs(
+        keychain_mask.as_ref(),
+        false,
+        None,
+        Some(slate.id),
+        None,
+        None,
+        None,
+    )?;
+
+    let tx_entries_json = serde_json::to_string(&txs_result.txs)
+        .map_err(|e| Error::GenericError(e.to_string()))?;
+
+    let slate_json = serde_json::to_string(&slate)
+        .map_err(|e| Error::GenericError(e.to_string()))?;
+
+    let response = (tx_entries_json, slate_json);
+
+    let response_json = serde_json::to_string(&response)
+        .map_err(|e| Error::GenericError(e.to_string()))?;
+
+    Ok(response_json)
 }
 
 /// Cancel a transaction by ID.
@@ -194,6 +217,69 @@ pub fn tx_cancel(wallet: &Wallet, keychain_mask: Option<SecretKey>, tx_slate_id:
             return Err(e);
         }
     }
+}
+
+/// Receive a slate.
+///
+/// The receiver opens an incoming slate, adds its output,
+/// produces its partial signature and gives the caller the updated slate.
+///
+/// Step 2 of the 3-part transaction process.
+pub fn tx_receive(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    slate_json: &str,
+    message: Option<&str>,
+) -> Result<String, Error> {
+    // Deserialize & upgrade to current slate version.
+    let slate = Slate::deserialize_upgrade(slate_json)?;
+
+    // Use the Foreign API to receive the transaction.
+    let mut w_lock = wallet.lock();
+    let w = w_lock.lc_provider()?.wallet_inst()?;
+
+    let processed_slate = foreign::receive_tx(
+        &mut **w,
+        keychain_mask.as_ref(),
+        &slate,
+        Some("default"),
+        message.map(|s| s.to_owned()),
+        None,
+        false,
+    )?;
+
+    let result = serde_json::to_string(&processed_slate)?;
+
+    Ok(result)
+}
+
+/// Finalize a slate.
+///
+/// The original sender consumes the returned slate, finalizes the transaction,
+/// and broadcasts it via the node.
+///
+/// Step 3 of the 3-part transaction process.
+pub fn tx_finalize(
+    wallet: &Wallet,
+    keychain_mask: Option<SecretKey>,
+    slate_json: &str,
+) -> Result<String, Error> {
+    // Inflate the slate.
+    let slate = Slate::deserialize_upgrade(slate_json)?;
+
+    // Use the Owner API to finalize and post the transaction.
+    let is_stopped = Arc::new(AtomicBool::new(false));
+    let owner_api = Owner::new(wallet.clone(), None, is_stopped.clone());
+
+    let finalized_slate = owner_api.finalize_tx(keychain_mask.as_ref(), &slate)?;
+
+    // Post the transaction to the network.
+    let tx = finalized_slate.tx.clone();
+    owner_api.post_tx(keychain_mask.as_ref(), &tx, true)?;
+
+    let result = serde_json::to_string(&finalized_slate)?;
+
+    Ok(result)
 }
 
 /// Get a transaction by slate ID.
