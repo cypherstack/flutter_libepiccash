@@ -73,17 +73,21 @@ class _WalletInfoViewState extends State<WalletInfoView> {
       // Get chain height first.
       await _updateChainHeight();
 
-      // If this is a new wallet (never scanned), set start to chain tip.
-      if (lastScanned == 0) {
-        final defaultHeight = await WalletStateManager.getDefaultStartHeight(widget.walletName);
-        if (defaultHeight == 0) {
-          // New wallet - start at chain tip.
-          setState(() {
-            _lastScannedBlock = _chainHeight;
-            _resultMessage = "New wallet - starting at current chain height $_chainHeight";
-          });
-          await WalletStateManager.saveLastScannedBlock(widget.walletName, _chainHeight);
-        }
+      // Determine wallet state and show appropriate message.
+      final defaultHeight = await WalletStateManager.getDefaultStartHeight(widget.walletName);
+
+      if (lastScanned == 0 && defaultHeight == 0) {
+        // New wallet - start at chain tip (no scanning needed).
+        setState(() {
+          _lastScannedBlock = _chainHeight;
+          _resultMessage = "New wallet - starting at current chain height $_chainHeight";
+        });
+        await WalletStateManager.saveLastScannedBlock(widget.walletName, _chainHeight);
+      } else if (lastScanned < _chainHeight) {
+        // Recovered wallet or wallet with pending scan.
+        setState(() {
+          _resultMessage = "Recovered wallet - ready to scan from block $_lastScannedBlock to $_chainHeight";
+        });
       }
 
       // Update balance (don't auto-scan).
