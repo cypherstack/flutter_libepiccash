@@ -4054,7 +4054,6 @@ dependencies = [
 [[package]]
 name = "randomx"
 version = "0.2.0"
-source = "git+https://github.com/cypherstack/randomx-rust?branch=fix%2Fapple-v4.0#55daf4f3705b9c4c440386f2ed0062bb91e3d3c4"
 dependencies = [
  "bindgen",
  "byteorder",
