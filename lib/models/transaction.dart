@@ -52,8 +52,7 @@ class Transaction {
   factory Transaction.fromJson(dynamic json) {
     TransactionType txType = TransactionType.Unknown; // Default tx type.
     try {
-      txType =
-          TransactionType.values.byName(json['tx_type'] as String);
+      txType = TransactionType.values.byName(json['tx_type'] as String);
     } catch (e) {
       // Unknown tx type.
       // print("ERROR $e");

@@ -8,7 +8,8 @@ abstract class FlutterLibepiccashPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static FlutterLibepiccashPlatform _instance = MethodChannelFlutterLibepiccash();
+  static FlutterLibepiccashPlatform _instance =
+      MethodChannelFlutterLibepiccash();
 
   /// The default instance of [FlutterLibepiccashPlatform] to use.
   ///
