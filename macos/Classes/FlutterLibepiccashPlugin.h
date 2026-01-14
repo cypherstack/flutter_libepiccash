@@ -36,7 +36,8 @@ const char *rust_create_tx(const char *wallet,
                            const char *secret_key_index,
                            const char *epicbox_config,
                            const char *confirmations,
-                           const char *note);
+                           const char *note,
+                           const char *return_slate_flag);
 
 /**
  * Delete a wallet via FFI.

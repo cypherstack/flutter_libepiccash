@@ -39,7 +39,8 @@ const char *rust_create_tx(const char *wallet,
                            const char *secret_key_index,
                            const char *epicbox_config,
                            const char *minimum_confirmations,
-                           const char *note);
+                           const char *note,
+                           const char *return_slate_flag);
 
 const char *rust_txs_get(const char *wallet, const char *refresh_from_node);
 
