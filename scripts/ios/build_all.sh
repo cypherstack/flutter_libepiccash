@@ -1,26 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-# Prevent caching of build artifacts.
-if [ -d "build" ]; then
-    rm -rf build/
-fi
-# Prevent caching for example app.
-if [ -d "../../example/ios/Pods" ]; then
-    rm -rf ../../example/ios/Pods/
-fi
-if [ -f "../../example/ios/Podfile.lock" ]; then
-    rm -f ../../example/ios/Podfile.lock
-fi
-# Prevent caching the library for Stack Wallet (if applicable).
-if [ -d "../../../../ios/Pods" ]; then
-    rm -rf ../../../../ios/Pods/
-fi
-if [ -f "../../../../ios/Podfile.lock" ]; then
-    rm -f ../../../../ios/Podfile.lock
-fi
-
-mkdir build
+mkdir -p build
 echo ''$(git log -1 --pretty=format:"%H")' '$(date) >> build/git_commit_version.txt
 VERSIONS_FILE=../../lib/git_versions.dart
 EXAMPLE_VERSIONS_FILE=../../lib/git_versions_example.dart
@@ -47,7 +28,6 @@ cbindgen --config cbindgen.toml --crate epic-cash-wallet --output target/epic_ca
 
 # Copy the generated header file.
 cp target/epic_cash_wallet.h libepic_cash_wallet.h
-cp target/epic_cash_wallet.h ../../../../ios/Classes/FlutterLibepiccashPlugin.h
 
 # Find and merge librandomx.a with libepic_cash_wallet.a.
 RANDOMX_LIB=$(find target/aarch64-apple-ios/release/build -name "librandomx.a" | head -n 1)

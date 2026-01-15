@@ -18,9 +18,17 @@
 
 
 /**
- * Cancel a listener via FFI.
+ * Cancel and destroy a listener via FFI.
+ * This cancels the listener task and frees the associated handle memory.
  */
 const char *_listener_cancel(void *handler);
+
+/**
+ * Check if the listener is still running via FFI.
+ * Returns "true" if the listener is alive (task not completed), "false" if it has stopped.
+ * Returns "false" if the handler is null.
+ */
+const char *_listener_is_running(void *handler);
 
 /**
  * Get a new mnemonic.
@@ -85,6 +93,24 @@ const char *rust_recover_from_mnemonic(const char *config,
  * Cancel a transaction via FFI.
  */
 const char *rust_tx_cancel(const char *wallet, const char *tx_id);
+
+/**
+ * Finalize a slate via FFI.
+ *
+ * This is step 3 of the 3-part transaction process for slates/slatepacks.
+ * The original sender finalizes the transaction with the receiver's response
+ * and broadcasts it to the network.
+ */
+const char *rust_tx_finalize(const char *wallet, const char *slate_json);
+
+/**
+ * Receive a slate via FFI.
+ *
+ * This is step 2 of the 3-part transaction process for slates/slatepacks.
+ * The receiver opens an incoming slate, adds its output and partial signature,
+ * then returns the updated slate.
+ */
+const char *rust_tx_receive(const char *wallet, const char *slate_json);
 
 /**
  * Send a transaction via FFI.
