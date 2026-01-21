@@ -718,21 +718,23 @@ abstract class LibEpiccash {
     required String config,
     required String password,
   }) async {
-    try {
-      final result = await compute(
-        _openWalletWrapper,
-        (
-          config: config,
-          password: password,
-        ),
-      );
+    return await m.protect(() async {
+      try {
+        final result = await compute(
+          _openWalletWrapper,
+          (
+            config: config,
+            password: password,
+          ),
+        );
 
-      _checkForError(result);
+        _checkForError(result);
 
-      return result;
-    } catch (e) {
-      throw ("Error opening wallet : ${e.toString()}");
-    }
+        return result;
+      } catch (e) {
+        throw ("Error opening flutter_libepiccash wallet: ${e.toString()}");
+      }
+    });
   }
 
   ///
