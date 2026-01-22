@@ -7,13 +7,13 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 class MockFlutterLibepiccashPlatform
     with MockPlatformInterfaceMixin
     implements FlutterLibepiccashPlatform {
-
   @override
   Future<String?> getPlatformVersion() => Future.value('42');
 }
 
 void main() {
-  final FlutterLibepiccashPlatform initialPlatform = FlutterLibepiccashPlatform.instance;
+  final FlutterLibepiccashPlatform initialPlatform =
+      FlutterLibepiccashPlatform.instance;
 
   test('$MethodChannelFlutterLibepiccash is the default instance', () {
     expect(initialPlatform, isInstanceOf<MethodChannelFlutterLibepiccash>());
@@ -21,7 +21,8 @@ void main() {
 
   test('getPlatformVersion', () async {
     FlutterLibepiccash flutterLibepiccashPlugin = FlutterLibepiccash();
-    MockFlutterLibepiccashPlatform fakePlatform = MockFlutterLibepiccashPlatform();
+    MockFlutterLibepiccashPlatform fakePlatform =
+        MockFlutterLibepiccashPlatform();
     FlutterLibepiccashPlatform.instance = fakePlatform;
 
     expect(await flutterLibepiccashPlugin.getPlatformVersion(), '42');

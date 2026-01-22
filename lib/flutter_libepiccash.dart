@@ -1,4 +1,3 @@
-
 import 'flutter_libepiccash_platform_interface.dart';
 
 class FlutterLibepiccash {
