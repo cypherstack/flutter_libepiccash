@@ -62,44 +62,6 @@ abstract class LibEpiccash {
     }
   }
 
-  ///
-  /// Check if [address] is a valid epiccash address according to libepiccash
-  ///
-  static Future<bool> validateSendAddress({required String address}) async {
-    return await Isolate.run(() {
-      final String validate = lib_epiccash.validateSendAddress(address);
-      if (int.parse(validate) == 1) {
-        // Check if address contains a domain
-        if (address.contains("@")) {
-          return true;
-        }
-        return false;
-      } else {
-        return false;
-      }
-    });
-  }
-
-  ///
-  /// Fetch the mnemonic For a new wallet (Only used in the example app)
-  ///
-  // TODO: ensure the above documentation comment is correct
-  // TODO: ensure this will always return the mnemonic. If not, this function should throw an exception
-  //Function is used in _getMnemonicList()
-  static Future<String> getMnemonic() async {
-    return await Isolate.run(() {
-      try {
-        final String mnemonic = lib_epiccash.walletMnemonic();
-        if (mnemonic.isEmpty) {
-          throw Exception("Error getting mnemonic, returned empty string");
-        }
-        return mnemonic;
-      } catch (e) {
-        throw Exception(e.toString());
-      }
-    });
-  }
-
   // Private function wrapper for compute
   static Future<String> _initializeWalletWrapper(
     ({
@@ -118,11 +80,6 @@ abstract class LibEpiccash {
     return initWalletStr;
   }
 
-  ///
-  /// Create a new epiccash wallet.
-  ///
-  // TODO: Complete/modify the documentation comment above
-  // TODO: Should return a void future. On error this function should throw and exception
   static Future<String> initializeNewWallet({
     required String config,
     required String mnemonic,
@@ -147,9 +104,35 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function wrapper for wallet balances
-  ///
+  static Future<bool> validateSendAddress({required String address}) async {
+    return await Isolate.run(() {
+      final String validate = lib_epiccash.validateSendAddress(address);
+      if (int.parse(validate) == 1) {
+        // Check if address contains a domain
+        if (address.contains("@")) {
+          return true;
+        }
+        return false;
+      } else {
+        return false;
+      }
+    });
+  }
+
+  static Future<String> getMnemonic() async {
+    return await Isolate.run(() {
+      try {
+        final String mnemonic = lib_epiccash.walletMnemonic();
+        if (mnemonic.isEmpty) {
+          throw Exception("Error getting mnemonic, returned empty string");
+        }
+        return mnemonic;
+      } catch (e) {
+        throw Exception(e.toString());
+      }
+    });
+  }
+
   static Future<String> _walletBalancesWrapper(
     ({
       String wallet,
@@ -164,9 +147,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Get balance information for the currently open wallet
-  ///
   static Future<
       ({
         double awaitingFinalization,
@@ -210,9 +190,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function wrapper for scanning output function
-  ///
   static Future<String> _scanOutputsWrapper(
     ({
       String wallet,
@@ -227,9 +204,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Scan Epic outputs
-  ///
   static Future<int> scanOutputs({
     required String wallet,
     required int startHeight,
@@ -253,9 +227,6 @@ abstract class LibEpiccash {
     }
   }
 
-  ///
-  /// Private function wrapper for create transactions
-  ///
   static Future<String> _createTransactionWrapper(
     ({
       String wallet,
@@ -280,12 +251,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Create an Epic transaction
-  ///
-  /// When [returnSlate] is true, the slate is returned for manual exchange
-  /// (slates/slatepacks) instead of being sent via Epicbox.
-  ///
   static Future<({String slateId, String commitId, String slateJson})>
       createTransaction({
     required String wallet,
@@ -353,9 +318,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function wrapper for get transactions
-  ///
   static Future<String> _getTransactionsWrapper(
     ({
       String wallet,
@@ -368,9 +330,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  ///
-  ///
   static Future<List<Transaction>> getTransactions({
     required String wallet,
     required int refreshFromNode,
@@ -388,7 +347,7 @@ abstract class LibEpiccash {
           );
         }
 
-//Parse the returned data as an EpicTransaction
+        //Parse the returned data as an EpicTransaction
         final List<Transaction> finalResult = [];
         final jsonResult = json.decode(result) as List;
 
@@ -403,9 +362,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function for cancel transaction function
-  ///
   static Future<String> _cancelTransactionWrapper(
     ({
       String wallet,
@@ -418,9 +374,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Cancel current Epic transaction
-  ///
   /// returns an empty String on success, error message on failure
   static Future<String> cancelTransaction({
     required String wallet,
@@ -462,9 +415,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function for address info function
-  ///
   static Future<String> _addressInfoWrapper(
     ({
       String wallet,
@@ -479,9 +429,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// get Epic address info
-  ///
   static Future<String> getAddressInfo({
     required String wallet,
     required int index,
@@ -504,9 +451,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function for getting transaction fees
-  ///
   static Future<String> _transactionFeesWrapper(
     ({
       String wallet,
@@ -521,9 +465,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// get transaction fees for Epic
-  ///
   static Future<
       ({
         int fee,
@@ -593,9 +534,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function wrapper for recover wallet function
-  ///
   static Future<String> _recoverWalletWrapper(
     ({
       String config,
@@ -612,9 +550,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Recover an Epic wallet using a mnemonic
-  ///
   static Future<void> recoverWallet({
     required String config,
     required String password,
@@ -633,9 +568,6 @@ abstract class LibEpiccash {
     }
   }
 
-  ///
-  /// Private function wrapper for delete wallet function
-  ///
   static Future<String> _deleteWalletWrapper(
     ({
       String wallet,
@@ -648,9 +580,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Delete an Epic wallet
-  ///
   static Future<String> deleteWallet({
     required String wallet,
     required String config,
@@ -669,9 +598,6 @@ abstract class LibEpiccash {
     }
   }
 
-  ///
-  /// Private function wrapper for open wallet function
-  ///
   static Future<String> _openWalletWrapper(
     ({
       String config,
@@ -684,13 +610,9 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Open an Epic wallet
-  ///
-  /// NOTE: This function opens the wallet and returns the handle.
+  /// This function opens the wallet and returns the handle.
   /// The caller must then call EpicWalletIsolateManager.spawnForWallet()
   /// with the returned handle to create the wallet's dedicated isolate.
-  ///
   static Future<String> openWallet({
     required String config,
     required String password,
@@ -709,9 +631,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function for txHttpSend function
-  ///
   static Future<String> _txHttpSendWrapper(
     ({
       String wallet,
@@ -732,9 +651,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  ///
-  ///
   static Future<({String commitId, String slateId})> txHttpSend({
     required String wallet,
     required int selectionStrategyIsAll,
