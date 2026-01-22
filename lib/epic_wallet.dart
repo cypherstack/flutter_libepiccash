@@ -2,18 +2,18 @@ import 'dart:convert';
 
 import 'package:decimal/decimal.dart';
 
-import 'src/epic_worker.dart';
-import 'src/epic_task.dart';
 import 'models/balance_data.dart';
 import 'models/slate_response.dart';
 import 'models/transaction.dart';
+import 'src/epic_task.dart';
+import 'src/epic_worker.dart';
 import 'utils/epic_errors.dart';
 import 'utils/validation_helpers.dart';
 
 /// Epic wallet instance with persistent worker isolate
 ///
 /// Each wallet instance owns a dedicated worker isolate where all operations
-/// are executed. This ensures SQLite connection thread safety and should 
+/// are executed. This ensures SQLite connection thread safety and should
 /// prevent isolate-related crashes.
 class EpicWallet {
   EpicWallet._({
@@ -280,12 +280,13 @@ class EpicWallet {
     return BalanceData.fromJson(balancesJson);
   }
 
-  Future<({
-    double spendable,
-    double pending,
-    double total,
-    double awaitingFinalization,
-  })> getBalancesRecord({
+  Future<
+      ({
+        double spendable,
+        double pending,
+        double total,
+        double awaitingFinalization,
+      })> getBalancesRecord({
     int refreshFromNode = 1,
     int minimumConfirmations = 10,
   }) async {
@@ -383,11 +384,12 @@ class EpicWallet {
     return SlateResponse.fromResult(result);
   }
 
-  Future<({
-    String slateId,
-    String commitId,
-    String slateJson,
-  })> createTransactionRecord({
+  Future<
+      ({
+        String slateId,
+        String commitId,
+        String slateJson,
+      })> createTransactionRecord({
     required int amount,
     required String address,
     int secretKeyIndex = 0,
@@ -441,18 +443,21 @@ class EpicWallet {
     checkForError(balancesJson);
 
     final jsonBalances = parseJsonObject(balancesJson, 'transaction fees');
-    final available = _parseAmount(
+    final availableEpic = _parseAmount(
       jsonBalances['amount_currently_spendable'],
       'amount_currently_spendable',
     );
+
+    // Convert to sats
+    final available = (availableEpic * 100000000).toInt();
 
     if (available == 0 || amount > available) {
       final required = Decimal.parse(amount.toString());
       final availableDecimal = Decimal.parse(available.toString());
 
-      final largestSatoshiFee = ((required - availableDecimal) *
-              Decimal.fromInt(100000000))
-          .toBigInt();
+      final largestSatoshiFee =
+          ((required - availableDecimal) * Decimal.fromInt(100000000))
+              .toBigInt();
 
       final safeFee = bigIntToSafeInt(largestSatoshiFee, 'transaction fee');
 
@@ -473,12 +478,19 @@ class EpicWallet {
 
     checkForError(feesJson);
 
-    final fees = parseJsonObject(feesJson, 'transaction fees');
+    final feesArray = jsonDecode(feesJson);
+    if (feesArray is! List || feesArray.isEmpty) {
+      throw FormatException(
+          'Expected array from getTransactionFees, got ${feesArray.runtimeType}');
+    }
+
+    final fees = feesArray[0] as Map<String, dynamic>;
 
     return (
       fee: parseInt(fees['fee'], 'fee'),
-      strategyUseAll: parseBool(fees['amount'] == available, 'strategyUseAll'),
-      total: parseInt(fees['amount'], 'amount'),
+      strategyUseAll: parseBool(
+          fees['selection_strategy_is_use_all'] == true, 'strategyUseAll'),
+      total: parseInt(fees['total'], 'total'),
     );
   }
 
@@ -528,11 +540,12 @@ class EpicWallet {
     return SlateResponse.fromReceiveResult(result);
   }
 
-  Future<({
-    String slateId,
-    String commitId,
-    String slateJson,
-  })> txReceiveRecord({
+  Future<
+      ({
+        String slateId,
+        String commitId,
+        String slateJson,
+      })> txReceiveRecord({
     required String slateJson,
   }) async {
     final slate = await txReceive(slateJson: slateJson);
