@@ -49,9 +49,9 @@ class _MnemonicViewState extends State<MnemonicView> {
     }
   }
 
-  void _fetchMnemonic() {
+  Future<void> _fetchMnemonic() async {
     try {
-      final mnemonicValue = LibEpiccash.getMnemonic();
+      final mnemonicValue = await LibEpiccash.getMnemonic();
       setState(() {
         mnemonic = mnemonicValue;
       });

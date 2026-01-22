@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'dart:ffi';
+import 'dart:isolate';
 
 import 'package:decimal/decimal.dart';
-import 'package:flutter/foundation.dart';
 import 'package:mutex/mutex.dart';
 
 import 'epic_cash.dart' as lib_epiccash;
+import 'epic_wallet.dart';
 import 'models/transaction.dart';
+
+export 'epic_wallet.dart';
 
 class BadEpicHttpAddressException implements Exception {
   final String? message;
@@ -62,17 +65,19 @@ abstract class LibEpiccash {
   ///
   /// Check if [address] is a valid epiccash address according to libepiccash
   ///
-  static bool validateSendAddress({required String address}) {
-    final String validate = lib_epiccash.validateSendAddress(address);
-    if (int.parse(validate) == 1) {
-      // Check if address contains a domain
-      if (address.contains("@")) {
-        return true;
+  static Future<bool> validateSendAddress({required String address}) async {
+    return await Isolate.run(() {
+      final String validate = lib_epiccash.validateSendAddress(address);
+      if (int.parse(validate) == 1) {
+        // Check if address contains a domain
+        if (address.contains("@")) {
+          return true;
+        }
+        return false;
+      } else {
+        return false;
       }
-      return false;
-    } else {
-      return false;
-    }
+    });
   }
 
   ///
@@ -81,17 +86,18 @@ abstract class LibEpiccash {
   // TODO: ensure the above documentation comment is correct
   // TODO: ensure this will always return the mnemonic. If not, this function should throw an exception
   //Function is used in _getMnemonicList()
-  // wrap in mutex? -> would need to be Future<String>
-  static String getMnemonic() {
-    try {
-      final String mnemonic = lib_epiccash.walletMnemonic();
-      if (mnemonic.isEmpty) {
-        throw Exception("Error getting mnemonic, returned empty string");
+  static Future<String> getMnemonic() async {
+    return await Isolate.run(() {
+      try {
+        final String mnemonic = lib_epiccash.walletMnemonic();
+        if (mnemonic.isEmpty) {
+          throw Exception("Error getting mnemonic, returned empty string");
+        }
+        return mnemonic;
+      } catch (e) {
+        throw Exception(e.toString());
       }
-      return mnemonic;
-    } catch (e) {
-      throw Exception(e.toString());
-    }
+    });
   }
 
   // Private function wrapper for compute
@@ -125,14 +131,11 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _initializeWalletWrapper,
-          (
-            config: config,
-            mnemonic: mnemonic,
-            password: password,
-            name: name,
-          ),
+        final result = lib_epiccash.initWallet(
+          config,
+          mnemonic,
+          password,
+          name,
         );
 
         _checkForError(result);
@@ -177,13 +180,10 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final String balances = await compute(
-          _walletBalancesWrapper,
-          (
-            wallet: wallet,
-            refreshFromNode: refreshFromNode,
-            minimumConfirmations: minimumConfirmations,
-          ),
+        final balances = await lib_epiccash.getWalletInfo(
+          wallet,
+          refreshFromNode,
+          minimumConfirmations,
         );
 
         //If balances is valid json return, else return error
@@ -237,13 +237,10 @@ abstract class LibEpiccash {
   }) async {
     try {
       final result = await m.protect(() async {
-        return await compute(
-          _scanOutputsWrapper,
-          (
-            wallet: wallet,
-            startHeight: startHeight,
-            numberOfBlocks: numberOfBlocks,
-          ),
+        return await lib_epiccash.scanOutPuts(
+          wallet,
+          startHeight,
+          numberOfBlocks,
         );
       });
       final response = int.tryParse(result);
@@ -302,18 +299,15 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final String result = await compute(
-          _createTransactionWrapper,
-          (
-            wallet: wallet,
-            amount: amount,
-            address: address,
-            secretKeyIndex: secretKeyIndex,
-            epicboxConfig: epicboxConfig,
-            minimumConfirmations: minimumConfirmations,
-            note: note,
-            returnSlate: returnSlate,
-          ),
+        final String result = await lib_epiccash.createTransaction(
+          wallet,
+          amount,
+          address,
+          secretKeyIndex,
+          epicboxConfig,
+          minimumConfirmations,
+          note,
+          returnSlate: returnSlate,
         );
 
         if (result.toUpperCase().contains("ERROR")) {
@@ -383,12 +377,9 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _getTransactionsWrapper,
-          (
-            wallet: wallet,
-            refreshFromNode: refreshFromNode,
-          ),
+        final result = await lib_epiccash.getTransactions(
+          wallet,
+          refreshFromNode,
         );
 
         if (result.toUpperCase().contains("ERROR")) {
@@ -437,12 +428,9 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _cancelTransactionWrapper,
-          (
-            wallet: wallet,
-            transactionId: transactionId,
-          ),
+        final result = lib_epiccash.cancelTransaction(
+          wallet,
+          transactionId,
         );
 
         _checkForError(result);
@@ -465,11 +453,11 @@ abstract class LibEpiccash {
   static Future<int> getChainHeight({
     required String config,
   }) async {
-    return await m.protect(() async {
+    return await Isolate.run(() {
       try {
-        return await compute(_chainHeightWrapper, (config: config,));
+        return lib_epiccash.getChainHeight(config);
       } catch (e) {
-        throw ("Error getting chain height : ${e.toString()}");
+        throw Exception("Error getting chain height : ${e.toString()}");
       }
     });
   }
@@ -501,13 +489,10 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _addressInfoWrapper,
-          (
-            wallet: wallet,
-            index: index,
-            epicboxConfig: epicboxConfig,
-          ),
+        final result = lib_epiccash.getAddressInfo(
+          wallet,
+          index,
+          epicboxConfig,
         );
 
         _checkForError(result);
@@ -552,13 +537,10 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        String fees = await compute(
-          _transactionFeesWrapper,
-          (
-            wallet: wallet,
-            amount: amount,
-            minimumConfirmations: minimumConfirmations,
-          ),
+        String fees = await lib_epiccash.getTransactionFees(
+          wallet,
+          amount,
+          minimumConfirmations,
         );
 
         if (available == amount) {
@@ -580,13 +562,10 @@ abstract class LibEpiccash {
                     .toInt();
             final amountSending = amount - largestSatoshiFee;
             //Get fees for this new amount
-            fees = await compute(
-              _transactionFeesWrapper,
-              (
-                wallet: wallet,
-                amount: amountSending,
-                minimumConfirmations: minimumConfirmations,
-              ),
+            fees = await lib_epiccash.getTransactionFees(
+              wallet,
+              amountSending,
+              minimumConfirmations,
             );
           }
         }
@@ -643,14 +622,11 @@ abstract class LibEpiccash {
     required String name,
   }) async {
     try {
-      await compute(
-        _recoverWalletWrapper,
-        (
-          config: config,
-          password: password,
-          mnemonic: mnemonic,
-          name: name,
-        ),
+      lib_epiccash.recoverWallet(
+        config,
+        password,
+        mnemonic,
+        name,
       );
     } catch (e) {
       throw (e.toString());
@@ -680,12 +656,9 @@ abstract class LibEpiccash {
     required String config,
   }) async {
     try {
-      final result = await compute(
-        _deleteWalletWrapper,
-        (
-          wallet: wallet,
-          config: config,
-        ),
+      final result = await lib_epiccash.deleteWallet(
+        wallet,
+        config,
       );
 
       _checkForError(result);
@@ -714,19 +687,18 @@ abstract class LibEpiccash {
   ///
   /// Open an Epic wallet
   ///
+  /// NOTE: This function opens the wallet and returns the handle.
+  /// The caller must then call EpicWalletIsolateManager.spawnForWallet()
+  /// with the returned handle to create the wallet's dedicated isolate.
+  ///
   static Future<String> openWallet({
     required String config,
     required String password,
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _openWalletWrapper,
-          (
-            config: config,
-            password: password,
-          ),
-        );
+        // Call directly (without compute(): on main thread)
+        final result = lib_epiccash.openWallet(config, password);
 
         _checkForError(result);
 
@@ -772,16 +744,13 @@ abstract class LibEpiccash {
     required String address,
   }) async {
     try {
-      final result = await compute(
-        _txHttpSendWrapper,
-        (
-          wallet: wallet,
-          selectionStrategyIsAll: selectionStrategyIsAll,
-          minimumConfirmations: minimumConfirmations,
-          message: message,
-          amount: amount,
-          address: address,
-        ),
+      final result = await lib_epiccash.txHttpSend(
+        wallet,
+        selectionStrategyIsAll,
+        minimumConfirmations,
+        message,
+        amount,
+        address,
       );
       if (result.toUpperCase().contains("ERROR")) {
         throw Exception("Error creating transaction ${result.toString()}");
@@ -903,12 +872,9 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final String result = await compute(
-          _txReceiveWrapper,
-          (
-            wallet: wallet,
-            slateJson: slateJson,
-          ),
+        final String result = lib_epiccash.txReceive(
+          wallet,
+          slateJson,
         );
 
         if (result.toUpperCase().contains("ERROR")) {
@@ -963,12 +929,9 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final String result = await compute(
-          _txFinalizeWrapper,
-          (
-            wallet: wallet,
-            slateJson: slateJson,
-          ),
+        final String result = lib_epiccash.txFinalize(
+          wallet,
+          slateJson,
         );
 
         if (result.toUpperCase().contains("ERROR")) {
