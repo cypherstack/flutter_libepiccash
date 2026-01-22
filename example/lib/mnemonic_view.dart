@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash/lib.dart';
+import 'package:flutter_libepiccash/epic_wallet.dart' as epic;
 import 'package:flutter_libepiccash_example/wallet_info_view.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -146,14 +147,19 @@ class _MnemonicViewState extends State<MnemonicView> {
 
     try {
       String config = await EpicboxConfig.getDefaultConfig(widget.name);
+      String epicboxConfig = EpicboxConfig.getEpicboxServerConfig();
 
       // Initialize the wallet
-      await LibEpiccash.initializeNewWallet(
+      final wallet = await epic.EpicWallet.create(
         config: config,
         mnemonic: mnemonic,
         password: _passwordController.text,
         name: widget.name,
+        epicboxConfig: epicboxConfig,
       );
+
+      // Close it immediately since WalletInfoView will reopen it
+      await wallet.close();
 
       // Add a small delay to ensure wallet creation is complete
       await Future.delayed(const Duration(milliseconds: 500));

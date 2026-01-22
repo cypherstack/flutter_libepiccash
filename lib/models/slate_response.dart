@@ -13,17 +13,69 @@ class SlateResponse {
     required this.slateJson,
   });
 
+  // Epic FFI txReceive returns: result -> slate0[0] -> parsedSlate (Map)
+  factory SlateResponse.fromReceiveResult(String result) {
+    try {
+      final slate0 = jsonDecode(result);
+      if (slate0 is! List || slate0.isEmpty) {
+        throw FormatException(
+            'Expected array at top level, got ${slate0.runtimeType}');
+      }
+
+      final slateResponse = slate0[0] as String;
+      final parsedSlate = jsonDecode(slateResponse);
+
+      if (parsedSlate is! Map) {
+        throw FormatException(
+            'Expected Map for slate, got ${parsedSlate.runtimeType}');
+      }
+
+      final slateId = parsedSlate['id'] as String;
+      final List<dynamic>? outputs =
+          parsedSlate['tx']?['body']?['outputs'] as List?;
+      final commitId = (outputs == null || outputs.isEmpty)
+          ? ''
+          : outputs[0]['commit'] as String;
+
+      return SlateResponse(
+        slateId: slateId,
+        commitId: commitId,
+        slateJson: slateResponse,
+      );
+    } on FormatException catch (e, s) {
+      throw EpicParseException(
+        'Failed to parse receive slate response: ${e.message}',
+        rawData: result,
+        stackTrace: s,
+      );
+    } on TypeError catch (e, s) {
+      throw EpicParseException(
+        'Type error parsing receive slate response: $e',
+        rawData: result,
+        stackTrace: s,
+      );
+    } catch (e, s) {
+      throw EpicParseException(
+        'Unexpected error parsing receive slate response: $e',
+        rawData: result,
+        stackTrace: s,
+      );
+    }
+  }
+
   // Epic FFI returns: result -> slate0[0] -> slate[0,1] -> part1, part2
   factory SlateResponse.fromResult(String result) {
     try {
       final slate0 = jsonDecode(result);
       if (slate0 is! List || slate0.isEmpty) {
-        throw FormatException('Expected array at top level, got ${slate0.runtimeType}');
+        throw FormatException(
+            'Expected array at top level, got ${slate0.runtimeType}');
       }
 
       final slate = jsonDecode(slate0[0] as String);
       if (slate is! List || slate.length < 2) {
-        throw FormatException('Expected array with 2 elements, got ${slate.runtimeType}');
+        throw FormatException(
+            'Expected array with 2 elements, got ${slate.runtimeType}');
       }
 
       final part1 = jsonDecode(slate[0] as String);
@@ -100,7 +152,8 @@ class SlateResponse {
 
     final firstOutput = outputs[0];
     if (firstOutput is! Map) {
-      throw FormatException('First output is not a Map: ${firstOutput.runtimeType}');
+      throw FormatException(
+          'First output is not a Map: ${firstOutput.runtimeType}');
     }
 
     final commit = firstOutput['commit'];

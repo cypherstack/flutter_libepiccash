@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_libepiccash/lib.dart';
+import 'package:flutter_libepiccash/epic_wallet.dart' as epic;
 
 /// View for manual slate (slatepack) transactions.
 ///
@@ -11,7 +11,7 @@ import 'package:flutter_libepiccash/lib.dart';
 class SlateTransactionView extends StatefulWidget {
   final String walletName;
   final String password;
-  final String wallet;
+  final epic.EpicWallet wallet;
   final String epicboxConfig;
 
   const SlateTransactionView({
@@ -77,7 +77,7 @@ class _SlateTransactionViewState extends State<SlateTransactionView>
 
 /// Tab for creating a new slate (Step 1 - Sender).
 class _CreateSlateTab extends StatefulWidget {
-  final String wallet;
+  final epic.EpicWallet wallet;
   final String epicboxConfig;
 
   const _CreateSlateTab({
@@ -124,13 +124,11 @@ class _CreateSlateTabState extends State<_CreateSlateTab> {
       final amountEpic = double.parse(amountStr);
       final amountSatoshis = (amountEpic * 100000000).toInt();
 
-      final result = await LibEpiccash.createTransaction(
-        wallet: widget.wallet,
+      final result = await widget.wallet.createTransaction(
         amount: amountSatoshis,
         // Address is not used in slate mode, but we need to pass something.
         address: 'slate',
         secretKeyIndex: 0,
-        epicboxConfig: widget.epicboxConfig,
         minimumConfirmations: 10,
         note: note,
         returnSlate: true, // This is the key flag for slate mode.
@@ -297,7 +295,7 @@ class _CreateSlateTabState extends State<_CreateSlateTab> {
 
 /// Tab for receiving a slate (Step 2 - Receiver).
 class _ReceiveSlateTab extends StatefulWidget {
-  final String wallet;
+  final epic.EpicWallet wallet;
 
   const _ReceiveSlateTab({
     required this.wallet,
@@ -338,8 +336,7 @@ class _ReceiveSlateTabState extends State<_ReceiveSlateTab> {
     });
 
     try {
-      final result = await LibEpiccash.txReceive(
-        wallet: widget.wallet,
+      final result = await widget.wallet.txReceive(
         slateJson: slateJson,
       );
 
@@ -499,7 +496,7 @@ class _ReceiveSlateTabState extends State<_ReceiveSlateTab> {
 
 /// Tab for finalizing a slate (Step 3 - Sender).
 class _FinalizeSlateTab extends StatefulWidget {
-  final String wallet;
+  final epic.EpicWallet wallet;
 
   const _FinalizeSlateTab({
     required this.wallet,
@@ -540,8 +537,7 @@ class _FinalizeSlateTabState extends State<_FinalizeSlateTab> {
     });
 
     try {
-      final result = await LibEpiccash.txFinalize(
-        wallet: widget.wallet,
+      final result = await widget.wallet.txFinalize(
         slateJson: slateJson,
       );
 

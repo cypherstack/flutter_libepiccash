@@ -1,21 +1,38 @@
 import 'dart:convert';
-import 'dart:isolate';
 
 import 'package:decimal/decimal.dart';
 
-import 'epic_cash.dart' as epic_ffi;
+import 'src/epic_worker.dart';
+import 'src/epic_task.dart';
 import 'models/balance_data.dart';
 import 'models/slate_response.dart';
 import 'models/transaction.dart';
 import 'utils/epic_errors.dart';
 import 'utils/validation_helpers.dart';
 
+/// Epic wallet instance with persistent worker isolate
+///
+/// Each wallet instance owns a dedicated worker isolate where all operations
+/// are executed. This ensures SQLite connection thread safety and should 
+/// prevent isolate-related crashes.
 class EpicWallet {
-  String? _walletHandle;
-  final String _config;
-  bool _isClosing = false;
+  EpicWallet._({
+    required String walletHandle,
+    required EpicWorker worker,
+    required String config,
+    required String epicboxConfig,
+  })  : _walletHandle = walletHandle,
+        _worker = worker,
+        _config = config,
+        _epicboxConfig = epicboxConfig;
 
-  EpicWallet._(this._walletHandle, this._config);
+  final EpicWorker _worker;
+  final String _config;
+  final String _epicboxConfig;
+
+  String? _walletHandle;
+  int? _listenerPointerAddress;
+  bool _isClosing = false;
 
   String _getWalletHandle() {
     if (_walletHandle == null) {
@@ -26,26 +43,91 @@ class EpicWallet {
 
   bool isClosed() => _walletHandle == null;
 
+  Future<void> startListeners() async {
+    await stopListeners();
+
+    _listenerPointerAddress = await _worker.runTask<int>(
+      EpicTask(
+        func: EpicFuncName.startEpicboxListener,
+        args: {
+          "wallet": _getWalletHandle(),
+          "epicboxConfig": _epicboxConfig,
+        },
+      ),
+    );
+  }
+
+  Future<void> stopListeners() async {
+    if (_listenerPointerAddress != null) {
+      await _worker.runTask<void>(
+        EpicTask(
+          func: EpicFuncName.stopEpicboxListener,
+          args: {
+            "pointer": _listenerPointerAddress!,
+          },
+        ),
+      );
+      _listenerPointerAddress = null;
+    }
+  }
+
+  Future<bool> isEpicboxListenerRunning() async {
+    if (_listenerPointerAddress == null) {
+      return false;
+    }
+
+    return await _worker.runTask<bool>(
+      EpicTask(
+        func: EpicFuncName.isEpicboxListenerRunning,
+        args: {
+          "pointer": _listenerPointerAddress!,
+        },
+      ),
+    );
+  }
+
   static Future<EpicWallet> create({
     required String config,
     required String mnemonic,
     required String password,
     required String name,
+    required String epicboxConfig,
   }) async {
     try {
-      final result = await Isolate.run(() {
-        return epic_ffi.initWallet(config, mnemonic, password, name);
-      });
+      final worker = await EpicWorker.spawn();
 
-      checkForError(result);
+      final initResult = await worker.runTask<String>(
+        EpicTask(
+          func: EpicFuncName.initWallet,
+          args: {
+            "config": config,
+            "mnemonic": mnemonic,
+            "password": password,
+            "name": name,
+          },
+        ),
+      );
 
-      final walletHandle = await Isolate.run(() {
-        return epic_ffi.openWallet(config, password);
-      });
+      checkForError(initResult);
+
+      final walletHandle = await worker.runTask<String>(
+        EpicTask(
+          func: EpicFuncName.openWallet,
+          args: {
+            "config": config,
+            "password": password,
+          },
+        ),
+      );
 
       checkForError(walletHandle);
 
-      return EpicWallet._(walletHandle, config);
+      return EpicWallet._(
+        walletHandle: walletHandle,
+        worker: worker,
+        config: config,
+        epicboxConfig: epicboxConfig,
+      );
     } catch (e, s) {
       if (e is EpicWalletException) {
         rethrow;
@@ -60,15 +142,29 @@ class EpicWallet {
   static Future<EpicWallet> load({
     required String config,
     required String password,
+    required String epicboxConfig,
   }) async {
     try {
-      final walletHandle = await Isolate.run(() {
-        return epic_ffi.openWallet(config, password);
-      });
+      final worker = await EpicWorker.spawn();
+
+      final walletHandle = await worker.runTask<String>(
+        EpicTask(
+          func: EpicFuncName.openWallet,
+          args: {
+            "config": config,
+            "password": password,
+          },
+        ),
+      );
 
       checkForError(walletHandle);
 
-      return EpicWallet._(walletHandle, config);
+      return EpicWallet._(
+        walletHandle: walletHandle,
+        worker: worker,
+        config: config,
+        epicboxConfig: epicboxConfig,
+      );
     } catch (e, s) {
       if (e is EpicWalletException) {
         rethrow;
@@ -85,21 +181,44 @@ class EpicWallet {
     required String password,
     required String mnemonic,
     required String name,
+    required String epicboxConfig,
   }) async {
     try {
-      final result = await Isolate.run(() {
-        return epic_ffi.recoverWallet(config, password, mnemonic, name);
-      });
+      final worker = await EpicWorker.spawn();
 
-      checkForError(result);
+      final recoverResult = await worker.runTask<String>(
+        EpicTask(
+          func: EpicFuncName.recoverWallet,
+          args: {
+            "config": config,
+            "password": password,
+            "mnemonic": mnemonic,
+            "name": name,
+          },
+        ),
+      );
 
-      final walletHandle = await Isolate.run(() {
-        return epic_ffi.openWallet(config, password);
-      });
+      checkForError(recoverResult);
+
+      // Open wallet
+      final walletHandle = await worker.runTask<String>(
+        EpicTask(
+          func: EpicFuncName.openWallet,
+          args: {
+            "config": config,
+            "password": password,
+          },
+        ),
+      );
 
       checkForError(walletHandle);
 
-      return EpicWallet._(walletHandle, config);
+      return EpicWallet._(
+        walletHandle: walletHandle,
+        worker: worker,
+        config: config,
+        epicboxConfig: epicboxConfig,
+      );
     } catch (e, s) {
       if (e is EpicWalletException) {
         rethrow;
@@ -111,19 +230,50 @@ class EpicWallet {
     }
   }
 
+  static Future<String> getMnemonic() async {
+    final worker = await EpicWorker.spawn();
+    try {
+      return await worker.runTask<String>(
+        EpicTask(func: EpicFuncName.getMnemonic),
+      );
+    } finally {
+      worker.dispose();
+    }
+  }
+
+  static Future<bool> validateSendAddress({required String address}) async {
+    final worker = await EpicWorker.spawn();
+    try {
+      final result = await worker.runTask<int>(
+        EpicTask(
+          func: EpicFuncName.validateSendAddress,
+          args: {"address": address},
+        ),
+      );
+
+      if (result == 1) {
+        return address.contains("@");
+      }
+      return false;
+    } finally {
+      worker.dispose();
+    }
+  }
+
   Future<BalanceData> getBalances({
     int refreshFromNode = 1,
     int minimumConfirmations = 10,
   }) async {
-    final handle = _getWalletHandle();
-
-    final balancesJson = await Isolate.run(() {
-      return epic_ffi.getWalletInfo(
-        handle,
-        refreshFromNode,
-        minimumConfirmations,
-      );
-    });
+    final balancesJson = await _worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.getWalletInfo,
+        args: {
+          "wallet": _getWalletHandle(),
+          "refreshFromNode": refreshFromNode,
+          "minimumConfirmations": minimumConfirmations,
+        },
+      ),
+    );
 
     checkForError(balancesJson);
 
@@ -150,11 +300,16 @@ class EpicWallet {
     required int startHeight,
     required int numberOfBlocks,
   }) async {
-    final handle = _getWalletHandle();
-
-    final result = await Isolate.run(() {
-      return epic_ffi.scanOutPuts(handle, startHeight, numberOfBlocks);
-    });
+    final result = await _worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.scanOutputs,
+        args: {
+          "wallet": _getWalletHandle(),
+          "startHeight": startHeight,
+          "numberOfBlocks": numberOfBlocks,
+        },
+      ),
+    );
 
     checkForError(result);
 
@@ -164,11 +319,15 @@ class EpicWallet {
   Future<List<Transaction>> getTransactions({
     int refreshFromNode = 1,
   }) async {
-    final handle = _getWalletHandle();
-
-    final txListJson = await Isolate.run(() {
-      return epic_ffi.getTransactions(handle, refreshFromNode);
-    });
+    final txListJson = await _worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.getTransactions,
+        args: {
+          "wallet": _getWalletHandle(),
+          "refreshFromNode": refreshFromNode,
+        },
+      ),
+    );
 
     checkForError(txListJson);
 
@@ -178,13 +337,17 @@ class EpicWallet {
 
   Future<String> getAddressInfo({
     int index = 0,
-    required String epicboxConfig,
   }) async {
-    final handle = _getWalletHandle();
-
-    final address = await Isolate.run(() {
-      return epic_ffi.getAddressInfo(handle, index, epicboxConfig);
-    });
+    final address = await _worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.getAddressInfo,
+        args: {
+          "wallet": _getWalletHandle(),
+          "index": index,
+          "epicboxConfig": _epicboxConfig,
+        },
+      ),
+    );
 
     checkForError(address);
 
@@ -195,25 +358,25 @@ class EpicWallet {
     required int amount,
     required String address,
     int secretKeyIndex = 0,
-    required String epicboxConfig,
     int minimumConfirmations = 10,
     String note = "",
     bool returnSlate = false,
   }) async {
-    final handle = _getWalletHandle();
-
-    final result = await Isolate.run(() {
-      return epic_ffi.createTransaction(
-        handle,
-        amount,
-        address,
-        secretKeyIndex,
-        epicboxConfig,
-        minimumConfirmations,
-        note,
-        returnSlate: returnSlate,
-      );
-    });
+    final result = await _worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.createTransaction,
+        args: {
+          "wallet": _getWalletHandle(),
+          "amount": amount,
+          "address": address,
+          "secretKeyIndex": secretKeyIndex,
+          "epicboxConfig": _epicboxConfig,
+          "minimumConfirmations": minimumConfirmations,
+          "note": note,
+          "returnSlate": returnSlate,
+        },
+      ),
+    );
 
     checkForError(result);
 
@@ -228,7 +391,6 @@ class EpicWallet {
     required int amount,
     required String address,
     int secretKeyIndex = 0,
-    required String epicboxConfig,
     int minimumConfirmations = 10,
     String note = "",
   }) async {
@@ -236,7 +398,6 @@ class EpicWallet {
       amount: amount,
       address: address,
       secretKeyIndex: secretKeyIndex,
-      epicboxConfig: epicboxConfig,
       minimumConfirmations: minimumConfirmations,
       note: note,
     );
@@ -246,11 +407,15 @@ class EpicWallet {
   Future<String> cancelTransaction({
     required String transactionId,
   }) async {
-    final handle = _getWalletHandle();
-
-    final result = await Isolate.run(() {
-      return epic_ffi.cancelTransaction(handle, transactionId);
-    });
+    final result = await _worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.cancelTransaction,
+        args: {
+          "wallet": _getWalletHandle(),
+          "transactionId": transactionId,
+        },
+      ),
+    );
 
     checkForError(result);
 
@@ -261,11 +426,17 @@ class EpicWallet {
     required int amount,
     required int minimumConfirmations,
   }) async {
-    final handle = _getWalletHandle();
-
-    final balancesJson = await Isolate.run(() {
-      return epic_ffi.getWalletInfo(handle, 1, minimumConfirmations);
-    });
+    // Get available balance
+    final balancesJson = await _worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.getWalletInfo,
+        args: {
+          "wallet": _getWalletHandle(),
+          "refreshFromNode": 1,
+          "minimumConfirmations": minimumConfirmations,
+        },
+      ),
+    );
 
     checkForError(balancesJson);
 
@@ -288,9 +459,17 @@ class EpicWallet {
       return (fee: safeFee, strategyUseAll: false, total: amount);
     }
 
-    final feesJson = await Isolate.run(() {
-      return epic_ffi.getTransactionFees(handle, amount, minimumConfirmations);
-    });
+    // Get actual fees
+    final feesJson = await _worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.getTransactionFees,
+        args: {
+          "wallet": _getWalletHandle(),
+          "amount": amount,
+          "minimumConfirmations": minimumConfirmations,
+        },
+      ),
+    );
 
     checkForError(feesJson);
 
@@ -310,18 +489,19 @@ class EpicWallet {
     required int amount,
     required String address,
   }) async {
-    final handle = _getWalletHandle();
-
-    final result = await Isolate.run(() {
-      return epic_ffi.txHttpSend(
-        handle,
-        selectionStrategyIsAll,
-        minimumConfirmations,
-        message,
-        amount,
-        address,
-      );
-    });
+    final result = await _worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.txHttpSend,
+        args: {
+          "wallet": _getWalletHandle(),
+          "selectionStrategyIsAll": selectionStrategyIsAll,
+          "minimumConfirmations": minimumConfirmations,
+          "message": message,
+          "amount": amount,
+          "address": address,
+        },
+      ),
+    );
 
     checkForError(result);
 
@@ -333,15 +513,19 @@ class EpicWallet {
   Future<SlateResponse> txReceive({
     required String slateJson,
   }) async {
-    final handle = _getWalletHandle();
-
-    final result = await Isolate.run(() {
-      return epic_ffi.txReceive(handle, slateJson);
-    });
+    final result = await _worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.txReceive,
+        args: {
+          "wallet": _getWalletHandle(),
+          "slateJson": slateJson,
+        },
+      ),
+    );
 
     checkForError(result);
 
-    return SlateResponse.fromResult(result);
+    return SlateResponse.fromReceiveResult(result);
   }
 
   Future<({
@@ -355,18 +539,23 @@ class EpicWallet {
     return slate.toRecord();
   }
 
+  /// Finalize a slate
   Future<SlateResponse> txFinalize({
     required String slateJson,
   }) async {
-    final handle = _getWalletHandle();
-
-    final result = await Isolate.run(() {
-      return epic_ffi.txFinalize(handle, slateJson);
-    });
+    final result = await _worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.txFinalize,
+        args: {
+          "wallet": _getWalletHandle(),
+          "slateJson": slateJson,
+        },
+      ),
+    );
 
     checkForError(result);
 
-    return SlateResponse.fromResult(result);
+    return SlateResponse.fromReceiveResult(result);
   }
 
   Future<({String slateId, String commitId})> txFinalizeRecord({
@@ -377,27 +566,36 @@ class EpicWallet {
   }
 
   Future<int> getChainHeight() async {
-    return await Isolate.run(() {
-      return epic_ffi.getChainHeight(_config);
-    });
+    return await _worker.runTask<int>(
+      EpicTask(
+        func: EpicFuncName.getChainHeight,
+        args: {
+          "config": _config,
+        },
+      ),
+    );
   }
 
-
+  /// Get wallet handle (for compatibility)
   String get handle => _getWalletHandle();
 
+  /// Close the wallet and cleanup resources
   Future<void> close({bool save = false}) async {
     if (_walletHandle == null || _isClosing) return;
     _isClosing = true;
 
     try {
-      final handle = _walletHandle!;
+      // Stop listeners first
+      await stopListeners();
+
+      // Clear wallet handle
       _walletHandle = null;
 
+      // Dispose worker (kills isolate)
+      _worker.dispose();
+
       // Note: Epic FFI may not have a closeWallet function
-      // If it does, uncomment and use:
-      // await Isolate.run(() {
-      //   epic_ffi.closeWallet(handle, save);
-      // });
+      // If it does, you would call it through the worker before disposal
     } finally {
       _isClosing = false;
     }
@@ -406,7 +604,6 @@ class EpicWallet {
   void dispose() {
     close();
   }
-
 
   static double _parseAmount(dynamic value, String fieldName) {
     if (value == null) {

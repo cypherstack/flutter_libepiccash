@@ -1,5 +1,7 @@
 export 'lib.dart';
 export 'epic_wallet.dart';
+export 'src/epic_worker.dart';
+export 'src/epic_task.dart';
 export 'models/balance_data.dart';
 export 'models/slate_response.dart';
 export 'models/transaction.dart';

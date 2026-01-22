@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_libepiccash/lib.dart';
+import 'package:flutter_libepiccash/epic_wallet.dart' as epic;
 import 'package:flutter_libepiccash_example/send_transaction_view.dart';
 import 'package:flutter_libepiccash_example/slate_transaction_view.dart';
 import 'package:flutter_libepiccash_example/transaction_view.dart';
@@ -29,7 +30,7 @@ class _WalletInfoViewState extends State<WalletInfoView>
   String _resultMessage = "";
   bool _isLoading = false;
   String? _walletConfig;
-  String? _wallet;
+  epic.EpicWallet? _wallet;
   String? _epicboxConfig;
   bool _listenerRunning = false;
 
@@ -59,6 +60,7 @@ class _WalletInfoViewState extends State<WalletInfoView>
   void dispose() {
     _listenerHealthTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    _wallet?.close();
     // Note: We do NOT stop the listener here - it keeps running when navigating away.
     // The listener is only stopped on app close (see didChangeAppLifecycleState).
     super.dispose();
@@ -102,9 +104,10 @@ class _WalletInfoViewState extends State<WalletInfoView>
     try {
       final config = await EpicboxConfig.getDefaultConfig(widget.walletName);
       final epicboxConfig = EpicboxConfig.getEpicboxServerConfig();
-      final wallet = await LibEpiccash.openWallet(
+      final wallet = await epic.EpicWallet.load(
         config: config,
         password: widget.password,
+        epicboxConfig: epicboxConfig,
       );
 
       // Load last scanned block from storage.
@@ -159,8 +162,7 @@ class _WalletInfoViewState extends State<WalletInfoView>
     });
 
     try {
-      final balances = await LibEpiccash.getWalletBalances(
-        wallet: _wallet!,
+      final balances = await _wallet!.getBalances(
         refreshFromNode: 1,
         minimumConfirmations: 10,
       );
@@ -215,7 +217,7 @@ class _WalletInfoViewState extends State<WalletInfoView>
     try {
       LibEpiccash.startEpicboxListener(
         walletId: widget.walletName,
-        wallet: _wallet!,
+        wallet: _wallet!.handle,
         epicboxConfig: _epicboxConfig!,
       );
 
@@ -322,8 +324,7 @@ class _WalletInfoViewState extends State<WalletInfoView>
           _resultMessage = "Scanning blocks $startHeight to ${startHeight + blocksToScan}...";
         });
 
-        final int scannedHeight = await LibEpiccash.scanOutputs(
-          wallet: _wallet!,
+        final int scannedHeight = await _wallet!.scanOutputs(
           startHeight: startHeight,
           numberOfBlocks: blocksToScan,
         );
@@ -782,10 +783,8 @@ class _WalletInfoViewState extends State<WalletInfoView>
     }
 
     try {
-      final address = await LibEpiccash.getAddressInfo(
-        wallet: _wallet!,
+      final address = await _wallet!.getAddressInfo(
         index: 0,
-        epicboxConfig: _epicboxConfig!,
       );
       return address;
     } catch (e) {

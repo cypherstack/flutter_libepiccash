@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_libepiccash/lib.dart';
+import 'package:flutter_libepiccash/epic_wallet.dart' as epic;
 import 'package:flutter_libepiccash_example/wallet_info_view.dart';
 import 'package:flutter_libepiccash_example/wallet_state_manager.dart';
 
@@ -180,12 +181,17 @@ class _RecoverWalletViewState extends State<RecoverWalletView> {
       await WalletStateManager.saveLastScannedBlock(widget.name, startHeight);
 
       try {
-        await LibEpiccash.recoverWallet(
+        final epicboxConfig = EpicboxConfig.getEpicboxServerConfig();
+        final wallet = await epic.EpicWallet.recover(
           config: config,
-          mnemonic: _mnemonicController.text.trim(),
           password: _passwordController.text,
+          mnemonic: _mnemonicController.text.trim(),
           name: widget.name,
+          epicboxConfig: epicboxConfig,
         );
+
+        // Close it immediately since WalletInfoView will reopen it
+        await wallet.close();
       } catch (e) {
         // Clear saved state on failure.
         await WalletStateManager.clearWalletState(widget.name);
