@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:ffi';
-import 'dart:isolate';
 
 import 'package:decimal/decimal.dart';
 import 'package:mutex/mutex.dart';
@@ -105,32 +104,11 @@ abstract class LibEpiccash {
   }
 
   static Future<bool> validateSendAddress({required String address}) async {
-    return await Isolate.run(() {
-      final String validate = lib_epiccash.validateSendAddress(address);
-      if (int.parse(validate) == 1) {
-        // Check if address contains a domain
-        if (address.contains("@")) {
-          return true;
-        }
-        return false;
-      } else {
-        return false;
-      }
-    });
+    return EpicWallet.validateSendAddress(address: address);
   }
 
   static Future<String> getMnemonic() async {
-    return await Isolate.run(() {
-      try {
-        final String mnemonic = lib_epiccash.walletMnemonic();
-        if (mnemonic.isEmpty) {
-          throw Exception("Error getting mnemonic, returned empty string");
-        }
-        return mnemonic;
-      } catch (e) {
-        throw Exception(e.toString());
-      }
-    });
+    return EpicWallet.getMnemonic();
   }
 
   static Future<String> _walletBalancesWrapper(
@@ -288,15 +266,19 @@ abstract class LibEpiccash {
         final part2 = jsonDecode(slate[1] as String);
 
         // Get commit ID from outputs if available.
-        final List<dynamic>? outputs = part2['tx']?['body']?['outputs'] as List?;
-        final commitId =
-            (outputs == null || outputs.isEmpty) ? '' : outputs[0]['commit'] as String;
+        final List<dynamic>? outputs =
+            part2['tx']?['body']?['outputs'] as List?;
+        final commitId = (outputs == null || outputs.isEmpty)
+            ? ''
+            : outputs[0]['commit'] as String;
 
         // Get slate ID - prefer from the slate itself, fall back to tx entries.
         String slateId;
         if (part2['id'] != null) {
           slateId = part2['id'] as String;
-        } else if (part1 is List && part1.isNotEmpty && part1[0]['tx_slate_id'] != null) {
+        } else if (part1 is List &&
+            part1.isNotEmpty &&
+            part1[0]['tx_slate_id'] != null) {
           slateId = part1[0]['tx_slate_id'] as String;
         } else {
           throw Exception("Could not find slate ID in response");
@@ -406,13 +388,11 @@ abstract class LibEpiccash {
   static Future<int> getChainHeight({
     required String config,
   }) async {
-    return await Isolate.run(() {
-      try {
-        return lib_epiccash.getChainHeight(config);
-      } catch (e) {
-        throw Exception("Error getting chain height : ${e.toString()}");
-      }
-    });
+    try {
+      return await EpicWallet.getChainHeightForConfig(config: config);
+    } catch (e) {
+      throw Exception("Error getting chain height : ${e.toString()}");
+    }
   }
 
   static Future<String> _addressInfoWrapper(
@@ -805,8 +785,9 @@ abstract class LibEpiccash {
         final slateId = parsedSlate['id'] as String;
         final List<dynamic>? outputs =
             parsedSlate['tx']?['body']?['outputs'] as List?;
-        final commitId =
-            (outputs == null || outputs.isEmpty) ? '' : outputs[0]['commit'] as String;
+        final commitId = (outputs == null || outputs.isEmpty)
+            ? ''
+            : outputs[0]['commit'] as String;
 
         final ({String slateId, String commitId, String slateJson}) data = (
           slateId: slateId,
@@ -862,8 +843,9 @@ abstract class LibEpiccash {
         final slateId = parsedSlate['id'] as String;
         final List<dynamic>? outputs =
             parsedSlate['tx']?['body']?['outputs'] as List?;
-        final commitId =
-            (outputs == null || outputs.isEmpty) ? '' : outputs[0]['commit'] as String;
+        final commitId = (outputs == null || outputs.isEmpty)
+            ? ''
+            : outputs[0]['commit'] as String;
 
         final ({String slateId, String commitId}) data = (
           slateId: slateId,
