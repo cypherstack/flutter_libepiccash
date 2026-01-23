@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_libepiccash/lib.dart';
+import 'package:flutter_libepiccash/epic_wallet.dart' as epic;
 import 'package:flutter_libepiccash_example/send_transaction_view.dart';
 import 'package:flutter_libepiccash_example/slate_transaction_view.dart';
 import 'package:flutter_libepiccash_example/transaction_view.dart';
@@ -29,7 +30,7 @@ class _WalletInfoViewState extends State<WalletInfoView>
   String _resultMessage = "";
   bool _isLoading = false;
   String? _walletConfig;
-  String? _wallet;
+  epic.EpicWallet? _wallet;
   String? _epicboxConfig;
   bool _listenerRunning = false;
 
@@ -59,6 +60,7 @@ class _WalletInfoViewState extends State<WalletInfoView>
   void dispose() {
     _listenerHealthTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    _wallet?.close();
     // Note: We do NOT stop the listener here - it keeps running when navigating away.
     // The listener is only stopped on app close (see didChangeAppLifecycleState).
     super.dispose();
@@ -102,9 +104,10 @@ class _WalletInfoViewState extends State<WalletInfoView>
     try {
       final config = await EpicboxConfig.getDefaultConfig(widget.walletName);
       final epicboxConfig = EpicboxConfig.getEpicboxServerConfig();
-      final wallet = await LibEpiccash.openWallet(
+      final wallet = await epic.EpicWallet.load(
         config: config,
         password: widget.password,
+        epicboxConfig: epicboxConfig,
       );
 
       // Load last scanned block from storage.
@@ -159,8 +162,7 @@ class _WalletInfoViewState extends State<WalletInfoView>
     });
 
     try {
-      final balances = await LibEpiccash.getWalletBalances(
-        wallet: _wallet!,
+      final balances = await _wallet!.getBalances(
         refreshFromNode: 1,
         minimumConfirmations: 10,
       );
@@ -187,6 +189,7 @@ class _WalletInfoViewState extends State<WalletInfoView>
     if (_walletConfig == null) return;
 
     try {
+      // Network query, could also use _wallet!.getChainHeight()
       final height = await LibEpiccash.getChainHeight(config: _walletConfig!);
       setState(() {
         _chainHeight = height;
@@ -213,15 +216,10 @@ class _WalletInfoViewState extends State<WalletInfoView>
     }
 
     try {
-      LibEpiccash.startEpicboxListener(
-        walletId: widget.walletName,
-        wallet: _wallet!,
-        epicboxConfig: _epicboxConfig!,
-      );
+      await _wallet!.startListener();
 
-      // Immediately verify listener started.
-      final isRunning =
-          LibEpiccash.isEpicboxListenerRunning(walletId: widget.walletName);
+      // Verify listener started using instance method.
+      final isRunning = await _wallet!.isEpicboxListenerRunning();
       setState(() {
         _listenerRunning = isRunning;
         _resultMessage = isRunning
@@ -322,8 +320,7 @@ class _WalletInfoViewState extends State<WalletInfoView>
           _resultMessage = "Scanning blocks $startHeight to ${startHeight + blocksToScan}...";
         });
 
-        final int scannedHeight = await LibEpiccash.scanOutputs(
-          wallet: _wallet!,
+        final int scannedHeight = await _wallet!.scanOutputs(
           startHeight: startHeight,
           numberOfBlocks: blocksToScan,
         );
@@ -434,6 +431,81 @@ class _WalletInfoViewState extends State<WalletInfoView>
     }
   }
 
+  Future<void> _deleteWallet() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Wallet'),
+          content: Text(
+            'Are you sure you want to delete wallet "${widget.walletName}"?\n\nThis action cannot be undone!',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        setState(() {
+          _isLoading = true;
+          _resultMessage = "Deleting wallet...";
+        });
+
+        // Stop listener and close wallet first
+        _stopListener();
+        await _wallet?.close();
+
+        // Delete the wallet using the new EpicWallet.deleteWallet method
+        final result = await epic.EpicWallet.deleteWallet(
+          config: _walletConfig!,
+        );
+
+        if (result == "deleted") {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Wallet "${widget.walletName}" deleted successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            // Navigate back to wallet management
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          }
+        } else {
+          throw Exception("Unexpected result: $result");
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _resultMessage = "Error deleting wallet: $e";
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete wallet: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -457,6 +529,25 @@ class _WalletInfoViewState extends State<WalletInfoView>
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: _isLoading ? null : _refreshAll,
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'delete') {
+                  _deleteWallet();
+                }
+              },
+              itemBuilder: (BuildContext context) => [
+                const PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete Wallet', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -782,10 +873,8 @@ class _WalletInfoViewState extends State<WalletInfoView>
     }
 
     try {
-      final address = await LibEpiccash.getAddressInfo(
-        wallet: _wallet!,
+      final address = await _wallet!.getAddressInfo(
         index: 0,
-        epicboxConfig: _epicboxConfig!,
       );
       return address;
     } catch (e) {

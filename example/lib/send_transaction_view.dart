@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_libepiccash/lib.dart';
+import 'package:flutter_libepiccash/epic_wallet.dart' as epic;
 
 class SendTransactionView extends StatefulWidget {
   final String walletName;
   final String password;
-  final String wallet;
+  final epic.EpicWallet wallet;
   final String epicboxConfig;
   final bool listenerRunning;
   final Future<void> Function() onStartListener;
@@ -85,8 +85,7 @@ class _SendTransactionViewState extends State<SendTransactionView> {
           _statusMessage = "Sending via HTTP...";
         });
 
-        final result = await LibEpiccash.txHttpSend(
-          wallet: widget.wallet,
+        final result = await widget.wallet.txHttpSend(
           selectionStrategyIsAll: 0,
           minimumConfirmations: 10,
           message: note,
@@ -129,17 +128,14 @@ class _SendTransactionViewState extends State<SendTransactionView> {
         });
 
         print("DEBUG: Creating transaction");
-        print("  Wallet: ${widget.wallet}");
         print("  Amount: $amountSatoshis satoshis ($amountEpic EPIC)");
         print("  Address: $address");
         print("  Epicbox config: ${widget.epicboxConfig}");
 
-        final result = await LibEpiccash.createTransaction(
-          wallet: widget.wallet,
+        final result = await widget.wallet.createTransaction(
           amount: amountSatoshis,
           address: address,
           secretKeyIndex: 0,
-          epicboxConfig: widget.epicboxConfig,
           minimumConfirmations: 10,
           note: note,
         );

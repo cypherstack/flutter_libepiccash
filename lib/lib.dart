@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:ffi';
 
 import 'package:decimal/decimal.dart';
-import 'package:flutter/foundation.dart';
 import 'package:mutex/mutex.dart';
 
 import 'epic_cash.dart' as lib_epiccash;
+import 'epic_wallet.dart';
 import 'models/transaction.dart';
+
+export 'epic_wallet.dart';
 
 class BadEpicHttpAddressException implements Exception {
   final String? message;
@@ -59,41 +61,6 @@ abstract class LibEpiccash {
     }
   }
 
-  ///
-  /// Check if [address] is a valid epiccash address according to libepiccash
-  ///
-  static bool validateSendAddress({required String address}) {
-    final String validate = lib_epiccash.validateSendAddress(address);
-    if (int.parse(validate) == 1) {
-      // Check if address contains a domain
-      if (address.contains("@")) {
-        return true;
-      }
-      return false;
-    } else {
-      return false;
-    }
-  }
-
-  ///
-  /// Fetch the mnemonic For a new wallet (Only used in the example app)
-  ///
-  // TODO: ensure the above documentation comment is correct
-  // TODO: ensure this will always return the mnemonic. If not, this function should throw an exception
-  //Function is used in _getMnemonicList()
-  // wrap in mutex? -> would need to be Future<String>
-  static String getMnemonic() {
-    try {
-      final String mnemonic = lib_epiccash.walletMnemonic();
-      if (mnemonic.isEmpty) {
-        throw Exception("Error getting mnemonic, returned empty string");
-      }
-      return mnemonic;
-    } catch (e) {
-      throw Exception(e.toString());
-    }
-  }
-
   // Private function wrapper for compute
   static Future<String> _initializeWalletWrapper(
     ({
@@ -112,11 +79,6 @@ abstract class LibEpiccash {
     return initWalletStr;
   }
 
-  ///
-  /// Create a new epiccash wallet.
-  ///
-  // TODO: Complete/modify the documentation comment above
-  // TODO: Should return a void future. On error this function should throw and exception
   static Future<String> initializeNewWallet({
     required String config,
     required String mnemonic,
@@ -125,14 +87,11 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _initializeWalletWrapper,
-          (
-            config: config,
-            mnemonic: mnemonic,
-            password: password,
-            name: name,
-          ),
+        final result = lib_epiccash.initWallet(
+          config,
+          mnemonic,
+          password,
+          name,
         );
 
         _checkForError(result);
@@ -144,9 +103,14 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function wrapper for wallet balances
-  ///
+  static Future<bool> validateSendAddress({required String address}) async {
+    return EpicWallet.validateSendAddress(address: address);
+  }
+
+  static Future<String> getMnemonic() async {
+    return EpicWallet.getMnemonic();
+  }
+
   static Future<String> _walletBalancesWrapper(
     ({
       String wallet,
@@ -161,9 +125,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Get balance information for the currently open wallet
-  ///
   static Future<
       ({
         double awaitingFinalization,
@@ -177,13 +138,10 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final String balances = await compute(
-          _walletBalancesWrapper,
-          (
-            wallet: wallet,
-            refreshFromNode: refreshFromNode,
-            minimumConfirmations: minimumConfirmations,
-          ),
+        final balances = await lib_epiccash.getWalletInfo(
+          wallet,
+          refreshFromNode,
+          minimumConfirmations,
         );
 
         //If balances is valid json return, else return error
@@ -210,9 +168,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function wrapper for scanning output function
-  ///
   static Future<String> _scanOutputsWrapper(
     ({
       String wallet,
@@ -227,9 +182,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Scan Epic outputs
-  ///
   static Future<int> scanOutputs({
     required String wallet,
     required int startHeight,
@@ -237,13 +189,10 @@ abstract class LibEpiccash {
   }) async {
     try {
       final result = await m.protect(() async {
-        return await compute(
-          _scanOutputsWrapper,
-          (
-            wallet: wallet,
-            startHeight: startHeight,
-            numberOfBlocks: numberOfBlocks,
-          ),
+        return await lib_epiccash.scanOutPuts(
+          wallet,
+          startHeight,
+          numberOfBlocks,
         );
       });
       final response = int.tryParse(result);
@@ -256,9 +205,6 @@ abstract class LibEpiccash {
     }
   }
 
-  ///
-  /// Private function wrapper for create transactions
-  ///
   static Future<String> _createTransactionWrapper(
     ({
       String wallet,
@@ -283,12 +229,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Create an Epic transaction
-  ///
-  /// When [returnSlate] is true, the slate is returned for manual exchange
-  /// (slates/slatepacks) instead of being sent via Epicbox.
-  ///
   static Future<({String slateId, String commitId, String slateJson})>
       createTransaction({
     required String wallet,
@@ -302,18 +242,15 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final String result = await compute(
-          _createTransactionWrapper,
-          (
-            wallet: wallet,
-            amount: amount,
-            address: address,
-            secretKeyIndex: secretKeyIndex,
-            epicboxConfig: epicboxConfig,
-            minimumConfirmations: minimumConfirmations,
-            note: note,
-            returnSlate: returnSlate,
-          ),
+        final String result = await lib_epiccash.createTransaction(
+          wallet,
+          amount,
+          address,
+          secretKeyIndex,
+          epicboxConfig,
+          minimumConfirmations,
+          note,
+          returnSlate: returnSlate,
         );
 
         if (result.toUpperCase().contains("ERROR")) {
@@ -329,15 +266,19 @@ abstract class LibEpiccash {
         final part2 = jsonDecode(slate[1] as String);
 
         // Get commit ID from outputs if available.
-        final List<dynamic>? outputs = part2['tx']?['body']?['outputs'] as List?;
-        final commitId =
-            (outputs == null || outputs.isEmpty) ? '' : outputs[0]['commit'] as String;
+        final List<dynamic>? outputs =
+            part2['tx']?['body']?['outputs'] as List?;
+        final commitId = (outputs == null || outputs.isEmpty)
+            ? ''
+            : outputs[0]['commit'] as String;
 
         // Get slate ID - prefer from the slate itself, fall back to tx entries.
         String slateId;
         if (part2['id'] != null) {
           slateId = part2['id'] as String;
-        } else if (part1 is List && part1.isNotEmpty && part1[0]['tx_slate_id'] != null) {
+        } else if (part1 is List &&
+            part1.isNotEmpty &&
+            part1[0]['tx_slate_id'] != null) {
           slateId = part1[0]['tx_slate_id'] as String;
         } else {
           throw Exception("Could not find slate ID in response");
@@ -359,9 +300,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function wrapper for get transactions
-  ///
   static Future<String> _getTransactionsWrapper(
     ({
       String wallet,
@@ -374,21 +312,15 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  ///
-  ///
   static Future<List<Transaction>> getTransactions({
     required String wallet,
     required int refreshFromNode,
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _getTransactionsWrapper,
-          (
-            wallet: wallet,
-            refreshFromNode: refreshFromNode,
-          ),
+        final result = await lib_epiccash.getTransactions(
+          wallet,
+          refreshFromNode,
         );
 
         if (result.toUpperCase().contains("ERROR")) {
@@ -397,7 +329,7 @@ abstract class LibEpiccash {
           );
         }
 
-//Parse the returned data as an EpicTransaction
+        //Parse the returned data as an EpicTransaction
         final List<Transaction> finalResult = [];
         final jsonResult = json.decode(result) as List;
 
@@ -412,9 +344,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function for cancel transaction function
-  ///
   static Future<String> _cancelTransactionWrapper(
     ({
       String wallet,
@@ -427,9 +356,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Cancel current Epic transaction
-  ///
   /// returns an empty String on success, error message on failure
   static Future<String> cancelTransaction({
     required String wallet,
@@ -437,12 +363,9 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _cancelTransactionWrapper,
-          (
-            wallet: wallet,
-            transactionId: transactionId,
-          ),
+        final result = lib_epiccash.cancelTransaction(
+          wallet,
+          transactionId,
         );
 
         _checkForError(result);
@@ -462,21 +385,17 @@ abstract class LibEpiccash {
     return lib_epiccash.getChainHeight(data.config);
   }
 
+  /// Get current Epic blockchain height from the node.
   static Future<int> getChainHeight({
     required String config,
   }) async {
-    return await m.protect(() async {
-      try {
-        return await compute(_chainHeightWrapper, (config: config,));
-      } catch (e) {
-        throw ("Error getting chain height : ${e.toString()}");
-      }
-    });
+    try {
+      return await EpicWallet.getChainHeightForConfig(config: config);
+    } catch (e) {
+      throw Exception("Error getting chain height : ${e.toString()}");
+    }
   }
 
-  ///
-  /// Private function for address info function
-  ///
   static Future<String> _addressInfoWrapper(
     ({
       String wallet,
@@ -491,9 +410,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// get Epic address info
-  ///
   static Future<String> getAddressInfo({
     required String wallet,
     required int index,
@@ -501,13 +417,10 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _addressInfoWrapper,
-          (
-            wallet: wallet,
-            index: index,
-            epicboxConfig: epicboxConfig,
-          ),
+        final result = lib_epiccash.getAddressInfo(
+          wallet,
+          index,
+          epicboxConfig,
         );
 
         _checkForError(result);
@@ -519,9 +432,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function for getting transaction fees
-  ///
   static Future<String> _transactionFeesWrapper(
     ({
       String wallet,
@@ -536,9 +446,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// get transaction fees for Epic
-  ///
   static Future<
       ({
         int fee,
@@ -552,13 +459,10 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        String fees = await compute(
-          _transactionFeesWrapper,
-          (
-            wallet: wallet,
-            amount: amount,
-            minimumConfirmations: minimumConfirmations,
-          ),
+        String fees = await lib_epiccash.getTransactionFees(
+          wallet,
+          amount,
+          minimumConfirmations,
         );
 
         if (available == amount) {
@@ -580,13 +484,10 @@ abstract class LibEpiccash {
                     .toInt();
             final amountSending = amount - largestSatoshiFee;
             //Get fees for this new amount
-            fees = await compute(
-              _transactionFeesWrapper,
-              (
-                wallet: wallet,
-                amount: amountSending,
-                minimumConfirmations: minimumConfirmations,
-              ),
+            fees = await lib_epiccash.getTransactionFees(
+              wallet,
+              amountSending,
+              minimumConfirmations,
             );
           }
         }
@@ -614,9 +515,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function wrapper for recover wallet function
-  ///
   static Future<String> _recoverWalletWrapper(
     ({
       String config,
@@ -633,9 +531,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Recover an Epic wallet using a mnemonic
-  ///
   static Future<void> recoverWallet({
     required String config,
     required String password,
@@ -643,23 +538,17 @@ abstract class LibEpiccash {
     required String name,
   }) async {
     try {
-      await compute(
-        _recoverWalletWrapper,
-        (
-          config: config,
-          password: password,
-          mnemonic: mnemonic,
-          name: name,
-        ),
+      lib_epiccash.recoverWallet(
+        config,
+        password,
+        mnemonic,
+        name,
       );
     } catch (e) {
       throw (e.toString());
     }
   }
 
-  ///
-  /// Private function wrapper for delete wallet function
-  ///
   static Future<String> _deleteWalletWrapper(
     ({
       String wallet,
@@ -672,20 +561,14 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Delete an Epic wallet
-  ///
   static Future<String> deleteWallet({
     required String wallet,
     required String config,
   }) async {
     try {
-      final result = await compute(
-        _deleteWalletWrapper,
-        (
-          wallet: wallet,
-          config: config,
-        ),
+      final result = await lib_epiccash.deleteWallet(
+        wallet,
+        config,
       );
 
       _checkForError(result);
@@ -696,9 +579,6 @@ abstract class LibEpiccash {
     }
   }
 
-  ///
-  /// Private function wrapper for open wallet function
-  ///
   static Future<String> _openWalletWrapper(
     ({
       String config,
@@ -711,22 +591,17 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  /// Open an Epic wallet
-  ///
+  /// This function opens the wallet and returns the handle.
+  /// The caller must then call EpicWalletIsolateManager.spawnForWallet()
+  /// with the returned handle to create the wallet's dedicated isolate.
   static Future<String> openWallet({
     required String config,
     required String password,
   }) async {
     return await m.protect(() async {
       try {
-        final result = await compute(
-          _openWalletWrapper,
-          (
-            config: config,
-            password: password,
-          ),
-        );
+        // Call directly (without compute(): on main thread)
+        final result = lib_epiccash.openWallet(config, password);
 
         _checkForError(result);
 
@@ -737,9 +612,6 @@ abstract class LibEpiccash {
     });
   }
 
-  ///
-  /// Private function for txHttpSend function
-  ///
   static Future<String> _txHttpSendWrapper(
     ({
       String wallet,
@@ -760,9 +632,6 @@ abstract class LibEpiccash {
     );
   }
 
-  ///
-  ///
-  ///
   static Future<({String commitId, String slateId})> txHttpSend({
     required String wallet,
     required int selectionStrategyIsAll,
@@ -772,16 +641,13 @@ abstract class LibEpiccash {
     required String address,
   }) async {
     try {
-      final result = await compute(
-        _txHttpSendWrapper,
-        (
-          wallet: wallet,
-          selectionStrategyIsAll: selectionStrategyIsAll,
-          minimumConfirmations: minimumConfirmations,
-          message: message,
-          amount: amount,
-          address: address,
-        ),
+      final result = await lib_epiccash.txHttpSend(
+        wallet,
+        selectionStrategyIsAll,
+        minimumConfirmations,
+        message,
+        amount,
+        address,
       );
       if (result.toUpperCase().contains("ERROR")) {
         throw Exception("Error creating transaction ${result.toString()}");
@@ -903,12 +769,9 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final String result = await compute(
-          _txReceiveWrapper,
-          (
-            wallet: wallet,
-            slateJson: slateJson,
-          ),
+        final String result = lib_epiccash.txReceive(
+          wallet,
+          slateJson,
         );
 
         if (result.toUpperCase().contains("ERROR")) {
@@ -923,8 +786,9 @@ abstract class LibEpiccash {
         final slateId = parsedSlate['id'] as String;
         final List<dynamic>? outputs =
             parsedSlate['tx']?['body']?['outputs'] as List?;
-        final commitId =
-            (outputs == null || outputs.isEmpty) ? '' : outputs[0]['commit'] as String;
+        final commitId = (outputs == null || outputs.isEmpty)
+            ? ''
+            : outputs[0]['commit'] as String;
 
         final ({String slateId, String commitId, String slateJson}) data = (
           slateId: slateId,
@@ -963,12 +827,9 @@ abstract class LibEpiccash {
   }) async {
     return await m.protect(() async {
       try {
-        final String result = await compute(
-          _txFinalizeWrapper,
-          (
-            wallet: wallet,
-            slateJson: slateJson,
-          ),
+        final String result = lib_epiccash.txFinalize(
+          wallet,
+          slateJson,
         );
 
         if (result.toUpperCase().contains("ERROR")) {
@@ -983,8 +844,9 @@ abstract class LibEpiccash {
         final slateId = parsedSlate['id'] as String;
         final List<dynamic>? outputs =
             parsedSlate['tx']?['body']?['outputs'] as List?;
-        final commitId =
-            (outputs == null || outputs.isEmpty) ? '' : outputs[0]['commit'] as String;
+        final commitId = (outputs == null || outputs.isEmpty)
+            ? ''
+            : outputs[0]['commit'] as String;
 
         final ({String slateId, String commitId}) data = (
           slateId: slateId,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_libepiccash/lib.dart';
+import 'package:flutter_libepiccash/epic_wallet.dart' as epic;
 import 'package:flutter_libepiccash/models/transaction.dart';
 
 import 'epicbox_config.dart';
@@ -21,13 +21,19 @@ class _TransactionViewState extends State<TransactionView> {
   List<Transaction>? _transactions;
   bool _isLoading = true;
   String? _error;
-  String? _wallet;
+  epic.EpicWallet? _wallet;
   Set<int> _cancelling = {};
 
   @override
   void initState() {
     super.initState();
     _loadTransactions();
+  }
+
+  @override
+  void dispose() {
+    _wallet?.close();
+    super.dispose();
   }
 
   Future<void> _loadTransactions() async {
@@ -38,10 +44,13 @@ class _TransactionViewState extends State<TransactionView> {
 
     try {
       final config = await EpicboxConfig.getDefaultConfig(widget.walletName);
-      final wallet =
-          await LibEpiccash.openWallet(config: config, password: widget.password);
-      final transactions = await LibEpiccash.getTransactions(
-        wallet: wallet,
+      final epicboxConfig = EpicboxConfig.getEpicboxServerConfig();
+      final wallet = await epic.EpicWallet.load(
+        config: config,
+        password: widget.password,
+        epicboxConfig: epicboxConfig,
+      );
+      final transactions = await wallet.getTransactions(
         refreshFromNode: 1,
       );
 
@@ -78,8 +87,7 @@ class _TransactionViewState extends State<TransactionView> {
       print("  TX ID: ${tx.id}");
       print("  Slate ID: ${tx.txSlateId}");
 
-      await LibEpiccash.cancelTransaction(
-        wallet: _wallet!,
+      await _wallet!.cancelTransaction(
         transactionId: tx.txSlateId!,
       );
 

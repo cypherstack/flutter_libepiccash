@@ -52,8 +52,7 @@ class Transaction {
   factory Transaction.fromJson(dynamic json) {
     TransactionType txType = TransactionType.Unknown; // Default tx type.
     try {
-      txType =
-          TransactionType.values.byName(json['tx_type'] as String);
+      txType = TransactionType.values.byName(json['tx_type'] as String);
     } catch (e) {
       // Unknown tx type.
       // print("ERROR $e");
@@ -84,6 +83,54 @@ class Transaction {
       paymentProof: json['payment_proof'] as String?,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'parentKeyId': parentKeyId,
+      'id': id,
+      'txSlateId': txSlateId,
+      'txType': txType.name,
+      'creationTs': creationTs,
+      'confirmationTs': confirmationTs,
+      'confirmed': confirmed,
+      'numInputs': numInputs,
+      'numOutputs': numOutputs,
+      'amountCredited': amountCredited,
+      'amountDebited': amountDebited,
+      'fee': fee,
+      'ttlCutoffHeight': ttlCutoffHeight,
+      'messages': messages?.toMap(),
+      'storedTx': storedTx,
+      'kernelExcess': kernelExcess,
+      'kernelLookupMinHeight': kernelLookupMinHeight,
+      'paymentProof': paymentProof,
+    };
+  }
+
+  factory Transaction.fromMap(Map<String, dynamic> map) {
+    return Transaction(
+      parentKeyId: map['parentKeyId'] as String,
+      id: map['id'] as int,
+      txSlateId: map['txSlateId'] as String?,
+      txType: TransactionType.values.byName(map['txType'] as String),
+      creationTs: map['creationTs'] as String,
+      confirmationTs: map['confirmationTs'] as String,
+      confirmed: map['confirmed'] as bool,
+      numInputs: map['numInputs'] as int,
+      numOutputs: map['numOutputs'] as int,
+      amountCredited: map['amountCredited'] as String,
+      amountDebited: map['amountDebited'] as String,
+      fee: map['fee'] as String?,
+      ttlCutoffHeight: map['ttlCutoffHeight'] as String?,
+      messages: map['messages'] != null
+          ? Messages.fromMap(map['messages'] as Map<String, dynamic>)
+          : null,
+      storedTx: map['storedTx'] as String?,
+      kernelExcess: map['kernelExcess'] as String?,
+      kernelLookupMinHeight: map['kernelLookupMinHeight'] as int?,
+      paymentProof: map['paymentProof'] as String?,
+    );
+  }
 }
 
 class Messages {
@@ -95,6 +142,20 @@ class Messages {
     final messageList = json['messages'] as List<dynamic>;
     final messages = messageList
         .map((message) => Message.fromJson(message as Map<String, dynamic>))
+        .toList();
+    return Messages(messages: messages);
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'messages': messages.map((m) => m.toMap()).toList(),
+    };
+  }
+
+  factory Messages.fromMap(Map<String, dynamic> map) {
+    final messageList = map['messages'] as List<dynamic>;
+    final messages = messageList
+        .map((m) => Message.fromMap(m as Map<String, dynamic>))
         .toList();
     return Messages(messages: messages);
   }
@@ -119,6 +180,24 @@ class Message {
       publicKey: json['public_key'].toString(),
       message: json['message'].toString(),
       messageSig: json['message_sig'].toString(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'publicKey': publicKey,
+      'message': message,
+      'messageSig': messageSig,
+    };
+  }
+
+  factory Message.fromMap(Map<String, dynamic> map) {
+    return Message(
+      id: map['id'] as String,
+      publicKey: map['publicKey'] as String,
+      message: map['message'] as String?,
+      messageSig: map['messageSig'] as String?,
     );
   }
 }
