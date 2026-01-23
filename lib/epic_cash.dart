@@ -39,25 +39,25 @@ typedef ScanOutPutsFFI = Pointer<Utf8> Function(
     Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
 
 typedef CreateTransaction = Pointer<Utf8> Function(
-    Pointer<Utf8>, // wallet
-    Pointer<Int8>, // amount
-    Pointer<Utf8>, // to_address
-    Pointer<Int8>, // secret_key_index
-    Pointer<Utf8>, // epicbox_config
-    Pointer<Int8>, // confirmations
-    Pointer<Utf8>, // note
-    Pointer<Int8>, // return_slate_flag
-    );
+  Pointer<Utf8>, // wallet
+  Pointer<Int8>, // amount
+  Pointer<Utf8>, // to_address
+  Pointer<Int8>, // secret_key_index
+  Pointer<Utf8>, // epicbox_config
+  Pointer<Int8>, // confirmations
+  Pointer<Utf8>, // note
+  Pointer<Int8>, // return_slate_flag
+);
 typedef CreateTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<Utf8>,
-    Pointer<Int8>,
-    Pointer<Utf8>,
-    Pointer<Int8>, // return_slate_flag
-    );
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Utf8>,
+  Pointer<Int8>, // return_slate_flag
+);
 
 typedef EpicboxListenerStart = Pointer<Void> Function(
     Pointer<Utf8>, Pointer<Utf8>);
