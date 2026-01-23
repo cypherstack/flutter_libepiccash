@@ -283,6 +283,12 @@ class EpicWorker {
         return epic_ffi.epicboxListenerIsRunning(
           Pointer<Void>.fromAddress(args['pointer'] as int),
         );
+
+      case EpicFuncName.deleteWallet:
+        return epic_ffi.deleteWallet(
+          "",  // wallet parameter is not used by the FFI function
+          args['config'] as String,
+        );
     }
   }
 }

@@ -281,6 +281,18 @@ class EpicWallet {
     );
   }
 
+  static Future<String> deleteWallet({required String config}) async {
+    final worker = await _getSharedWorker();
+    return await worker.runTask<String>(
+      EpicTask(
+        func: EpicFuncName.deleteWallet,
+        args: {
+          "config": config,
+        },
+      ),
+    );
+  }
+
   Future<BalanceData> getBalances({
     int refreshFromNode = 1,
     int minimumConfirmations = 10,
@@ -623,8 +635,8 @@ class EpicWallet {
     _isClosing = true;
 
     try {
-      // Stop listeners first
-      await stopListeners();
+      // Stop listener first
+      await stopListener();
 
       // Clear wallet handle
       _walletHandle = null;

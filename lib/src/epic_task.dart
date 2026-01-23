@@ -18,6 +18,7 @@ enum EpicFuncName {
   startEpicboxListener,
   stopEpicboxListener,
   isEpicboxListenerRunning,
+  deleteWallet,
 }
 
 class EpicTask {
