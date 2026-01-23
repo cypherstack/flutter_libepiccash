@@ -632,6 +632,8 @@ class EpicWallet {
   }
 
   /// Get wallet handle (for compatibility)
+  /// 
+  /// This can safely be removed.
   String get handle => _getWalletHandle();
 
   /// Close the wallet and cleanup resources

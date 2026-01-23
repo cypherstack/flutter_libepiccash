@@ -128,7 +128,6 @@ class _SendTransactionViewState extends State<SendTransactionView> {
         });
 
         print("DEBUG: Creating transaction");
-        print("  Wallet: ${widget.wallet.handle}");
         print("  Amount: $amountSatoshis satoshis ($amountEpic EPIC)");
         print("  Address: $address");
         print("  Epicbox config: ${widget.epicboxConfig}");

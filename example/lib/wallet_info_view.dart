@@ -216,15 +216,10 @@ class _WalletInfoViewState extends State<WalletInfoView>
     }
 
     try {
-      LibEpiccash.startEpicboxListener(
-        walletId: widget.walletName,
-        wallet: _wallet!.handle,
-        epicboxConfig: _epicboxConfig!,
-      );
+      await _wallet!.startListener();
 
-      // Immediately verify listener started.
-      final isRunning =
-          LibEpiccash.isEpicboxListenerRunning(walletId: widget.walletName);
+      // Verify listener started using instance method.
+      final isRunning = await _wallet!.isEpicboxListenerRunning();
       setState(() {
         _listenerRunning = isRunning;
         _resultMessage = isRunning
