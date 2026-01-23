@@ -34,6 +34,19 @@ class EpicWallet {
   int? _listenerPointerAddress;
   bool _isClosing = false;
 
+  /// Shared worker for stateless utility functions (getMnemonic, validateSendAddress, getChainHeightForConfig)
+  static EpicWorker? _sharedWorker;
+
+  static Future<EpicWorker> _getSharedWorker() async {
+    _sharedWorker ??= await EpicWorker.spawn();
+    return _sharedWorker!;
+  }
+
+  static void disposeSharedWorker() {
+    _sharedWorker?.dispose();
+    _sharedWorker = null;
+  }
+
   String _getWalletHandle() {
     if (_walletHandle == null) {
       throw EpicWalletClosedException();
@@ -235,49 +248,37 @@ class EpicWallet {
   }
 
   static Future<String> getMnemonic() async {
-    final worker = await EpicWorker.spawn();
-    try {
-      return await worker.runTask<String>(
-        EpicTask(func: EpicFuncName.getMnemonic),
-      );
-    } finally {
-      worker.dispose();
-    }
+    final worker = await _getSharedWorker();
+    return await worker.runTask<String>(
+      EpicTask(func: EpicFuncName.getMnemonic),
+    );
   }
 
   static Future<bool> validateSendAddress({required String address}) async {
-    final worker = await EpicWorker.spawn();
-    try {
-      final result = await worker.runTask<int>(
-        EpicTask(
-          func: EpicFuncName.validateSendAddress,
-          args: {"address": address},
-        ),
-      );
+    final worker = await _getSharedWorker();
+    final result = await worker.runTask<int>(
+      EpicTask(
+        func: EpicFuncName.validateSendAddress,
+        args: {"address": address},
+      ),
+    );
 
-      if (result == 1) {
-        return address.contains("@");
-      }
-      return false;
-    } finally {
-      worker.dispose();
+    if (result == 1) {
+      return address.contains("@");
     }
+    return false;
   }
 
   static Future<int> getChainHeightForConfig({required String config}) async {
-    final worker = await EpicWorker.spawn();
-    try {
-      return await worker.runTask<int>(
-        EpicTask(
-          func: EpicFuncName.getChainHeight,
-          args: {
-            "config": config,
-          },
-        ),
-      );
-    } finally {
-      worker.dispose();
-    }
+    final worker = await _getSharedWorker();
+    return await worker.runTask<int>(
+      EpicTask(
+        func: EpicFuncName.getChainHeight,
+        args: {
+          "config": config,
+        },
+      ),
+    );
   }
 
   Future<BalanceData> getBalances({
