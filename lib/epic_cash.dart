@@ -279,14 +279,14 @@ final EpicboxListenerStop _epicboxListenerStop = epicCashNative
     .lookup<NativeFunction<EpicboxListenerStopFFI>>("_listener_cancel")
     .asFunction();
 
-String epicboxListenerStop(Pointer<Void> handler) {
+bool epicboxListenerStop(Pointer<Void> handler) {
   Pointer<Utf8>? ptr;
 
   try {
     ptr = _epicboxListenerStop(handler);
-    return ptr.toDartString();
+    return ptr.toDartString() == "true";
   } catch (_) {
-    rethrow;
+    return false;
   } finally {
     if (ptr != null) {
       malloc.free(ptr);
