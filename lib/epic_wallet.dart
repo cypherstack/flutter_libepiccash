@@ -28,7 +28,7 @@ class EpicWallet {
 
   final EpicWorker _worker;
   final String _config;
-  final String _epicboxConfig;
+  String _epicboxConfig;
 
   String? _walletHandle;
   int? _listenerPointerAddress;
@@ -59,7 +59,7 @@ class EpicWallet {
 
   Future<void> stopListeners() async {
     if (_listenerPointerAddress != null) {
-      await _worker.runTask<void>(
+      await _worker.runTask<bool>(
         EpicTask(
           func: EpicFuncName.stopEpicboxListener,
           args: {
@@ -76,7 +76,7 @@ class EpicWallet {
       return false;
     }
 
-    return await _worker.runTask<bool>(
+    final isRunning = await _worker.runTask<bool>(
       EpicTask(
         func: EpicFuncName.isEpicboxListenerRunning,
         args: {
@@ -84,6 +84,10 @@ class EpicWallet {
         },
       ),
     );
+    if (!isRunning) {
+      _listenerPointerAddress = null;
+    }
+    return isRunning;
   }
 
   static Future<EpicWallet> create({
@@ -255,6 +259,22 @@ class EpicWallet {
         return address.contains("@");
       }
       return false;
+    } finally {
+      worker.dispose();
+    }
+  }
+
+  static Future<int> getChainHeightForConfig({required String config}) async {
+    final worker = await EpicWorker.spawn();
+    try {
+      return await worker.runTask<int>(
+        EpicTask(
+          func: EpicFuncName.getChainHeight,
+          args: {
+            "config": config,
+          },
+        ),
+      );
     } finally {
       worker.dispose();
     }
@@ -587,6 +607,10 @@ class EpicWallet {
         },
       ),
     );
+  }
+
+  void updateEpicboxConfig(String epicboxConfig) {
+    _epicboxConfig = epicboxConfig;
   }
 
   /// Get wallet handle (for compatibility)
