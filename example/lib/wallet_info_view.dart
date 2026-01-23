@@ -189,6 +189,7 @@ class _WalletInfoViewState extends State<WalletInfoView>
     if (_walletConfig == null) return;
 
     try {
+      // Network query, could also use _wallet!.getChainHeight()
       final height = await LibEpiccash.getChainHeight(config: _walletConfig!);
       setState(() {
         _chainHeight = height;

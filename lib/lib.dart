@@ -385,6 +385,7 @@ abstract class LibEpiccash {
     return lib_epiccash.getChainHeight(data.config);
   }
 
+  /// Get current Epic blockchain height from the node.
   static Future<int> getChainHeight({
     required String config,
   }) async {

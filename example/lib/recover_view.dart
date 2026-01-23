@@ -138,6 +138,7 @@ class _RecoverWalletViewState extends State<RecoverWalletView> {
   Future<void> _fetchChainHeight() async {
     try {
       String config = await EpicboxConfig.getDefaultConfig(widget.name);
+      // Show current network height before wallet creation
       final height = await LibEpiccash.getChainHeight(config: config);
       setState(() {
         _chainHeight = height;

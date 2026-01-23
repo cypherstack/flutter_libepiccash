@@ -269,6 +269,10 @@ class EpicWallet {
     return false;
   }
 
+  /// Get current Epic blockchain height (block count).
+  ///
+  /// Queries the node for network-level data, doesn't use wallet state.
+  /// The config only provides the node URL, not wallet-specific info.
   static Future<int> getChainHeightForConfig({required String config}) async {
     final worker = await _getSharedWorker();
     return await worker.runTask<int>(
@@ -611,6 +615,7 @@ class EpicWallet {
     return (slateId: slate.slateId, commitId: slate.commitId);
   }
 
+  /// Get current blockchain height. Convenience wrapper using this wallet's config.
   Future<int> getChainHeight() async {
     return await _worker.runTask<int>(
       EpicTask(
