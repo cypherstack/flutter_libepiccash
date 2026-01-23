@@ -64,7 +64,7 @@ class EpicWorker {
     final taskWithId = task.withId(id);
 
     // Create a completer to wait for the result
-    final completer = Completer<T>();
+    final completer = Completer<T>.sync();
     _pendingTasks[id] = completer;
 
     // Send the task to the worker
@@ -123,34 +123,37 @@ class EpicWorker {
     // Wait for main's send port
     late SendPort sendToMain;
 
-    receivePort.listen((message) async {
-      // First message is the send port
-      if (message is SendPort) {
-        sendToMain = message;
-        return;
-      }
+    // Process tasks sequentially to avoid overlapping FFI calls.
+    () async {
+      await for (final message in receivePort) {
+        // First message is the send port
+        if (message is SendPort) {
+          sendToMain = message;
+          continue;
+        }
 
-      // Subsequent messages are tasks
-      if (message is! Map<String, dynamic>) {
-        return;
-      }
+        // Subsequent messages are tasks
+        if (message is! Map<String, dynamic>) {
+          continue;
+        }
 
-      final task = EpicTask.fromMap(message);
-      final id = task.id!;
+        final task = EpicTask.fromMap(message);
+        final id = task.id!;
 
-      try {
-        final result = await _executeTask(task);
-        sendToMain.send(EpicTaskResponse(
-          id: id,
-          result: result,
-        ).toMap());
-      } catch (e) {
-        sendToMain.send(EpicTaskResponse(
-          id: id,
-          error: e.toString(),
-        ).toMap());
+        try {
+          final result = await _executeTask(task);
+          sendToMain.send(EpicTaskResponse(
+            id: id,
+            result: result,
+          ).toMap());
+        } catch (e) {
+          sendToMain.send(EpicTaskResponse(
+            id: id,
+            error: e.toString(),
+          ).toMap());
+        }
       }
-    });
+    }();
   }
 
   /// Execute an Epic FFI task
@@ -263,9 +266,10 @@ class EpicWorker {
         );
 
       case EpicFuncName.validateSendAddress:
-        return epic_ffi.validateSendAddress(
+        final result = epic_ffi.validateSendAddress(
           args['address'] as String,
         );
+        return int.tryParse(result) ?? 0;
 
       case EpicFuncName.startEpicboxListener:
         final pointer = epic_ffi.epicboxListenerStart(
@@ -275,9 +279,10 @@ class EpicWorker {
         return pointer.address;
 
       case EpicFuncName.stopEpicboxListener:
-        return epic_ffi.epicboxListenerStop(
+        final result = epic_ffi.epicboxListenerStop(
           Pointer<Void>.fromAddress(args['pointer'] as int),
         );
+        return result.toLowerCase() == 'true';
 
       case EpicFuncName.isEpicboxListenerRunning:
         return epic_ffi.epicboxListenerIsRunning(
