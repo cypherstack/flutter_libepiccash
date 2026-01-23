@@ -435,6 +435,81 @@ class _WalletInfoViewState extends State<WalletInfoView>
     }
   }
 
+  Future<void> _deleteWallet() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Wallet'),
+          content: Text(
+            'Are you sure you want to delete wallet "${widget.walletName}"?\n\nThis action cannot be undone!',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        setState(() {
+          _isLoading = true;
+          _resultMessage = "Deleting wallet...";
+        });
+
+        // Stop listener and close wallet first
+        _stopListener();
+        await _wallet?.close();
+
+        // Delete the wallet using the new EpicWallet.deleteWallet method
+        final result = await epic.EpicWallet.deleteWallet(
+          config: _walletConfig!,
+        );
+
+        if (result == "deleted") {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Wallet "${widget.walletName}" deleted successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            // Navigate back to wallet management
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          }
+        } else {
+          throw Exception("Unexpected result: $result");
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _resultMessage = "Error deleting wallet: $e";
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete wallet: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -458,6 +533,25 @@ class _WalletInfoViewState extends State<WalletInfoView>
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: _isLoading ? null : _refreshAll,
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'delete') {
+                  _deleteWallet();
+                }
+              },
+              itemBuilder: (BuildContext context) => [
+                const PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete Wallet', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),

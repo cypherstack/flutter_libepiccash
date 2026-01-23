@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_libepiccash/lib.dart';
+import 'package:flutter_libepiccash/flutter_libepiccash.dart';
 import 'package:flutter_libepiccash_example/wallet_info_view.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -143,9 +143,10 @@ class _WalletManagementViewState extends State<WalletManagementView>
       }
 
       String config = await EpicboxConfig.getDefaultConfig(walletName);
-      String result = await LibEpiccash.deleteWallet(wallet: walletName, config: config);
+      String result = await EpicWallet.deleteWallet(config: config);
 
       if (result == "deleted") {
+        // Clean up the wallet directory after successful deletion
         await _forceDeleteWalletDirectory(walletName);
         return true;
       }
