@@ -56,8 +56,8 @@ class EpicWallet {
 
   bool isClosed() => _walletHandle == null;
 
-  Future<void> startListeners() async {
-    await stopListeners();
+  Future<void> startListener() async {
+    await stopListener();
 
     _listenerPointerAddress = await _worker.runTask<int>(
       EpicTask(
@@ -70,7 +70,7 @@ class EpicWallet {
     );
   }
 
-  Future<void> stopListeners() async {
+  Future<void> stopListener() async {
     if (_listenerPointerAddress != null) {
       await _worker.runTask<bool>(
         EpicTask(
