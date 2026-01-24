@@ -27,7 +27,7 @@ class EpicWallet {
         _epicboxConfig = epicboxConfig;
 
   final EpicWorker _worker;
-  final String _config;
+  String _config;
   String _epicboxConfig;
 
   String? _walletHandle;
@@ -631,8 +631,12 @@ class EpicWallet {
     _epicboxConfig = epicboxConfig;
   }
 
+  void updateConfig(String config) {
+    _config = config;
+  }
+
   /// Get wallet handle (for compatibility)
-  /// 
+  ///
   /// This can safely be removed.
   String get handle => _getWalletHandle();
 
