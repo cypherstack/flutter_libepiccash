@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
 
 jobs:
 
@@ -11,9 +12,6 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: stackwallet/stackwallet-ci:latest
-      credentials:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
     strategy:
       matrix:
         include:
@@ -32,10 +30,6 @@ jobs:
           workspaces: rust
           key: linux-${{ matrix.target }}
 
-      - name: Install aarch64 cross-compiler
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: apt-get install -y gcc-aarch64-linux-gnu
-
       - name: Build
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
@@ -53,9 +47,6 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: stackwallet/stackwallet-ci:latest
-      credentials:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
     strategy:
       matrix:
         include:
@@ -71,12 +62,6 @@ jobs:
       - name: Add Rust target
         run: rustup target add ${{ matrix.target }}
 
-      - uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: r28
-          add-to-path: false
-
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
@@ -84,7 +69,7 @@ jobs:
 
       - name: Build
         env:
-          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: /opt/android-ndk-r28
         run: |
           cd rust
           cargo ndk --target ${{ matrix.target }} --platform 21 build --release
@@ -191,9 +176,6 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: stackwallet/stackwallet-ci:latest
-      credentials:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -203,9 +185,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
-
-      - name: Install MinGW
-        run: apt-get install -y gcc-mingw-w64-x86-64
 
       - name: Build
         run: |
