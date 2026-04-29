@@ -1,0 +1,241 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+
+  build-linux:
+    runs-on: ubuntu-24.04
+    container:
+      image: stackwallet/stackwallet-ci:latest
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            asset: libepic_cash_wallet-linux-x86_64.so
+          - target: aarch64-unknown-linux-gnu
+            asset: libepic_cash_wallet-linux-aarch64.so
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          key: linux-${{ matrix.target }}
+
+      - name: Install aarch64 cross-compiler
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: |
+          cd rust
+          cargo build --target ${{ matrix.target }} --release --lib
+          cp target/${{ matrix.target }}/release/libepic_cash_wallet.so ${{ matrix.asset }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: rust/${{ matrix.asset }}
+
+  build-android:
+    runs-on: ubuntu-24.04
+    container:
+      image: stackwallet/stackwallet-ci:latest
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    strategy:
+      matrix:
+        include:
+          - target: aarch64-linux-android
+            abi: arm64-v8a
+          - target: armv7-linux-androideabi
+            abi: armeabi-v7a
+          - target: x86_64-linux-android
+            abi: x86_64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r28
+          add-to-path: false
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          key: android-${{ matrix.abi }}
+
+      - name: Build
+        env:
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          cd rust
+          cargo ndk --target ${{ matrix.target }} --platform 21 build --release
+          cp target/${{ matrix.target }}/release/libepic_cash_wallet.so \
+             libepic_cash_wallet-android-${{ matrix.abi }}.so
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libepic_cash_wallet-android-${{ matrix.abi }}.so
+          path: rust/libepic_cash_wallet-android-${{ matrix.abi }}.so
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.89.0'
+          targets: aarch64-apple-ios
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Install cbindgen
+        run: cargo install cbindgen --version 0.24.3
+
+      - name: Build
+        run: |
+          cd rust
+          export IPHONEOS_DEPLOYMENT_TARGET=15.0
+          export RUSTFLAGS="-C link-arg=-mios-version-min=15.0"
+          cargo build --release --target aarch64-apple-ios --lib
+
+          RANDOMX_LIB=$(find target/aarch64-apple-ios/release/build -name "librandomx.a" | head -n 1)
+          if [ -f "$RANDOMX_LIB" ]; then
+            libtool -static -o libepic_cash_wallet-ios-aarch64.a \
+              target/aarch64-apple-ios/release/libepic_cash_wallet.a \
+              "$RANDOMX_LIB"
+          else
+            cp target/aarch64-apple-ios/release/libepic_cash_wallet.a libepic_cash_wallet-ios-aarch64.a
+          fi
+
+          cbindgen --config cbindgen.toml --crate epic-cash-wallet --output libepic_cash_wallet.h
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libepic_cash_wallet-ios-aarch64.a
+          path: rust/libepic_cash_wallet-ios-aarch64.a
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libepic_cash_wallet.h
+          path: rust/libepic_cash_wallet.h
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.89.0'
+          targets: aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Install cbindgen
+        run: cargo install cbindgen --version 0.24.3
+
+      - name: Build
+        run: |
+          cd rust
+          cargo build --target aarch64-apple-darwin --release --lib
+
+          RANDOMX_LIB=$(find target/aarch64-apple-darwin/release/build -name "librandomx.a" | head -n 1)
+          if [ -f "$RANDOMX_LIB" ]; then
+            libtool -static -o target/aarch64-apple-darwin/release/libepic_cash_wallet_combined.a \
+              target/aarch64-apple-darwin/release/libepic_cash_wallet.a \
+              "$RANDOMX_LIB"
+            MAIN_LIB=target/aarch64-apple-darwin/release/libepic_cash_wallet_combined.a
+          else
+            MAIN_LIB=target/aarch64-apple-darwin/release/libepic_cash_wallet.a
+          fi
+
+          mkdir -p Headers
+          cbindgen --config cbindgen.toml --crate epic-cash-wallet --output Headers/libepic_cash_wallet.h
+
+          xcodebuild -create-xcframework \
+            -library "$MAIN_LIB" \
+            -headers Headers/libepic_cash_wallet.h \
+            -output EpicWallet.xcframework
+          zip -r EpicWallet.xcframework.zip EpicWallet.xcframework
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EpicWallet.xcframework.zip
+          path: rust/EpicWallet.xcframework.zip
+
+  build-windows:
+    runs-on: ubuntu-24.04
+    container:
+      image: stackwallet/stackwallet-ci:latest
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add Rust target
+        run: rustup target add x86_64-pc-windows-gnu
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Install MinGW
+        run: apt-get install -y gcc-mingw-w64-x86-64
+
+      - name: Build
+        run: |
+          cd rust
+          cargo build --target x86_64-pc-windows-gnu --release --lib
+          cp target/x86_64-pc-windows-gnu/release/epic_cash_wallet.dll \
+             libepic_cash_wallet-windows-x86_64.dll
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libepic_cash_wallet-windows-x86_64.dll
+          path: rust/libepic_cash_wallet-windows-x86_64.dll
+
+  release:
+    needs: [build-linux, build-android, build-ios, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          sha256sum * > checksums.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/*
