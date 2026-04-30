@@ -1,34 +1,35 @@
 #!/bin/bash
 
+set -e
+
 LIB_ROOT=../..
-OS=linux
-LINUX_LIBS_DIR=$LIB_ROOT/$OS/bin
+REPO="cypherstack/flutter_libepiccash"
+BASE_URL="https://github.com/${REPO}/releases/download"
 
-TAG_COMMIT=$(git log -1 --pretty=format:"%H")
+TAG=$(git -C "$LIB_ROOT" describe --tags --exact-match HEAD 2>/dev/null) || {
+    echo "Error: flutter_libepiccash is not at a tagged commit."
+    echo "Pin the submodule to a release tag to use download mode."
+    echo "Current commit: $(git -C "$LIB_ROOT" rev-parse HEAD)"
+    exit 1
+}
 
-rm -rf flutter_libepiccash_bins
-git clone https://git.cypherstack.com/stackwallet/flutter_libepiccash_bins
-if [ -d flutter_libepiccash_bins ]; then
-  cd flutter_libepiccash_bins
-else
-  echo "Failed to clone flutter_libepiccash_bins"
-  exit 1
-fi
+TMPDIR=$(mktemp -d)
+trap 'rm -rf "$TMPDIR"' EXIT
 
-BIN=libepic_cash_wallet.so
+curl -fSL "${BASE_URL}/${TAG}/checksums.txt" -o "$TMPDIR/checksums.txt"
 
-for TARGET in aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
-do
-  ARCH_PATH=$TARGET/release
-  if [ ! $(git tag -l "${OS}_${TARGET}_${TAG_COMMIT}") ]; then
-      echo "No precompiled bins for $TAG_COMMIT found, using latest for $OS/$TARGET!"
-  fi
-  git checkout "${OS}_${TARGET}_${TAG_COMMIT}" || git checkout $OS/$TARGET
-  if [ -f "$OS/$ARCH_PATH/$BIN" ]; then
-    mkdir -p ../$LINUX_LIBS_DIR/$ARCH_PATH
-    # TODO verify bin checksum hashes
-    cp -rf "$OS/$ARCH_PATH/$BIN" "../$LINUX_LIBS_DIR/$ARCH_PATH/$BIN"
-  else
-    echo "$TARGET not found at $OS/$ARCH_PATH/$BIN!"
-  fi
-done
+download_and_verify() {
+    local asset="$1"
+    curl -fSL "${BASE_URL}/${TAG}/${asset}" -o "$TMPDIR/${asset}"
+    grep "^[0-9a-f]*  ${asset}$" "$TMPDIR/checksums.txt" | (cd "$TMPDIR" && sha256sum -c)
+}
+
+download_and_verify "libepic_cash_wallet-linux-x86_64.so"
+mkdir -p "$LIB_ROOT/linux/bin/x86_64-unknown-linux-gnu/release"
+cp "$TMPDIR/libepic_cash_wallet-linux-x86_64.so" \
+   "$LIB_ROOT/linux/bin/x86_64-unknown-linux-gnu/release/libepic_cash_wallet.so"
+
+download_and_verify "libepic_cash_wallet-linux-aarch64.so"
+mkdir -p "$LIB_ROOT/linux/bin/aarch64-unknown-linux-gnu/release"
+cp "$TMPDIR/libepic_cash_wallet-linux-aarch64.so" \
+   "$LIB_ROOT/linux/bin/aarch64-unknown-linux-gnu/release/libepic_cash_wallet.so"

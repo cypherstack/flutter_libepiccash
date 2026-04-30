@@ -1,34 +1,42 @@
 #!/bin/bash
 
+set -e
+
 LIB_ROOT=../..
-OS=android
-ANDROID_LIBS_DIR=$LIB_ROOT/android/src/main/jniLibs
+REPO="cypherstack/flutter_libepiccash"
+BASE_URL="https://github.com/${REPO}/releases/download"
 
-TAG_COMMIT=$(git log -1 --pretty=format:"%H")
+TAG=$(git -C "$LIB_ROOT" describe --tags --exact-match HEAD 2>/dev/null) || {
+    echo "Error: flutter_libepiccash is not at a tagged commit."
+    echo "Pin the submodule to a release tag to use download mode."
+    echo "Current commit: $(git -C "$LIB_ROOT" rev-parse HEAD)"
+    exit 1
+}
 
-rm -rf flutter_libepiccash_bins
-git clone https://git.cypherstack.com/stackwallet/flutter_libepiccash_bins
-if [ -d flutter_libepiccash_bins ]; then
-  cd flutter_libepiccash_bins
-else
-  echo "Failed to clone flutter_libepiccash_bins"
-  exit 1
-fi
+TMPDIR=$(mktemp -d)
+trap 'rm -rf "$TMPDIR"' EXIT
 
-BIN=libepic_cash_wallet.so
+curl -fSL "${BASE_URL}/${TAG}/checksums.txt" -o "$TMPDIR/checksums.txt"
 
-for TARGET in arm64-v8a armeabi-v7a x86_64
-do
-  ARCH_PATH=$TARGET
-  if [ ! $(git tag -l "${OS}_${TARGET}_${TAG_COMMIT}") ]; then
-      echo "No precompiled bins for $TAG_COMMIT found, using latest for $OS/$TARGET!"
-  fi
-  git checkout "${OS}_${TARGET}_${TAG_COMMIT}" || git checkout $OS/$TARGET
-  if [ -f "$OS/$ARCH_PATH/$BIN" ]; then
-    mkdir -p ../$ANDROID_LIBS_DIR/$ARCH_PATH
-    # TODO verify bin checksum hashes
-    cp -rf "$OS/$ARCH_PATH/$BIN" "../$ANDROID_LIBS_DIR/$ARCH_PATH/$BIN"
-  else
-    echo "$TARGET not found at $OS/$ARCH_PATH/$BIN!"
-  fi
-done
+download_and_verify() {
+    local asset="$1"
+    curl -fSL "${BASE_URL}/${TAG}/${asset}" -o "$TMPDIR/${asset}"
+    grep "^[0-9a-f]*  ${asset}$" "$TMPDIR/checksums.txt" | (cd "$TMPDIR" && sha256sum -c)
+}
+
+JNILIBS="$LIB_ROOT/android/src/main/jniLibs"
+
+download_and_verify "libepic_cash_wallet-android-arm64-v8a.so"
+mkdir -p "$JNILIBS/arm64-v8a"
+cp "$TMPDIR/libepic_cash_wallet-android-arm64-v8a.so" \
+   "$JNILIBS/arm64-v8a/libepic_cash_wallet.so"
+
+download_and_verify "libepic_cash_wallet-android-armeabi-v7a.so"
+mkdir -p "$JNILIBS/armeabi-v7a"
+cp "$TMPDIR/libepic_cash_wallet-android-armeabi-v7a.so" \
+   "$JNILIBS/armeabi-v7a/libepic_cash_wallet.so"
+
+download_and_verify "libepic_cash_wallet-android-x86_64.so"
+mkdir -p "$JNILIBS/x86_64"
+cp "$TMPDIR/libepic_cash_wallet-android-x86_64.so" \
+   "$JNILIBS/x86_64/libepic_cash_wallet.so"
