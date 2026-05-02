@@ -11,7 +11,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-24.04
     container:
-      image: stackwallet/stackwallet-ci:latest
+      image: ghcr.io/cypherstack/stackwallet-ci:latest
     strategy:
       matrix:
         include:
@@ -46,7 +46,7 @@ jobs:
   build-android:
     runs-on: ubuntu-24.04
     container:
-      image: stackwallet/stackwallet-ci:latest
+      image: ghcr.io/cypherstack/stackwallet-ci:latest
     strategy:
       matrix:
         include:
@@ -68,8 +68,6 @@ jobs:
           key: android-${{ matrix.abi }}
 
       - name: Build
-        env:
-          ANDROID_NDK_ROOT: /opt/android-ndk-r28
         run: |
           cd rust
           cargo ndk --target ${{ matrix.target }} --platform 21 build --release
@@ -175,7 +173,7 @@ jobs:
   build-windows:
     runs-on: ubuntu-24.04
     container:
-      image: stackwallet/stackwallet-ci:latest
+      image: ghcr.io/cypherstack/stackwallet-ci:latest
     steps:
       - uses: actions/checkout@v6
 
