@@ -20,7 +20,7 @@ jobs:
           - target: aarch64-unknown-linux-gnu
             asset: libepic_cash_wallet-linux-aarch64.so
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Add Rust target
         run: rustup target add ${{ matrix.target }}
@@ -57,7 +57,7 @@ jobs:
           - target: x86_64-linux-android
             abi: x86_64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Add Rust target
         run: rustup target add ${{ matrix.target }}
@@ -84,7 +84,7 @@ jobs:
   build-ios:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -129,7 +129,7 @@ jobs:
   build-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -177,7 +177,7 @@ jobs:
     container:
       image: stackwallet/stackwallet-ci:latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Add Rust target
         run: rustup target add x86_64-pc-windows-gnu
