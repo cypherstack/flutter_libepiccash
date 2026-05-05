@@ -20,7 +20,7 @@ curl -fSL "${BASE_URL}/${TAG}/checksums.txt" -o "$TMPDIR/checksums.txt"
 download_and_verify() {
     local asset="$1"
     curl -fSL "${BASE_URL}/${TAG}/${asset}" -o "$TMPDIR/${asset}"
-    grep "^[0-9a-f]*  ${asset}$" "$TMPDIR/checksums.txt" | (cd "$TMPDIR" && sha256sum -c)
+    grep "^[0-9a-f]*  ${asset}$" "$TMPDIR/checksums.txt" | (cd "$TMPDIR" && shasum -a 256 -c)
 }
 
 download_and_verify "EpicWallet.xcframework.zip"
