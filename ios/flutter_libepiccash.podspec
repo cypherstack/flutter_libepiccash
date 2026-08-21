@@ -16,7 +16,10 @@ A new Flutter plugin project.
   s.public_header_files = 'Classes**/*.h'
   s.source_files = 'Classes/**/*'
   s.static_framework = true
-  s.vendored_libraries = 'libs/*.a'
+  # epiccash.xcframework carries arm64 device and arm64 simulator slices.
+  # Produced by scripts/ios/build_all.sh or download.sh (device slice) plus
+  # scripts/ios/build_sim.sh (simulator slice + XCFramework packaging).
+  s.vendored_frameworks = 'libs/epiccash.xcframework'
   s.dependency 'Flutter'
   s.library = 'sqlite3', 'c++'
   s.platform = :ios, '9.0'
