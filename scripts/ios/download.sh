@@ -30,3 +30,13 @@ download_and_verify "libepic_cash_wallet.h"
 mkdir -p "$LIB_ROOT/ios/libs" "$LIB_ROOT/ios/include"
 cp "$TMPDIR/libepic_cash_wallet-ios-aarch64.a" "$LIB_ROOT/ios/libs/libepic_cash_wallet.a"
 cp "$TMPDIR/libepic_cash_wallet.h"             "$LIB_ROOT/ios/include/libepic_cash_wallet.h"
+
+# Release artifacts are device-only; wrap the device slice in an XCFramework
+# so the podspec's vendored_frameworks entry resolves. Simulator consumers
+# must additionally run scripts/ios/build_sim.sh.
+PLUGIN_ROOT="$(cd "$LIB_ROOT" && pwd)"
+rm -rf "$PLUGIN_ROOT/ios/libs/epiccash.xcframework"
+xcodebuild -create-xcframework \
+    -library "$PLUGIN_ROOT/ios/libs/libepic_cash_wallet.a" \
+    -headers "$PLUGIN_ROOT/ios/include" \
+    -output "$PLUGIN_ROOT/ios/libs/epiccash.xcframework"
