@@ -1,0 +1,9 @@
+stagex_commit = "9bdf430d09ce2ba53932df0182faef00d4feecd1"
+platform = "linux/amd64"
+
+[images]
+pallet-rust = "sha256:59d4d0c9e232a05ecb99348f7216b521af1b914a430059dbdb9130018f2afde1"
+core-cmake = "sha256:626a3fdf157efacd00c3ceb0529ae80dde1072d64fa1925aafe9819bebc92047"
+core-make = "sha256:0402e189b4bc68a4c5c00a2d7c2dc1c93752c850e81bba0ee066cbe796249d05"
+core-perl = "sha256:ac080ed37031c4e86625cfd2b3abd9df6c0d12fec0339c91b9e82a1c57b85751"
+core-filesystem = "sha256:cd3a66471ce1f630fa77d5c9bd9829f9f9fab6302a1aaa64d67b74f1f069b750"

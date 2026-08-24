@@ -1,0 +1,25 @@
+[package]
+name = "stack-wallet-epiccash"
+version = "f4a55aa9e5b6066428402291ed228aa0dd921534"
+description = "Native Epic Cash wallet library used by Stack Wallet"
+license = "MIT"
+website = "https://github.com/cypherstack/flutter_libepiccash"
+
+[sources.flutter-libepiccash]
+hash = "e67fccfbe47f16f9db3989df4ca1e759149b5d246d773318d3569c91fa6fffa0"
+file = "flutter_libepiccash-{version}.tar.gz"
+mirrors = ["https://github.com/cypherstack/flutter_libepiccash/archive/{version}.tar.gz"]
+
+[sources.randomx_rust]
+version = "5147a05e320a9fb68306ae08a1e94bc9cdd56a77"
+git_sha = "5147a05e320a9fb68306ae08a1e94bc9cdd56a77"
+hash = "26d52434c964886b92f87dc6cf93a2c10095afbb0c01c387262a56830c4faf37"
+file = "randomx-rust-{version}.tar.gz"
+mirrors = ["https://github.com/cypherstack/randomx-rust/archive/{version}.tar.gz"]
+
+[sources.randomx]
+version = "c62cf2e5d477a73ffb6992564e4d6cb86cd96cb5"
+git_sha = "c62cf2e5d477a73ffb6992564e4d6cb86cd96cb5"
+hash = "3e8019903aee30123e35fad1f029705ceb929097a62d16bc537428f87370dc29"
+file = "randomx-{version}.tar.gz"
+mirrors = ["https://github.com/EpicCash/randomx/archive/{version}.tar.gz"]

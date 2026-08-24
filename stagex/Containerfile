@@ -1,0 +1,48 @@
+FROM stagex/pallet-rust AS build
+COPY --from=stagex/core-cmake . /
+COPY --from=stagex/core-make . /
+COPY --from=stagex/core-perl . /
+ARG VERSION
+ARG TARGETARCH
+ARG RANDOMX_RUST_VERSION
+ARG RANDOMX_VERSION
+ADD fetch/flutter_libepiccash-${VERSION}.tar.gz /
+ADD fetch/randomx-rust-${RANDOMX_RUST_VERSION}.tar.gz /
+ADD fetch/randomx-${RANDOMX_VERSION}.tar.gz /
+WORKDIR /flutter_libepiccash-${VERSION}/rust
+ENV SOURCE_DATE_EPOCH=1
+ENV LIBCLANG_PATH=/usr/lib
+RUN <<-EOF
+	set -eu
+	rm -rf "/randomx-rust-${RANDOMX_RUST_VERSION}/randomx"
+	mv "/randomx-${RANDOMX_VERSION}" "/randomx-rust-${RANDOMX_RUST_VERSION}/randomx"
+	# The wrapper hard-codes GNU libstdc++ for Linux, while StageX's pinned
+	# Clang toolchain consistently builds C++ code against libc++.
+	sed -i 's/dylib=stdc++/dylib=c++/' \
+		"/randomx-rust-${RANDOMX_RUST_VERSION}/build.rs"
+	sed -i \
+		"s#randomx = { git = \"https://github.com/cypherstack/randomx-rust\" }#randomx = { path = \"/randomx-rust-${RANDOMX_RUST_VERSION}\" }#" \
+		Cargo.toml
+	cargo fetch --locked
+EOF
+ENV CARGO_NET_OFFLINE=true
+ENV CXXSTDLIB=c++
+ENV RUSTFLAGS="-C debuginfo=0 -C codegen-units=1 --remap-path-prefix=/flutter_libepiccash-${VERSION}=."
+RUN --network=none <<-EOF
+	set -eu
+	cargo build \
+		--frozen \
+		--release \
+		--target "${ARCH}-unknown-linux-musl" \
+		--lib
+	install -Dm755 \
+		"target/${ARCH}-unknown-linux-musl/release/libepic_cash_wallet.so" \
+		/rootfs/usr/lib/libepic_cash_wallet.so
+	header="$(find target -name epic_cash_wallet.h -print -quit)"
+	test -n "$header"
+	install -Dm644 "$header" /rootfs/usr/include/epic_cash_wallet.h
+	install -Dm644 ../LICENSE /rootfs/usr/share/licenses/stack-wallet-epiccash/LICENSE
+EOF
+
+FROM stagex/core-filesystem AS package
+COPY --from=build /rootfs/ /
