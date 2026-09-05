@@ -4,10 +4,10 @@
 # This file should be version controlled.
 
 version:
-  revision: bcea432bce54a83306b3c00a7ad0ed98f777348d
-  channel: beta
+  revision: d3b14c876900e553bc736ca19295fc09e3853e8e
+  channel: stable
 
-project_type: plugin
+project_type: package_ffi
 
 # Tracks metadata for the flutter migrate command
 migration:

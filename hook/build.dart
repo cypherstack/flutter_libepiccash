@@ -136,7 +136,12 @@ Map<String, String> _cargoEnvironment(CodeConfig code) {
     return _androidCargoEnvironment(code);
   }
   if (code.targetOS == OS.iOS) {
-    return {'IPHONEOS_DEPLOYMENT_TARGET': '${code.iOS.targetVersion}.0'};
+    // Flutter 3.47 currently reports iOS 13 to native-assets hooks even when
+    // the consuming Xcode project has a newer deployment target. Keep the
+    // native library aligned with this package's documented iOS 15 minimum.
+    final targetVersion =
+        code.iOS.targetVersion < 15 ? 15 : code.iOS.targetVersion;
+    return {'IPHONEOS_DEPLOYMENT_TARGET': '$targetVersion.0'};
   }
   if (code.targetOS == OS.macOS) {
     return {'MACOSX_DEPLOYMENT_TARGET': '${code.macOS.targetVersion}.0'};
