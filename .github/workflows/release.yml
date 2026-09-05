@@ -1,216 +1,247 @@
-name: Build and Release
+name: Build native artifacts
 
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - "v[0-9]+.[0-9]+.[0-9]+"
   workflow_dispatch:
 
-jobs:
+permissions:
+  contents: read
 
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
   build-linux:
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/cypherstack/stackwallet-ci:latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-            asset: libepic_cash_wallet-linux-x86_64.so
+            asset: libepic_cash_wallet-x86_64-unknown-linux-gnu.so
           - target: aarch64-unknown-linux-gnu
-            asset: libepic_cash_wallet-linux-aarch64.so
+            asset: libepic_cash_wallet-aarch64-unknown-linux-gnu.so
     steps:
       - uses: actions/checkout@v6
 
-      - name: Add Rust target
-        run: rustup target add ${{ matrix.target }}
+      - name: Select Rust toolchain
+        run: |
+          rustup toolchain install 1.89.0 --profile minimal --target "${{ matrix.target }}"
+          rustup default 1.89.0
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
           key: linux-${{ matrix.target }}
 
-      - name: Build
+      - name: Build dynamic library
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
         run: |
           cd rust
-          cargo build --target ${{ matrix.target }} --release --lib
-          cp target/${{ matrix.target }}/release/libepic_cash_wallet.so ${{ matrix.asset }}
+          cargo build --locked --release --lib --target "${{ matrix.target }}"
+          cp "target/${{ matrix.target }}/release/libepic_cash_wallet.so" "${{ matrix.asset }}"
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset }}
           path: rust/${{ matrix.asset }}
+          if-no-files-found: error
 
   build-android:
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/cypherstack/stackwallet-ci:latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: aarch64-linux-android
             abi: arm64-v8a
+            asset: libepic_cash_wallet-aarch64-linux-android.so
           - target: armv7-linux-androideabi
             abi: armeabi-v7a
+            asset: libepic_cash_wallet-armv7-linux-androideabi.so
           - target: x86_64-linux-android
             abi: x86_64
+            asset: libepic_cash_wallet-x86_64-linux-android.so
     steps:
       - uses: actions/checkout@v6
 
-      - name: Add Rust target
-        run: rustup target add ${{ matrix.target }}
+      - name: Select Rust toolchain
+        run: |
+          rustup toolchain install 1.89.0 --profile minimal --target "${{ matrix.target }}"
+          rustup default 1.89.0
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
-          key: android-${{ matrix.abi }}
+          key: android-${{ matrix.target }}
 
-      - name: Build
+      - name: Build dynamic library
         run: |
           cd rust
-          cargo ndk --target ${{ matrix.target }} --platform 21 build --release
-          cp target/${{ matrix.target }}/release/libepic_cash_wallet.so \
-             libepic_cash_wallet-android-${{ matrix.abi }}.so
+          cargo ndk --target "${{ matrix.target }}" --platform 24 \
+            --link-libcxx-shared --output-dir native-libs \
+            build --locked --release --lib
+          cp "target/${{ matrix.target }}/release/libepic_cash_wallet.so" "${{ matrix.asset }}"
+          cp "native-libs/${{ matrix.abi }}/libc++_shared.so" "libc++_shared-${{ matrix.target }}.so"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libepic_cash_wallet-android-${{ matrix.abi }}.so
-          path: rust/libepic_cash_wallet-android-${{ matrix.abi }}.so
+          name: ${{ matrix.asset }}
+          path: |
+            rust/${{ matrix.asset }}
+            rust/libc++_shared-${{ matrix.target }}.so
+          if-no-files-found: error
 
   build-ios:
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-ios
+            sdk: iphoneos
+            asset: libepic_cash_wallet-aarch64-apple-ios.dylib
+          - target: aarch64-apple-ios-sim
+            sdk: iphonesimulator
+            asset: libepic_cash_wallet-aarch64-apple-ios-sim.dylib
+          - target: x86_64-apple-ios
+            sdk: iphonesimulator
+            asset: libepic_cash_wallet-x86_64-apple-ios.dylib
     steps:
       - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: '1.89.0'
-          targets: aarch64-apple-ios
+          toolchain: "1.89.0"
+          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
+          key: ios-${{ matrix.target }}
 
-      - name: Install cbindgen
-        run: cargo install cbindgen --version 0.24.3
-
-      - name: Build
+      - name: Build dynamic library
+        env:
+          IPHONEOS_DEPLOYMENT_TARGET: "15.0"
         run: |
+          export SDKROOT="$(xcrun --sdk "${{ matrix.sdk }}" --show-sdk-path)"
           cd rust
-          export IPHONEOS_DEPLOYMENT_TARGET=15.0
-          export RUSTFLAGS="-C link-arg=-mios-version-min=15.0"
-          cargo build --release --target aarch64-apple-ios --lib
-
-          RANDOMX_LIB=$(find target/aarch64-apple-ios/release/build -name "librandomx.a" | head -n 1)
-          if [ -f "$RANDOMX_LIB" ]; then
-            libtool -static -o libepic_cash_wallet-ios-aarch64.a \
-              target/aarch64-apple-ios/release/libepic_cash_wallet.a \
-              "$RANDOMX_LIB"
-          else
-            cp target/aarch64-apple-ios/release/libepic_cash_wallet.a libepic_cash_wallet-ios-aarch64.a
-          fi
-
-          cbindgen --config cbindgen.toml --crate epic-cash-wallet --output libepic_cash_wallet.h
+          cargo build --locked --release --lib --target "${{ matrix.target }}"
+          cp "target/${{ matrix.target }}/release/libepic_cash_wallet.dylib" "${{ matrix.asset }}"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libepic_cash_wallet-ios-aarch64.a
-          path: rust/libepic_cash_wallet-ios-aarch64.a
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: libepic_cash_wallet.h
-          path: rust/libepic_cash_wallet.h
+          name: ${{ matrix.asset }}
+          path: rust/${{ matrix.asset }}
+          if-no-files-found: error
 
   build-macos:
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
     steps:
       - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: '1.89.0'
-          targets: aarch64-apple-darwin
+          toolchain: "1.89.0"
+          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
+          key: macos-${{ matrix.target }}
 
-      - name: Install cbindgen
-        run: cargo install cbindgen --version 0.24.3
-
-      - name: Build
+      - name: Build dynamic library
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "12.0"
         run: |
           cd rust
-          cargo build --target aarch64-apple-darwin --release --lib
-
-          RANDOMX_LIB=$(find target/aarch64-apple-darwin/release/build -name "librandomx.a" | head -n 1)
-          if [ -f "$RANDOMX_LIB" ]; then
-            libtool -static -o target/aarch64-apple-darwin/release/libepic_cash_wallet_combined.a \
-              target/aarch64-apple-darwin/release/libepic_cash_wallet.a \
-              "$RANDOMX_LIB"
-            MAIN_LIB=target/aarch64-apple-darwin/release/libepic_cash_wallet_combined.a
-          else
-            MAIN_LIB=target/aarch64-apple-darwin/release/libepic_cash_wallet.a
-          fi
-
-          mkdir -p Headers
-          cbindgen --config cbindgen.toml --crate epic-cash-wallet --output Headers/libepic_cash_wallet.h
-
-          xcodebuild -create-xcframework \
-            -library "$MAIN_LIB" \
-            -headers Headers/libepic_cash_wallet.h \
-            -output EpicWallet.xcframework
-          zip -r EpicWallet.xcframework.zip EpicWallet.xcframework
+          cargo build --locked --release --lib --target "${{ matrix.target }}"
+          cp "target/${{ matrix.target }}/release/libepic_cash_wallet.dylib" \
+            "libepic_cash_wallet-${{ matrix.target }}.dylib"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: EpicWallet.xcframework.zip
-          path: rust/EpicWallet.xcframework.zip
+          name: libepic_cash_wallet-${{ matrix.target }}.dylib
+          path: rust/libepic_cash_wallet-${{ matrix.target }}.dylib
+          if-no-files-found: error
 
   build-windows:
-    runs-on: ubuntu-24.04
-    container:
-      image: ghcr.io/cypherstack/stackwallet-ci:latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
 
-      - name: Add Rust target
-        run: rustup target add x86_64-pc-windows-gnu
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.89.0"
+          targets: x86_64-pc-windows-msvc
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
+          key: windows-x86_64-pc-windows-msvc
 
-      - name: Build
+      - name: Check native prerequisites
+        shell: pwsh
         run: |
-          cd rust
-          cargo build --target x86_64-pc-windows-gnu --release --lib
-          cp target/x86_64-pc-windows-gnu/release/epic_cash_wallet.dll \
-             libepic_cash_wallet-windows-x86_64.dll
+          cmake --version
+          perl --version
+
+      - name: Build dynamic library
+        shell: pwsh
+        run: |
+          Set-Location rust
+          cargo build --locked --release --lib --target x86_64-pc-windows-msvc
+          Copy-Item `
+            target/x86_64-pc-windows-msvc/release/epic_cash_wallet.dll `
+            libepic_cash_wallet-x86_64-pc-windows-msvc.dll
 
       - uses: actions/upload-artifact@v4
         with:
-          name: libepic_cash_wallet-windows-x86_64.dll
-          path: rust/libepic_cash_wallet-windows-x86_64.dll
+          name: libepic_cash_wallet-x86_64-pc-windows-msvc.dll
+          path: rust/libepic_cash_wallet-x86_64-pc-windows-msvc.dll
+          if-no-files-found: error
 
   release:
-    needs: [build-linux, build-android, build-ios, build-macos, build-windows]
+    needs:
+      - build-linux
+      - build-android
+      - build-ios
+      - build-macos
+      - build-windows
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v6
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
 
-      - name: Generate checksums
+      - name: Add ABI header and checksums
         run: |
+          cp rust/include/epic_cash_wallet.h artifacts/
           cd artifacts
-          sha256sum * > checksums.txt
+          find . -maxdepth 1 -type f ! -name checksums.txt -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            > checksums.txt
 
       - uses: softprops/action-gh-release@v2
         with:

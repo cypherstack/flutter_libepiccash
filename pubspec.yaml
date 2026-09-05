@@ -1,7 +1,8 @@
 name: flutter_libepiccash
-description: A new Flutter plugin project.
+description: Flutter Native Assets bindings for the Epic Cash wallet library.
 version: 0.0.1
-homepage:
+homepage: https://github.com/cypherstack/flutter_libepiccash
+repository: https://github.com/cypherstack/flutter_libepiccash
 
 environment:
   sdk: ">=3.13.0 <4.0.0"
@@ -17,7 +18,6 @@ dependencies:
   decimal: ^2.1.0
   mutex: ^3.0.0
   uuid: ^4.0.0
-
 
 dev_dependencies:
   flutter_test:

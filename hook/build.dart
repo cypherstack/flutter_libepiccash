@@ -32,6 +32,7 @@ Future<void> main(List<String> args) async {
     await RustBuilder(
       assetName: _assetName,
       cratePath: 'rust',
+      extraCargoBuildArgs: const ['--locked'],
       extraCargoEnvironmentVariables: _cargoEnvironment(input.config.code),
     ).run(input: input, output: output);
 
@@ -144,7 +145,9 @@ Map<String, String> _cargoEnvironment(CodeConfig code) {
     return {'IPHONEOS_DEPLOYMENT_TARGET': '$targetVersion.0'};
   }
   if (code.targetOS == OS.macOS) {
-    return {'MACOSX_DEPLOYMENT_TARGET': '${code.macOS.targetVersion}.0'};
+    // Build for the package floor. A library built for an older deployment
+    // target remains usable when the consuming application requires newer.
+    return {'MACOSX_DEPLOYMENT_TARGET': '12.0'};
   }
   return const {};
 }

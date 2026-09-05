@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  host-native-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.89.0"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          key: host-${{ matrix.os }}
+
+      - uses: actions/cache@v5
+        with:
+          path: .dart_tool/hooks_runner
+          key: native-assets-${{ matrix.os }}-${{ hashFiles('rust/Cargo.lock', 'rust/**/*.rs', 'hook/build.dart') }}
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.2
+          channel: stable
+          cache: true
+
+      - name: Install Linux native prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake libclang-dev ninja-build pkg-config
+
+      - run: flutter pub get
+      - run: flutter test
+
+      - name: Verify focused analysis and generated bindings
+        if: runner.os == 'Linux'
+        run: |
+          dart analyze hook/build.dart lib/epic_cash.dart lib/flutter_libepiccash.dart
+          dart run ffigen --config ffigen.yaml
+          git diff --exit-code -- lib/src/epic_cash_wallet_bindings.g.dart
+
+  apple-example-builds:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.89.0"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          key: apple-examples
+
+      - uses: actions/cache@v5
+        with:
+          path: example/.dart_tool/hooks_runner
+          key: native-assets-apple-examples-${{ hashFiles('rust/Cargo.lock', 'rust/**/*.rs', 'hook/build.dart') }}
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.2
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter pub get
+        working-directory: example
+      - run: flutter build macos --debug
+        working-directory: example
+      - run: flutter build ios --simulator --debug --no-codesign
+        working-directory: example

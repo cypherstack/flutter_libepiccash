@@ -1,5 +1,5 @@
 name: flutter_libepiccash_example
-description: Demonstrates how to use the flutter_libepiccash plugin.
+description: Demonstrates how to use the flutter_libepiccash package.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
