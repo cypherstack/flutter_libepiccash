@@ -1,8 +1,8 @@
 # flutter_libepiccash
 
 Dart bindings for the Epic Cash wallet library. The Rust library is built and
-bundled through Flutter Native Assets; applications do not need plugin
-registrants, podspecs, CMake copy rules, or platform-specific download scripts.
+bundled through Flutter Native Assets, using Flutter's standard asset bundling
+instead of the former plugin packaging and platform-specific download scripts.
 
 ## Requirements
 
@@ -31,6 +31,23 @@ target architecture, and bundles the resulting dynamic library. The first
 build can take several minutes because OpenSSL, RandomX, and the wallet
 dependencies are compiled from source. Cargo and Flutter cache subsequent
 builds.
+
+## Migrate an existing application
+
+Remove the former Epic Cash plugin registrants, podspec references, copied
+libraries, and package-specific CMake copy rules. Keep Flutter's standard
+Native Assets installation rules in desktop applications; see the example's
+[`windows/CMakeLists.txt`](example/windows/CMakeLists.txt) and
+[`linux/CMakeLists.txt`](example/linux/CMakeLists.txt).
+
+Android applications must declare Internet access in
+`android/app/src/main/AndroidManifest.xml`, directly inside `<manifest>`, so
+release builds can connect to the node and Epicbox. The removed plugin manifest
+previously supplied this permission:
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+```
 
 ## Use prebuilt native assets
 
