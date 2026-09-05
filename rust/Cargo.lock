@@ -4054,6 +4054,7 @@ dependencies = [
 [[package]]
 name = "randomx"
 version = "0.2.0"
+source = "git+https://github.com/cypherstack/randomx-rust#5147a05e320a9fb68306ae08a1e94bc9cdd56a77"
 dependencies = [
  "bindgen",
  "byteorder",

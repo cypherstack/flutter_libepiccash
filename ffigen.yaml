@@ -1,0 +1,39 @@
+# Run with `dart run ffigen --config ffigen.yaml`.
+name: EpicCashWalletBindings
+description: Generated bindings for the Epic Cash wallet C ABI.
+output: lib/src/epic_cash_wallet_bindings.g.dart
+headers:
+  entry-points:
+    - rust/include/epic_cash_wallet.h
+  include-directives:
+    - rust/include/epic_cash_wallet.h
+functions:
+  include:
+    - _listener_cancel
+    - _listener_is_running
+    - epic_cash_string_free
+    - get_mnemonic
+    - rust_create_tx
+    - rust_delete_wallet
+    - rust_epicbox_listener_start
+    - rust_get_chain_height
+    - rust_get_tx_fees
+    - rust_get_wallet_address
+    - rust_open_wallet
+    - rust_recover_from_mnemonic
+    - rust_tx_cancel
+    - rust_tx_finalize
+    - rust_tx_receive
+    - rust_tx_send_http
+    - rust_txs_get
+    - rust_validate_address
+    - rust_wallet_balances
+    - rust_wallet_scan_outputs
+    - wallet_init
+  rename:
+    _listener_cancel: epic_cash_listener_cancel
+    _listener_is_running: epic_cash_listener_is_running
+ffi-native:
+comments:
+  style: any
+  length: full
