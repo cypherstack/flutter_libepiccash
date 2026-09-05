@@ -1,5 +1,6 @@
 name: flutter_libepiccash_example
 description: Demonstrates how to use the flutter_libepiccash package.
+version: 1.0.0+1
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -24,13 +25,11 @@ dependencies:
     # When depending on this package from a real application you should use:
     #   flutter_libepiccash: ^x.y.z
     # See https://dart.dev/tools/pub/dependencies#version-constraints
-    # The example app is bundled with the plugin so we use a path dependency on
-    # the parent directory to use the current plugin's version.
+    # The example app is bundled with the package so we use a path dependency on
+    # the parent directory to use the current package version.
     path: ../
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  flutter_secure_storage: ^9.2.4
+  flutter_secure_storage: ^10.3.1
   numeric_keyboard: ^1.1.0
 
 dev_dependencies:

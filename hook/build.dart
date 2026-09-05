@@ -33,7 +33,10 @@ Future<void> main(List<String> args) async {
       assetName: _assetName,
       cratePath: 'rust',
       extraCargoBuildArgs: const ['--locked'],
-      extraCargoEnvironmentVariables: _cargoEnvironment(input.config.code),
+      extraCargoEnvironmentVariables: {
+        ..._macOsRustToolchainEnvironment(),
+        ..._cargoEnvironment(input.config.code),
+      },
     ).run(input: input, output: output);
 
     if (input.config.code.targetOS == OS.android) {
@@ -132,6 +135,41 @@ Future<void> _bundleFile(
   );
 }
 
+Map<String, String> _macOsRustToolchainEnvironment() {
+  if (!Platform.isMacOS) {
+    return const {};
+  }
+
+  // Preserve native_toolchain_rust's removal of Xcode-injected tool paths.
+  final paths = (Platform.environment['PATH'] ?? '')
+      .split(':')
+      .where((path) => !path.contains('Contents/Developer/'))
+      .toList();
+  if (paths.any((path) => File('$path/rustc').existsSync())) {
+    return const {};
+  }
+
+  // Homebrew can expose only rustup on PATH. Its resolved installation also
+  // contains the rustc/cargo proxies needed by `rustup run ... cargo build`.
+  final homeDirectory = Platform.environment['HOME'];
+  for (final path in [
+    ...paths,
+    if (homeDirectory != null) '$homeDirectory/.cargo/bin',
+  ]) {
+    final rustup = File('$path/rustup');
+    if (!rustup.existsSync()) {
+      continue;
+    }
+    final toolchainBin = File(rustup.resolveSymbolicLinksSync()).parent.path;
+    if (File('$toolchainBin/rustc').existsSync()) {
+      return {
+        'PATH': [...paths, toolchainBin].join(':'),
+      };
+    }
+  }
+  return const {};
+}
+
 Map<String, String> _cargoEnvironment(CodeConfig code) {
   if (code.targetOS == OS.android) {
     return _androidCargoEnvironment(code);
@@ -140,8 +178,9 @@ Map<String, String> _cargoEnvironment(CodeConfig code) {
     // Flutter 3.47 currently reports iOS 13 to native-assets hooks even when
     // the consuming Xcode project has a newer deployment target. Keep the
     // native library aligned with this package's documented iOS 15 minimum.
-    final targetVersion =
-        code.iOS.targetVersion < 15 ? 15 : code.iOS.targetVersion;
+    final targetVersion = code.iOS.targetVersion < 15
+        ? 15
+        : code.iOS.targetVersion;
     return {'IPHONEOS_DEPLOYMENT_TARGET': '$targetVersion.0'};
   }
   if (code.targetOS == OS.macOS) {
@@ -167,8 +206,9 @@ Map<String, String> _androidCargoEnvironment(CodeConfig code) {
 
   final target = _rustTarget(code);
   final environmentTarget = target.replaceAll('-', '_');
-  final ndkTarget =
-      target == 'armv7-linux-androideabi' ? 'armv7a-linux-androideabi' : target;
+  final ndkTarget = target == 'armv7-linux-androideabi'
+      ? 'armv7a-linux-androideabi'
+      : target;
   final sysrootTarget = _androidSysrootTarget(target);
 
   final compilerDirectory = File.fromUri(compiler.compiler).parent;
@@ -208,7 +248,7 @@ Map<String, String> _androidCargoEnvironment(CodeConfig code) {
     'CARGO_TARGET_${environmentTarget.toUpperCase()}_LINKER': clang.path,
     'BINDGEN_EXTRA_CLANG_ARGS_$environmentTarget':
         '--sysroot=${_clangPathArgument(sysroot.path)} '
-            '-I${_clangPathArgument(targetInclude.path)}',
+        '-I${_clangPathArgument(targetInclude.path)}',
     'ANDROID_NDK_HOME': ndkRoot.path,
     // CMake-based Rust dependencies discover the NDK through this variable.
     'ANDROID_NDK_ROOT': ndkRoot.path,
@@ -240,9 +280,9 @@ String _rustTarget(CodeConfig code) =>
       (OS.windows, Architecture.arm64) => 'aarch64-pc-windows-msvc',
       (OS.windows, Architecture.x64) => 'x86_64-pc-windows-msvc',
       _ => throw UnsupportedError(
-          'Unsupported native target: '
-          '${code.targetOS}/${code.targetArchitecture}',
-        ),
+        'Unsupported native target: '
+        '${code.targetOS}/${code.targetArchitecture}',
+      ),
     };
 
 String _prebuiltFileName(CodeConfig code) {
@@ -257,8 +297,8 @@ String _prebuiltFileName(CodeConfig code) {
 }
 
 String _bundledFileName(OS os) => switch (os) {
-      OS.android || OS.linux => 'libepic_cash_wallet.so',
-      OS.iOS || OS.macOS => 'libepic_cash_wallet.dylib',
-      OS.windows => 'epic_cash_wallet.dll',
-      _ => throw UnsupportedError('Unsupported OS: $os'),
-    };
+  OS.android || OS.linux => 'libepic_cash_wallet.so',
+  OS.iOS || OS.macOS => 'libepic_cash_wallet.dylib',
+  OS.windows => 'epic_cash_wallet.dll',
+  _ => throw UnsupportedError('Unsupported OS: $os'),
+};
