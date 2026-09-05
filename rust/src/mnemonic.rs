@@ -35,9 +35,7 @@ pub fn _get_mnemonic() -> Result<*const c_char, mnemonic::Error> {
         }
     }
     let s = CString::new(wallet_phrase).unwrap();
-    let p = s.as_ptr(); // Get a pointer to the underlaying memory for s
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 #[cfg(test)]

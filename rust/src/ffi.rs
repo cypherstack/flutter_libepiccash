@@ -45,6 +45,31 @@ use crate::init_logger;
 
 use ffi_helpers::task::TaskHandle;
 
+/// Release a string returned by this library.
+///
+/// Every C string returned from an exported function is owned by Rust and must
+/// be returned through this function. Callers must not use `free` directly.
+#[no_mangle]
+pub unsafe extern "C" fn epic_cash_string_free(value: *mut c_char) {
+    if !value.is_null() {
+        drop(CString::from_raw(value));
+    }
+}
+
+#[cfg(test)]
+mod string_ownership_tests {
+    use super::*;
+    use std::ptr;
+
+    #[test]
+    fn returned_strings_are_released_by_rust() {
+        unsafe {
+            epic_cash_string_free(CString::new("owned by Rust").unwrap().into_raw());
+            epic_cash_string_free(ptr::null_mut());
+        }
+    }
+}
+
 /// Initialize a new wallet via FFI.
 #[no_mangle]
 pub unsafe extern "C" fn wallet_init(
@@ -60,9 +85,7 @@ pub unsafe extern "C" fn wallet_init(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -77,9 +100,7 @@ pub unsafe extern "C" fn get_mnemonic() -> *const c_char {
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -131,9 +152,7 @@ fn _wallet_init(
         }
     }
     let s = CString::new(create_msg).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Open a wallet via FFI.
@@ -152,9 +171,7 @@ pub unsafe extern "C"  fn rust_open_wallet(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -187,9 +204,7 @@ fn _open_wallet(
     };
 
     let s = CString::new(result).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Get wallet balances via FFI.
@@ -228,9 +243,7 @@ pub unsafe extern "C"  fn rust_wallet_balances(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -268,9 +281,7 @@ fn _wallet_balances(
 
     // Convert final string result into a *const c_char.
     let s = CString::new(wallet_info_str).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Hand off responsibility to caller.
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Recover a wallet from a mnemonic via FFI.
@@ -293,9 +304,7 @@ pub unsafe extern "C"  fn rust_recover_from_mnemonic(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -338,9 +347,7 @@ fn _recover_from_mnemonic(
         }
     }
     let s = CString::new(recover_response).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Validate an address via FFI.
@@ -374,9 +381,7 @@ pub unsafe extern "C" fn rust_wallet_scan_outputs(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -416,9 +421,7 @@ fn _wallet_scan_outputs(
 
     // Convert final string result into a *const c_char.
     let s = CString::new(scan_result).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Hand off responsibility to caller.
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Create a transaction via FFI.
@@ -473,9 +476,7 @@ pub unsafe extern "C" fn rust_create_tx(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -519,9 +520,7 @@ fn _create_tx(
     }
 
     let s = CString::new(message).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Get transactions via FFI.
@@ -555,9 +554,7 @@ pub unsafe extern "C" fn rust_txs_get(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -584,9 +581,7 @@ fn _txs_get(
     }
 
     let s = CString::new(txs_result).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Cancel a transaction via FFI.
@@ -617,9 +612,7 @@ pub unsafe extern "C" fn rust_tx_cancel(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -640,9 +633,7 @@ fn _tx_cancel(
         }
     }
     let s = CString::new(cancel_msg).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Get chain height via FFI.
@@ -658,9 +649,7 @@ pub unsafe extern "C" fn rust_get_chain_height(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -681,9 +670,7 @@ fn _get_chain_height(config: *const c_char) -> Result<*const c_char, Error> {
         },
     }
     let s = CString::new(chain_height).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Delete a wallet via FFI.
@@ -703,9 +690,7 @@ pub unsafe extern "C" fn rust_delete_wallet(
         }, Err(err) => {
             let error_msg = format!("Error deleting wallet from _delete_wallet in rust_delete_wallet {}", &err.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -725,9 +710,7 @@ fn _delete_wallet(
         },
     }
     let s = CString::new(delete_result).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
-    Ok(p)
+    Ok(s.into_raw())
 
 }
 
@@ -777,9 +760,7 @@ pub unsafe extern "C" fn rust_tx_send_http(
         }, Err(err ) => {
             let error_msg = format!("Error {}", &err.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -816,9 +797,7 @@ fn _tx_send_http(
         },
     }
     let s = CString::new(send_result).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Get a wallet address via FFI.
@@ -851,9 +830,7 @@ pub unsafe extern "C" fn rust_get_wallet_address(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -868,9 +845,7 @@ fn _get_wallet_address(
 ) -> Result<*const c_char, Error> {
     let address = get_wallet_address(&wallet, keychain_mask, index, epicbox_config);
     let s = CString::new(address).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Get a wallet address.
@@ -902,9 +877,7 @@ pub unsafe extern "C" fn rust_validate_address(
     };
 
     let s = CString::new(return_value.to_string()).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
-    p
+    s.into_raw()
 }
 
 /// Validate an address.
@@ -940,9 +913,7 @@ pub unsafe extern "C" fn rust_get_tx_fees(
         }, Err(e ) => {
             let error_msg = format!("Error {}", &e.to_string());
             let error_msg_ptr = CString::new(error_msg).unwrap();
-            let ptr = error_msg_ptr.as_ptr();
-            std::mem::forget(error_msg_ptr);
-            ptr
+            error_msg_ptr.into_raw()
         }
     };
     result
@@ -964,9 +935,7 @@ fn _get_tx_fees(
         }
     }
     let s = CString::new(fees_data).unwrap();
-    let p = s.as_ptr();
-    std::mem::forget(s); // Give up the responsibility of cleaning up/freeing s.
-    Ok(p)
+    Ok(s.into_raw())
 }
 
 /// Start a listener via FFI.
@@ -999,9 +968,7 @@ pub unsafe extern "C" fn _listener_cancel(handler: *mut c_void) -> *const c_char
     // Validate handler is not null
     if handler.is_null() {
         let error_msg = CString::new("false").unwrap();
-        let ptr = error_msg.as_ptr();
-        std::mem::forget(error_msg);
-        return ptr;
+        return error_msg.into_raw();
     }
 
     let handle = handler as *mut TaskHandle<usize>;
@@ -1017,9 +984,7 @@ pub unsafe extern "C" fn _listener_cancel(handler: *mut c_void) -> *const c_char
 
     let error_msg = format!("{}", was_cancelled);
     let error_msg_ptr = CString::new(error_msg).unwrap();
-    let ptr = error_msg_ptr.as_ptr();
-    std::mem::forget(error_msg_ptr);
-    ptr
+    error_msg_ptr.into_raw()
 }
 
 /// Check if the listener is still running via FFI.
@@ -1030,9 +995,7 @@ pub unsafe extern "C" fn _listener_is_running(handler: *mut c_void) -> *const c_
     // Validate handler is not null
     if handler.is_null() {
         let result = CString::new("false").unwrap();
-        let ptr = result.as_ptr();
-        std::mem::forget(result);
-        return ptr;
+        return result.into_raw();
     }
 
     let handle = handler as *mut TaskHandle<usize>;
@@ -1044,9 +1007,7 @@ pub unsafe extern "C" fn _listener_is_running(handler: *mut c_void) -> *const c_
     let is_running = poll_result.is_null();
 
     let result = CString::new(if is_running { "true" } else { "false" }).unwrap();
-    let ptr = result.as_ptr();
-    std::mem::forget(result);
-    ptr
+    result.into_raw()
 }
 
 /// Receive a slate via FFI.
@@ -1071,9 +1032,7 @@ pub unsafe extern "C" fn rust_tx_receive(
         Ok(ptr) => ptr,
         Err(e) => {
             let err = CString::new(format!("Error {}", e)).unwrap();
-            let p = err.as_ptr();
-            std::mem::forget(err);
-            p
+            err.into_raw()
         }
     }
 }
@@ -1099,9 +1058,7 @@ fn _tx_receive(
     }
 
     let c_out = CString::new(out).unwrap();
-    let p = c_out.as_ptr();
-    std::mem::forget(c_out);
-    Ok(p)
+    Ok(c_out.into_raw())
 }
 
 /// Finalize a slate via FFI.
@@ -1126,9 +1083,7 @@ pub unsafe extern "C" fn rust_tx_finalize(
         Ok(ptr) => ptr,
         Err(e) => {
             let err = CString::new(format!("Error {}", e)).unwrap();
-            let p = err.as_ptr();
-            std::mem::forget(err);
-            p
+            err.into_raw()
         }
     }
 }
@@ -1154,9 +1109,7 @@ fn _tx_finalize(
     }
 
     let c_out = CString::new(out).unwrap();
-    let p = c_out.as_ptr();
-    std::mem::forget(c_out);
-    Ok(p)
+    Ok(c_out.into_raw())
 }
 
 #[cfg(test)]

@@ -7,36 +7,78 @@ final DynamicLibrary epicCashNative = io.Platform.isWindows
     ? DynamicLibrary.open("libepic_cash_wallet.dll")
     : io.Platform.environment.containsKey('FLUTTER_TEST')
         ? DynamicLibrary.open(
-            'crypto_plugins/flutter_libepiccash/scripts/linux/build/libepic_cash_wallet.so')
+            'crypto_plugins/flutter_libepiccash/scripts/linux/build/libepic_cash_wallet.so',
+          )
         : io.Platform.isAndroid || io.Platform.isLinux
             ? DynamicLibrary.open('libepic_cash_wallet.so')
             : DynamicLibrary.process();
+
+typedef EpicCashStringFree = void Function(Pointer<Utf8>);
+typedef EpicCashStringFreeFFI = Void Function(Pointer<Utf8>);
+
+final EpicCashStringFree _epicCashStringFree = epicCashNative
+    .lookup<NativeFunction<EpicCashStringFreeFFI>>('epic_cash_string_free')
+    .asFunction();
+
+void _freeRustString(Pointer<Utf8>? value) {
+  if (value != null) {
+    _epicCashStringFree(value);
+  }
+}
 
 typedef WalletMnemonic = Pointer<Utf8> Function();
 typedef WalletMnemonicFFI = Pointer<Utf8> Function();
 
 typedef WalletInit = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+);
 typedef WalletInitFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+);
 
 typedef WalletInfo = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Int8>,
+);
 typedef WalletInfoFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Int8>,
+);
 
 typedef RecoverWallet = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+);
 typedef RecoverWalletFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>, Pointer<Utf8>);
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+);
 
 typedef WalletPhrase = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 typedef WalletPhraseFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 
 typedef ScanOutPuts = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Int8>,
+);
 typedef ScanOutPutsFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Int8>,
+);
 
 typedef CreateTransaction = Pointer<Utf8> Function(
   Pointer<Utf8>, // wallet
@@ -60,9 +102,13 @@ typedef CreateTransactionFFI = Pointer<Utf8> Function(
 );
 
 typedef EpicboxListenerStart = Pointer<Void> Function(
-    Pointer<Utf8>, Pointer<Utf8>);
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+);
 typedef EpicboxListenerStartFFI = Pointer<Void> Function(
-    Pointer<Utf8>, Pointer<Utf8>);
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+);
 
 typedef EpicboxListenerStop = Pointer<Utf8> Function(Pointer<Void>);
 typedef EpicboxListenerStopFFI = Pointer<Utf8> Function(Pointer<Void>);
@@ -72,28 +118,46 @@ typedef EpicboxListenerIsRunningFFI = Pointer<Utf8> Function(Pointer<Void>);
 
 typedef GetTransactions = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>);
 typedef GetTransactionsFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>);
+  Pointer<Utf8>,
+  Pointer<Int8>,
+);
 
 typedef CancelTransaction = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>);
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+);
 typedef CancelTransactionFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Utf8>);
+  Pointer<Utf8>,
+  Pointer<Utf8>,
+);
 
 typedef GetChainHeight = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef GetChainHeightFFI = Pointer<Utf8> Function(Pointer<Utf8>);
 
 typedef AddressInfo = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Utf8>,
+);
 typedef AddressInfoFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Utf8>,
+);
 
 typedef ValidateAddress = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef ValidateAddressFFI = Pointer<Utf8> Function(Pointer<Utf8>);
 
 typedef TransactionFees = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Int8>,
+);
 typedef TransactionFeesFFI = Pointer<Utf8> Function(
-    Pointer<Utf8>, Pointer<Int8>, Pointer<Int8>);
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Int8>,
+);
 
 typedef DeleteWallet = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 typedef DeleteWalletFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
@@ -101,10 +165,22 @@ typedef DeleteWalletFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 typedef OpenWallet = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 typedef OpenWalletFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Utf8>);
 
-typedef TxHttpSend = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
-    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
-typedef TxHttpSendFFI = Pointer<Utf8> Function(Pointer<Utf8>, Pointer<Int8>,
-    Pointer<Int8>, Pointer<Utf8>, Pointer<Int8>, Pointer<Utf8>);
+typedef TxHttpSend = Pointer<Utf8> Function(
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Int8>,
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Utf8>,
+);
+typedef TxHttpSendFFI = Pointer<Utf8> Function(
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Int8>,
+  Pointer<Utf8>,
+  Pointer<Int8>,
+  Pointer<Utf8>,
+);
 
 final WalletMnemonic _walletMnemonic = epicCashNative
     .lookup<NativeFunction<WalletMnemonicFFI>>("get_mnemonic")
@@ -118,9 +194,7 @@ String walletMnemonic() {
   } catch (_) {
     rethrow;
   } finally {
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -150,9 +224,7 @@ String initWallet(
     malloc.free(mnemonicPtr);
     malloc.free(passwordPtr);
     malloc.free(namePtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -172,11 +244,7 @@ Future<String> getWalletInfo(
   final minConfPtr = min_confirmations.toString().toNativeUtf8().cast<Int8>();
 
   try {
-    ptr = _walletInfo(
-      walletPtr,
-      refreshFromNodePtr,
-      minConfPtr,
-    );
+    ptr = _walletInfo(walletPtr, refreshFromNodePtr, minConfPtr);
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -184,9 +252,7 @@ Future<String> getWalletInfo(
     malloc.free(walletPtr);
     malloc.free(refreshFromNodePtr);
     malloc.free(minConfPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -216,9 +282,7 @@ String recoverWallet(
     malloc.free(passwordPtr);
     malloc.free(mnemonicPtr);
     malloc.free(namePtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -238,11 +302,7 @@ Future<String> scanOutPuts(
       numberOfBlocks.toString().toNativeUtf8().cast<Int8>();
 
   try {
-    ptr = _scanOutPuts(
-      walletPtr,
-      startHeightPtr,
-      numberOfBlocksPtr,
-    );
+    ptr = _scanOutPuts(walletPtr, startHeightPtr, numberOfBlocksPtr);
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -250,15 +310,14 @@ Future<String> scanOutPuts(
     malloc.free(walletPtr);
     malloc.free(startHeightPtr);
     malloc.free(numberOfBlocksPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
 final EpicboxListenerStart _epicboxListenerStart = epicCashNative
     .lookup<NativeFunction<EpicboxListenerStartFFI>>(
-        "rust_epicbox_listener_start")
+      "rust_epicbox_listener_start",
+    )
     .asFunction();
 
 Pointer<Void> epicboxListenerStart(String wallet, String epicboxConfig) {
@@ -288,9 +347,7 @@ bool epicboxListenerStop(Pointer<Void> handler) {
   } catch (_) {
     return false;
   } finally {
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -313,9 +370,7 @@ bool epicboxListenerIsRunning(Pointer<Void>? handler) {
   } catch (_) {
     return false;
   } finally {
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -367,9 +422,7 @@ Future<String> createTransaction(
     malloc.free(minConfPtr);
     malloc.free(notePtr);
     malloc.free(returnSlatePtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -391,9 +444,7 @@ Future<String> getTransactions(String wallet, int refreshFromNode) async {
   } finally {
     malloc.free(walletPtr);
     malloc.free(refreshFromNodePtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -414,9 +465,7 @@ String cancelTransaction(String wallet, String transactionId) {
   } finally {
     malloc.free(walletPtr);
     malloc.free(transactionIdPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -436,9 +485,7 @@ int getChainHeight(String config) {
     rethrow;
   } finally {
     malloc.free(configPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -461,9 +508,7 @@ String getAddressInfo(String wallet, int index, String epicboxConfig) {
     malloc.free(walletPtr);
     malloc.free(indexPtr);
     malloc.free(epicboxConfigPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -482,9 +527,7 @@ String validateSendAddress(String address) {
     rethrow;
   } finally {
     malloc.free(addressPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -504,7 +547,10 @@ Future<String> getTransactionFees(
 
   try {
     ptr = _transactionFees(
-        walletPtr, amountPtr.cast<Int8>(), minConfPtr.cast<Int8>());
+      walletPtr,
+      amountPtr.cast<Int8>(),
+      minConfPtr.cast<Int8>(),
+    );
     return ptr.toDartString();
   } catch (_) {
     rethrow;
@@ -512,9 +558,7 @@ Future<String> getTransactionFees(
     malloc.free(walletPtr);
     malloc.free(amountPtr);
     malloc.free(minConfPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -534,9 +578,7 @@ Future<String> deleteWallet(String wallet, String config) async {
   } finally {
     malloc.free(configPtr);
     malloc.free(walletPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -556,9 +598,7 @@ String openWallet(String config, String password) {
   } finally {
     malloc.free(configPtr);
     malloc.free(pwPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -605,9 +645,7 @@ Future<String> txHttpSend(
     malloc.free(messagePtr);
     malloc.free(amountPtr);
     malloc.free(addressPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -636,9 +674,7 @@ String txReceive(String wallet, String slateJson) {
   } finally {
     malloc.free(walletPtr);
     malloc.free(slateJsonPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
 
@@ -667,8 +703,6 @@ String txFinalize(String wallet, String slateJson) {
   } finally {
     malloc.free(walletPtr);
     malloc.free(slateJsonPtr);
-    if (ptr != null) {
-      malloc.free(ptr);
-    }
+    _freeRustString(ptr);
   }
 }
