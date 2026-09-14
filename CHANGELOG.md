@@ -1,5 +1,6 @@
 ## Unreleased
 
+- Add opt-in verified native downloads and release manifests.
 - Require Flutter 3.47 and Dart 3.13.
 - Build and bundle the Rust dynamic library with Flutter Native Assets.
 - Replace runtime `DynamicLibrary` lookup code with generated `@Native`

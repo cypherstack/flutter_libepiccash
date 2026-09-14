@@ -4,8 +4,9 @@ import 'package:code_assets/code_assets.dart';
 import 'package:hooks/hooks.dart';
 import 'package:native_toolchain_rust/native_toolchain_rust.dart';
 
+import 'src/prebuilt.dart';
+
 const _assetName = 'src/epic_cash_wallet_bindings.g.dart';
-const _prebuiltAssetsDirectory = 'prebuilt_assets_dir';
 
 Future<void> main(List<String> args) async {
   await build(args, (input, output) async {
@@ -13,9 +14,20 @@ Future<void> main(List<String> args) async {
       return;
     }
 
-    final prebuiltDirectory = input.userDefines.path(_prebuiltAssetsDirectory);
-    if (prebuiltDirectory != null) {
-      await _bundlePrebuilt(input, output, prebuiltDirectory);
+    final manifest = prebuiltManifest(input);
+    if (manifest != null) {
+      final directory = await downloadPrebuilt(
+        input,
+        output,
+        manifest,
+        target: _rustTarget(input.config.code),
+        walletName: _prebuiltFileName(input.config.code),
+      );
+      try {
+        await _bundleDownloaded(input, output, directory.uri);
+      } finally {
+        await directory.delete(recursive: true);
+      }
       return;
     }
 
@@ -45,61 +57,48 @@ Future<void> main(List<String> args) async {
   });
 }
 
-Future<void> _bundlePrebuilt(
+Future<void> _bundleDownloaded(
   BuildInput input,
   BuildOutputBuilder output,
-  Uri prebuiltDirectory,
+  Uri directory,
 ) async {
   final code = input.config.code;
-  final directory = Directory.fromUri(prebuiltDirectory).uri;
-  final source = File.fromUri(directory.resolve(_prebuiltFileName(code)));
-  if (!source.existsSync()) {
-    throw StateError(
-      'No prebuilt Epic Cash library for '
-      '${code.targetOS}/${code.targetArchitecture}: ${source.path}',
-    );
-  }
-
   await _bundleFile(
     input,
     output,
-    source: source,
+    source: File.fromUri(directory.resolve(_prebuiltFileName(code))),
     assetName: _assetName,
     fileName: _bundledFileName(code.targetOS),
   );
   if (code.targetOS == OS.android) {
-    await _bundleAndroidRuntime(input, output, prebuiltDirectory: directory);
+    await _bundleFile(
+      input,
+      output,
+      source: File.fromUri(
+        directory.resolve('libc++_shared-${_rustTarget(code)}.so'),
+      ),
+      assetName: 'libc++_shared.so',
+      fileName: 'libc++_shared.so',
+    );
   }
 }
 
 Future<void> _bundleAndroidRuntime(
   BuildInput input,
-  BuildOutputBuilder output, {
-  Uri? prebuiltDirectory,
-}) async {
+  BuildOutputBuilder output,
+) async {
   final code = input.config.code;
   final target = _rustTarget(code);
-  final File source;
-  if (prebuiltDirectory != null) {
-    source = File.fromUri(
-      prebuiltDirectory.resolve('libc++_shared-$target.so'),
-    );
-  } else {
-    final toolchainRoot = File.fromUri(code.cCompiler!.compiler).parent.parent;
-    source = File.fromUri(
-      toolchainRoot.uri.resolve(
-        'sysroot/usr/lib/${_androidSysrootTarget(target)}/libc++_shared.so',
-      ),
-    );
-  }
+  final toolchainRoot = File.fromUri(code.cCompiler!.compiler).parent.parent;
+  final source = File.fromUri(
+    toolchainRoot.uri.resolve(
+      'sysroot/usr/lib/${_androidSysrootTarget(target)}/libc++_shared.so',
+    ),
+  );
   if (!source.existsSync()) {
-    throw StateError(
-      'No ${prebuiltDirectory == null ? 'NDK' : 'prebuilt'} Android C++ runtime '
-      'for $target: ${source.path}. '
-      'Use libc++_shared.so from the NDK used to build the wallet library.',
-    );
+    throw StateError('No NDK Android C++ runtime for $target: ${source.path}');
   }
-
+  output.dependencies.add(source.uri);
   await _bundleFile(
     input,
     output,
@@ -116,8 +115,6 @@ Future<void> _bundleFile(
   required String assetName,
   required String fileName,
 }) async {
-  output.dependencies.add(source.uri);
-
   // Every architecture of one asset must have the same final basename. The
   // release filenames contain target details, so copy the selected file to a
   // canonical name in the hook output before handing it to Flutter.
@@ -178,9 +175,8 @@ Map<String, String> _cargoEnvironment(CodeConfig code) {
     // Flutter 3.47 currently reports iOS 13 to native-assets hooks even when
     // the consuming Xcode project has a newer deployment target. Keep the
     // native library aligned with this package's documented iOS 15 minimum.
-    final targetVersion = code.iOS.targetVersion < 15
-        ? 15
-        : code.iOS.targetVersion;
+    final targetVersion =
+        code.iOS.targetVersion < 15 ? 15 : code.iOS.targetVersion;
     return {'IPHONEOS_DEPLOYMENT_TARGET': '$targetVersion.0'};
   }
   if (code.targetOS == OS.macOS) {
@@ -206,9 +202,8 @@ Map<String, String> _androidCargoEnvironment(CodeConfig code) {
 
   final target = _rustTarget(code);
   final environmentTarget = target.replaceAll('-', '_');
-  final ndkTarget = target == 'armv7-linux-androideabi'
-      ? 'armv7a-linux-androideabi'
-      : target;
+  final ndkTarget =
+      target == 'armv7-linux-androideabi' ? 'armv7a-linux-androideabi' : target;
   final sysrootTarget = _androidSysrootTarget(target);
 
   final compilerDirectory = File.fromUri(compiler.compiler).parent;
@@ -248,7 +243,7 @@ Map<String, String> _androidCargoEnvironment(CodeConfig code) {
     'CARGO_TARGET_${environmentTarget.toUpperCase()}_LINKER': clang.path,
     'BINDGEN_EXTRA_CLANG_ARGS_$environmentTarget':
         '--sysroot=${_clangPathArgument(sysroot.path)} '
-        '-I${_clangPathArgument(targetInclude.path)}',
+            '-I${_clangPathArgument(targetInclude.path)}',
     'ANDROID_NDK_HOME': ndkRoot.path,
     // CMake-based Rust dependencies discover the NDK through this variable.
     'ANDROID_NDK_ROOT': ndkRoot.path,
@@ -280,9 +275,9 @@ String _rustTarget(CodeConfig code) =>
       (OS.windows, Architecture.arm64) => 'aarch64-pc-windows-msvc',
       (OS.windows, Architecture.x64) => 'x86_64-pc-windows-msvc',
       _ => throw UnsupportedError(
-        'Unsupported native target: '
-        '${code.targetOS}/${code.targetArchitecture}',
-      ),
+          'Unsupported native target: '
+          '${code.targetOS}/${code.targetArchitecture}',
+        ),
     };
 
 String _prebuiltFileName(CodeConfig code) {
@@ -297,8 +292,8 @@ String _prebuiltFileName(CodeConfig code) {
 }
 
 String _bundledFileName(OS os) => switch (os) {
-  OS.android || OS.linux => 'libepic_cash_wallet.so',
-  OS.iOS || OS.macOS => 'libepic_cash_wallet.dylib',
-  OS.windows => 'epic_cash_wallet.dll',
-  _ => throw UnsupportedError('Unsupported OS: $os'),
-};
+      OS.android || OS.linux => 'libepic_cash_wallet.so',
+      OS.iOS || OS.macOS => 'libepic_cash_wallet.dylib',
+      OS.windows => 'epic_cash_wallet.dll',
+      _ => throw UnsupportedError('Unsupported OS: $os'),
+    };

@@ -8,7 +8,7 @@ instead of the former plugin packaging and platform-specific download scripts.
 
 - Flutter 3.47 or newer
 - Dart 3.13 or newer
-- Rust 1.89.0 through `rustup` (selected by
+- For source builds: Rust 1.89.0 through `rustup` (selected by
   [`rust/rust-toolchain.toml`](rust/rust-toolchain.toml))
 - The normal native build tools for the target platform: Xcode on Apple
   platforms, the Android NDK for Android, a C/C++ toolchain and CMake on
@@ -51,43 +51,51 @@ previously supplied this permission:
 
 ## Use prebuilt native assets
 
-A consuming application can bypass the Rust build with a directory of trusted
-prebuilt libraries. Add this top-level configuration to the application's
-`pubspec.yaml`:
+To download a release, copy its manifest URL and SHA-256 into the application's
+root `pubspec.yaml` (workspace root for pub workspaces):
 
 ```yaml
 hooks:
   user_defines:
     flutter_libepiccash:
-      prebuilt_assets_dir: native-assets/epic-cash/
+      native_build: prebuilt
+      prebuilt_manifest_url: https://github.com/cypherstack/flutter_libepiccash/releases/download/native-YOUR-RELEASE/manifest.json
+      prebuilt_manifest_sha256: "REPLACE_WITH_RELEASE_MANIFEST_SHA256"
 ```
 
-Relative paths are resolved from that `pubspec.yaml`. The directory only
-needs the files for the application's build targets, using these exact names:
+Use the package revision named in the release. The hook verifies the manifest,
+native source fingerprint, deployment minimum, and each library's size and hash,
+including Android's C++ runtime. Invalid or missing assets fail the build.
+Downloads require public HTTPS and dynamic linking without sanitizers. Rust is
+not needed, but Flutter's normal application build tools are still required.
 
-| Platform | Filename |
-| --- | --- |
-| Android arm64 | `libepic_cash_wallet-aarch64-linux-android.so` |
-| Android armv7 | `libepic_cash_wallet-armv7-linux-androideabi.so` |
-| Android x64 | `libepic_cash_wallet-x86_64-linux-android.so` |
-| iOS device arm64 | `libepic_cash_wallet-aarch64-apple-ios.dylib` |
-| iOS simulator arm64 | `libepic_cash_wallet-aarch64-apple-ios-sim.dylib` |
-| iOS simulator x64 | `libepic_cash_wallet-x86_64-apple-ios.dylib` |
-| Linux arm64 | `libepic_cash_wallet-aarch64-unknown-linux-gnu.so` |
-| Linux x64 | `libepic_cash_wallet-x86_64-unknown-linux-gnu.so` |
-| macOS arm64 | `libepic_cash_wallet-aarch64-apple-darwin.dylib` |
-| macOS x64 | `libepic_cash_wallet-x86_64-apple-darwin.dylib` |
-| Windows x64 | `libepic_cash_wallet-x86_64-pc-windows-msvc.dll` |
+Downloads live in Flutter's hook output. Each hook run fetches fresh files;
+incremental builds can reuse the output until `flutter clean` removes it.
+Omit the settings or use `native_build: source` to compile Rust.
 
-Android targets also need the matching `libc++_shared-<rust-target>.so` from the
-same release alongside the wallet library, for example
-`libc++_shared-aarch64-linux-android.so`. The hook bundles this C++ runtime as
-`libc++_shared.so`; Android does not provide it as a system library.
+Prebuilts require Android API 24, iOS 15, or macOS 12. Linux deployments must meet
+the target's `minimum_glibc_version` in the manifest; musl is unsupported. Windows
+releases cover x64.
 
-Only use artifacts built from this Native Assets ABI. In particular, older
-artifacts that do not export `epic_cash_string_free` are incompatible. The
-release workflow publishes target-named libraries and a `checksums.txt` file
-for verification.
+## Publish native prebuilts
+
+Push a new `native-*` tag (for example `native-0.0.1-1`) or `vX.Y.Z` tag. The
+release workflow builds all eleven targets and publishes the libraries, header,
+checksums, and pinned manifest together. Release notes include consumer settings.
+Existing releases are not overwritten; manual branch runs only upload workflow
+artifacts. Older releases without a manifest cannot use download mode.
+
+Manifest generation uses the existing build recipes. To generate one locally,
+place all target-named libraries and Android runtimes built from the current
+revision in `artifacts/`, then run from the repository root:
+
+```sh
+flutter pub get
+dart --packages=.dart_tool/package_config.json tool/prebuilt_manifest.dart artifacts
+```
+
+Linux inspection requires `readelf`. Upload the manifest and libraries together.
+Resolver tests run with the existing `flutter test` suite and CI.
 
 ## Regenerate and verify the ABI
 

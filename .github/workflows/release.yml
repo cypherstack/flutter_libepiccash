@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+      - "native-*"
   workflow_dispatch:
 
 permissions:
@@ -11,6 +12,10 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+
+concurrency:
+  group: native-prebuilts-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build-linux:
@@ -234,16 +239,54 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Add ABI header and checksums
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.2
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Assemble manifest and checksums
         run: |
+          dart --packages=.dart_tool/package_config.json tool/prebuilt_manifest.dart artifacts
           cp rust/include/epic_cash_wallet.h artifacts/
           cd artifacts
           find . -maxdepth 1 -type f ! -name checksums.txt -print0 \
-            | sort -z \
-            | xargs -0 sha256sum \
-            > checksums.txt
+            | sort -z | xargs -0 sha256sum > checksums.txt
 
-      - uses: softprops/action-gh-release@v2
+      - uses: actions/upload-artifact@v4
         with:
-          generate_release_notes: true
-          files: artifacts/*
+          name: native-release
+          path: artifacts/*
+          if-no-files-found: error
+
+      - name: Publish a new release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          [[ "$RELEASE_TAG" =~ ^(native-[A-Za-z0-9][A-Za-z0-9._-]*|v[0-9]+\.[0-9]+\.[0-9]+)$ ]] || { echo 'Invalid release tag'; exit 1; }
+          source_commit=$(git rev-parse HEAD)
+          git fetch --depth=1 --no-tags origin "refs/tags/$RELEASE_TAG"
+          [[ "$(git rev-parse 'FETCH_HEAD^{commit}')" == "$source_commit" ]] || { echo 'Tag moved during this build'; exit 1; }
+          read -r manifest_pin _ < artifacts/manifest.sha256
+          cat > "$RUNNER_TEMP/native-release-notes.md" <<EOF
+          Native assets built from $source_commit. Use the matching package revision.
+          Add these settings to the consuming app's root pubspec.yaml:
+
+              hooks:
+                user_defines:
+                  flutter_libepiccash:
+                    native_build: prebuilt
+                    prebuilt_manifest_url: "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/manifest.json"
+                    prebuilt_manifest_sha256: "$manifest_pin"
+
+          Android runtimes are included. See README.md for platform requirements.
+          EOF
+          # gh release create refuses existing releases and uploads before publishing.
+          gh release create "$RELEASE_TAG" artifacts/* \
+            --verify-tag --latest=false --title "$RELEASE_TAG" \
+            --notes-file "$RUNNER_TEMP/native-release-notes.md"

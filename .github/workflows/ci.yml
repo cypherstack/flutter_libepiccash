@@ -59,7 +59,7 @@ jobs:
       - name: Verify focused analysis and generated bindings
         if: runner.os == 'Linux'
         run: |
-          dart analyze hook/build.dart lib/epic_cash.dart lib/flutter_libepiccash.dart
+          dart analyze hook tool test/build_hook_test.dart lib/epic_cash.dart lib/flutter_libepiccash.dart
           dart run ffigen --config ffigen.yaml
           git diff --exit-code -- lib/src/epic_cash_wallet_bindings.g.dart
 
