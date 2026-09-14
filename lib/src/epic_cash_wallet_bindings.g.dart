@@ -26,16 +26,17 @@ external void epic_cash_string_free(ffi.Pointer<ffi.Char> value);
 external ffi.Pointer<ffi.Char> get_mnemonic();
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-    )>()
+  ffi.Pointer<ffi.Char> Function(
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+  )
+>()
 external ffi.Pointer<ffi.Char> rust_create_tx(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> amount,
@@ -48,16 +49,16 @@ external ffi.Pointer<ffi.Char> rust_create_tx(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-        ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>()
+  ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)
+>()
 external ffi.Pointer<ffi.Char> rust_delete_wallet(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> config,
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Void> Function(
-        ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>()
+  ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)
+>()
 external ffi.Pointer<ffi.Void> rust_epicbox_listener_start(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> epicbox_config,
@@ -69,11 +70,12 @@ external ffi.Pointer<ffi.Char> rust_get_chain_height(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-    )>()
+  ffi.Pointer<ffi.Char> Function(
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+  )
+>()
 external ffi.Pointer<ffi.Char> rust_get_tx_fees(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> amount,
@@ -81,11 +83,12 @@ external ffi.Pointer<ffi.Char> rust_get_tx_fees(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-    )>()
+  ffi.Pointer<ffi.Char> Function(
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+  )
+>()
 external ffi.Pointer<ffi.Char> rust_get_wallet_address(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> index,
@@ -93,20 +96,21 @@ external ffi.Pointer<ffi.Char> rust_get_wallet_address(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-        ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>()
+  ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)
+>()
 external ffi.Pointer<ffi.Char> rust_open_wallet(
   ffi.Pointer<ffi.Char> config,
   ffi.Pointer<ffi.Char> password,
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-    )>()
+  ffi.Pointer<ffi.Char> Function(
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+  )
+>()
 external ffi.Pointer<ffi.Char> rust_recover_from_mnemonic(
   ffi.Pointer<ffi.Char> config,
   ffi.Pointer<ffi.Char> password,
@@ -115,38 +119,39 @@ external ffi.Pointer<ffi.Char> rust_recover_from_mnemonic(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-        ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>()
+  ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)
+>()
 external ffi.Pointer<ffi.Char> rust_tx_cancel(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> tx_id,
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-        ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>()
+  ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)
+>()
 external ffi.Pointer<ffi.Char> rust_tx_finalize(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> slate_json,
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-        ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>()
+  ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)
+>()
 external ffi.Pointer<ffi.Char> rust_tx_receive(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> slate_json,
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-    )>()
+  ffi.Pointer<ffi.Char> Function(
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+  )
+>()
 external ffi.Pointer<ffi.Char> rust_tx_send_http(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> selection_strategy_is_use_all,
@@ -157,8 +162,8 @@ external ffi.Pointer<ffi.Char> rust_tx_send_http(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-        ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>()
+  ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)
+>()
 external ffi.Pointer<ffi.Char> rust_txs_get(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> refresh_from_node,
@@ -170,11 +175,12 @@ external ffi.Pointer<ffi.Char> rust_validate_address(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-    )>()
+  ffi.Pointer<ffi.Char> Function(
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+  )
+>()
 external ffi.Pointer<ffi.Char> rust_wallet_balances(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> refresh,
@@ -182,11 +188,12 @@ external ffi.Pointer<ffi.Char> rust_wallet_balances(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-    )>()
+  ffi.Pointer<ffi.Char> Function(
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+  )
+>()
 external ffi.Pointer<ffi.Char> rust_wallet_scan_outputs(
   ffi.Pointer<ffi.Char> wallet,
   ffi.Pointer<ffi.Char> start_height,
@@ -194,12 +201,13 @@ external ffi.Pointer<ffi.Char> rust_wallet_scan_outputs(
 );
 
 @ffi.Native<
-    ffi.Pointer<ffi.Char> Function(
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-      ffi.Pointer<ffi.Char>,
-    )>()
+  ffi.Pointer<ffi.Char> Function(
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+    ffi.Pointer<ffi.Char>,
+  )
+>()
 external ffi.Pointer<ffi.Char> wallet_init(
   ffi.Pointer<ffi.Char> config,
   ffi.Pointer<ffi.Char> mnemonic,
