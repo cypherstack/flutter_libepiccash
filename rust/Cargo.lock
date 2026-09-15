@@ -1417,7 +1417,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_api"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic-wallet#a9e1363e6104f16ee1cfa1af7267d2ea4df93f73"
+source = "git+https://github.com/cypherstack/epic-wallet#56eabddd34acba6ef3f4f360909242ed96f4e7ae"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -1440,7 +1440,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_config"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic-wallet#a9e1363e6104f16ee1cfa1af7267d2ea4df93f73"
+source = "git+https://github.com/cypherstack/epic-wallet#56eabddd34acba6ef3f4f360909242ed96f4e7ae"
 dependencies = [
  "dirs 6.0.0",
  "epic_wallet_util",
@@ -1454,7 +1454,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_controller"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic-wallet#a9e1363e6104f16ee1cfa1af7267d2ea4df93f73"
+source = "git+https://github.com/cypherstack/epic-wallet#56eabddd34acba6ef3f4f360909242ed96f4e7ae"
 dependencies = [
  "bytes 1.11.0",
  "chrono",
@@ -1487,7 +1487,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_impls"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic-wallet#a9e1363e6104f16ee1cfa1af7267d2ea4df93f73"
+source = "git+https://github.com/cypherstack/epic-wallet#56eabddd34acba6ef3f4f360909242ed96f4e7ae"
 dependencies = [
  "base64 0.22.1",
  "bitvec",
@@ -1530,7 +1530,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_libwallet"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic-wallet#a9e1363e6104f16ee1cfa1af7267d2ea4df93f73"
+source = "git+https://github.com/cypherstack/epic-wallet#56eabddd34acba6ef3f4f360909242ed96f4e7ae"
 dependencies = [
  "aead",
  "blake2-rfc",
@@ -1563,7 +1563,7 @@ dependencies = [
 [[package]]
 name = "epic_wallet_util"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic-wallet#a9e1363e6104f16ee1cfa1af7267d2ea4df93f73"
+source = "git+https://github.com/cypherstack/epic-wallet#56eabddd34acba6ef3f4f360909242ed96f4e7ae"
 dependencies = [
  "dirs 6.0.0",
  "epic_api",
