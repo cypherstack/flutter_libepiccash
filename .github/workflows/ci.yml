@@ -53,8 +53,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang cmake libclang-dev ninja-build pkg-config
 
+      - name: Shorten Windows build path
+        if: runner.os == 'Windows'
+        run: |
+          subst T: "$env:GITHUB_WORKSPACE"
+          echo 'BUILD_DIR=T:\' >> $env:GITHUB_ENV
+
       - run: flutter pub get
+        working-directory: ${{ env.BUILD_DIR || github.workspace }}
       - run: flutter test
+        working-directory: ${{ env.BUILD_DIR || github.workspace }}
 
       - name: Verify focused analysis and generated bindings
         if: runner.os == 'Linux'
