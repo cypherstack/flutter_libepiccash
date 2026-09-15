@@ -1,0 +1,4 @@
+# Native source fingerprints must match across checkout platforms.
+/rust/** text eol=lf
+/hook/build.dart text eol=lf
+/lib/src/epic_cash_wallet_bindings.g.dart text eol=lf

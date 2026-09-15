@@ -1,3 +1,8 @@
+//! Epic Cash wallet implementation and C ABI entry points.
+//!
+//! Keep exported declarations in `ffi` synchronized with the checked-in header
+//! and generated Dart bindings.
+
 use epic_wallet_libwallet::Error;
 use epic_wallet_controller::Error as EpicWalletControllerError;
 
