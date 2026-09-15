@@ -4,7 +4,6 @@
 //! and generated Dart bindings.
 
 use epic_wallet_libwallet::Error;
-use epic_wallet_controller::Error as EpicWalletControllerError;
 
 use crate::ffi::get_mnemonic;
 use crate::ffi::wallet_init;
@@ -68,7 +67,6 @@ mod tests {
     use crate::mnemonic::mnemonic;
     use crate::wallet::validate_address;
     use crate::wallet::get_chain_height;
-    use crate::wallet::get_wallet_info;
     use crate::wallet::convert_deci_to_nano;
     use crate::wallet::nano_to_deci;
 
@@ -84,6 +82,7 @@ mod tests {
     /// A basic test that demonstrates creating a wallet & fetching balances WITHOUT a node refresh
     /// (refresh=0), which is causing issues such that testing it properly hasn't been achieved yet.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_create_and_check_balances_no_refresh() {
         println!("--- BEGIN test_create_and_check_balances_no_refresh ---");
 
@@ -173,6 +172,7 @@ mod tests {
 
     /// A basic test that demonstrates creating a wallet & fetching balances WITH a node refresh
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_wallet_init_and_open_minimal() {
         use std::fs;
         use std::path::PathBuf;
@@ -241,6 +241,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_wallet_balances_no_refresh() {
         use std::fs;
         use std::path::PathBuf;
@@ -375,6 +376,7 @@ mod tests {
 
     /// Test vectors for wallet creation.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_wallet_creation_vectors() {
         println!("=== Wallet Creation Test Vectors ===");
 
@@ -435,6 +437,7 @@ mod tests {
 
     /// Test vectors for wallet info retrieval.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_chain_height_vectors() {
         println!("=== Chain Height Test Vectors ===");
 
@@ -476,6 +479,7 @@ mod tests {
     /// This test verifies that the FFI wrapper properly calls the underlying
     /// get_chain_height function and returns a valid height as a C string.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_rust_get_chain_height_ffi() {
         println!("=== Test rust_get_chain_height FFI ===");
 
@@ -518,6 +522,7 @@ mod tests {
     /// Test the rust_wallet_scan_outputs FFI function.
     /// This test creates a wallet and scans outputs from a specific block height.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_rust_wallet_scan_outputs_ffi() {
         println!("=== Test rust_wallet_scan_outputs FFI ===");
 
@@ -665,6 +670,7 @@ mod tests {
     /// Test the rust_get_wallet_address FFI function.
     /// This test creates a wallet and retrieves its address with epicbox configuration.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_rust_get_wallet_address_ffi() {
         println!("=== Test rust_get_wallet_address FFI ===");
 
@@ -748,6 +754,7 @@ mod tests {
     /// Test that a known mnemonic produces a known wallet address (test vector).
     /// This ensures deterministic address generation from mnemonic seeds.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_mnemonic_to_address_vector() {
         println!("=== Test Mnemonic to Address Vector ===");
 
@@ -875,6 +882,7 @@ mod tests {
     /// Test the rust_get_tx_fees FFI function.
     /// This test creates a wallet and calculates transaction fees for various amounts.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_rust_get_tx_fees_ffi() {
         println!("=== Test rust_get_tx_fees FFI ===");
 
@@ -960,6 +968,7 @@ mod tests {
     /// Test the rust_txs_get FFI function.
     /// This test creates a wallet and retrieves the transaction list.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_rust_txs_get_ffi() {
         println!("=== Test rust_txs_get FFI ===");
 
@@ -1041,6 +1050,7 @@ mod tests {
     /// This test verifies the transaction cancellation functionality.
     /// Note: Since we can't create real transactions without funds, we test with a fake UUID.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_rust_tx_cancel_ffi() {
         println!("=== Test rust_tx_cancel FFI ===");
 
@@ -1118,6 +1128,7 @@ mod tests {
     /// These functions create transactions, so we test them together.
     /// Note: Without funds, these will return errors, but we verify the FFI interface works.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_rust_create_tx_ffi() {
         println!("=== Test rust_create_tx FFI ===");
 
@@ -1170,7 +1181,8 @@ mod tests {
                 str_to_cchar(secret_key_index),
                 str_to_cchar(&epicbox_config),
                 str_to_cchar(confirmations),
-                str_to_cchar(note)
+                str_to_cchar(note),
+                str_to_cchar("0")
             );
             let tx_result = CStr::from_ptr(tx_ptr).to_str().unwrap();
 
@@ -1223,6 +1235,7 @@ mod tests {
     /// Test the rust_epicbox_listener_start and _listener_cancel FFI functions.
     /// This test verifies the listener lifecycle: start and stop.
     #[test]
+    #[ignore = "creates wallets on disk and talks to a floonet node; run with --ignored"]
     fn test_rust_epicbox_listener_ffi() {
         println!("=== Test rust_epicbox_listener FFI ===");
 
