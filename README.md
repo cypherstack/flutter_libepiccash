@@ -8,7 +8,7 @@ instead of the former plugin packaging and platform-specific download scripts.
 
 - Flutter 3.47 or newer
 - Dart 3.13 or newer
-- For source builds: Rust 1.89.0 through `rustup` (selected by
+- For source builds: Rust 1.99.1 through `rustup` (selected by
   [`rust/rust-toolchain.toml`](rust/rust-toolchain.toml))
 - The normal native build tools for the target platform: Xcode on Apple
   platforms, the Android NDK for Android, a C/C++ toolchain and CMake on

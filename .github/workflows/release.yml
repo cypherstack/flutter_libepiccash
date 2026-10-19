@@ -35,8 +35,8 @@ jobs:
 
       - name: Select Rust toolchain
         run: |
-          rustup toolchain install 1.89.0 --profile minimal --target "${{ matrix.target }}"
-          rustup default 1.89.0
+          rustup toolchain install 1.99.1 --profile minimal --target "${{ matrix.target }}"
+          rustup default 1.99.1
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -81,8 +81,8 @@ jobs:
 
       - name: Select Rust toolchain
         run: |
-          rustup toolchain install 1.89.0 --profile minimal --target "${{ matrix.target }}"
-          rustup default 1.89.0
+          rustup toolchain install 1.99.1 --profile minimal --target "${{ matrix.target }}"
+          rustup default 1.99.1
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -126,7 +126,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.89.0"
+          toolchain: "1.99.1"
           targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
@@ -162,7 +162,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.89.0"
+          toolchain: "1.99.1"
           targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
@@ -192,7 +192,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.89.0"
+          toolchain: "1.99.1"
           targets: x86_64-pc-windows-msvc
 
       - uses: Swatinem/rust-cache@v2

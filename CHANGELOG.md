@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Pin Rust 1.99.1. Earlier toolchains strip Apple dynamic libraries with a
+  misaligned `__LINKEDIT` string pool, which iOS 27 and macOS 27 refuse to
+  load.
 - Add opt-in verified native downloads and release manifests.
 - Require Flutter 3.47 and Dart 3.13.
 - Build and bundle the Rust dynamic library with Flutter Native Assets.
