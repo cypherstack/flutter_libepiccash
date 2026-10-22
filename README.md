@@ -38,12 +38,18 @@ hooks:
 
 Only dynamic libraries are provided, for Android API 24, iOS 15, macOS 12,
 and glibc 2.28 at minimum, on armv7, arm64, and x64 Android, arm64 and x64
-macOS, iOS devices and simulators, and x64 and arm64 Linux. There is no
-Windows library yet: RandomX's C++ build assumes Microsoft's compiler and
-assembler, which a build on any other host cannot provide. The Android
-libraries link the C++ runtime statically, so no `libc++_shared.so` ships
-beside them. The floors, the Rust and Xcode versions, and the location of
-the Rust workspace live in `dnix.json`.
+macOS, iOS devices and simulators, x64 and arm64 Linux, and x64 Windows.
+The Windows library is built for the GNU ABI (`x86_64-pc-windows-gnullvm`,
+MinGW-w64 as zig builds it): RandomX's C++ build assumes Microsoft's
+compiler and assembler on the MSVC side, which no other host can provide,
+while its GCC-style build works unchanged. The DLL links its runtime
+pieces statically and imports only system DLLs, so it needs no Visual C++
+redistributable, and a Flutter application loads it like any other. There
+is no arm64 Windows library: the dependency tree still carries `winapi`
+0.2, which knows no arm64. The Android libraries link the C++ runtime
+statically, so no `libc++_shared.so` ships beside them. The floors, the
+Rust and Xcode versions, and the location of the Rust workspace live in
+`dnix.json`.
 
 ### Releases
 

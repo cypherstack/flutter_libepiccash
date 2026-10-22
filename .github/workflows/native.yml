@@ -20,6 +20,6 @@ concurrency:
 jobs:
   native:
     # The same dnix commit as pubspec.yaml and flake.lock.
-    uses: cypherstack/dnix/.github/workflows/native.yml@448c5da6e61b3f0e62b4eae6d08b49158a9e45b2
+    uses: cypherstack/dnix/.github/workflows/native.yml@7b9ef2d34b6e1aeb05869da0843f85d28fd19bbd
     with:
       macos-runner: xcode-27

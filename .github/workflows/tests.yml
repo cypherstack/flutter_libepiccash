@@ -62,6 +62,44 @@ jobs:
           dart run ffigen --config ffigen.yaml
           git diff --exit-code -- lib/src/epic_cash_wallet_bindings.g.dart
 
+  # A Windows process can only use the prebuilt library, so this runs once
+  # the lock's release is published from the default branch, and is the
+  # one place the Windows DLL is loaded rather than compared by hash.
+  windows:
+    name: Windows, prebuilt library
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.2
+          channel: stable
+          cache: true
+      - name: Check whether the lock's release is published
+        id: release
+        run: |
+          repository=$(jq -r .repository dnix.json | sed 's/\.git$//; s#/$##')
+          tag="native-$(jq -r .release dnix.lock)"
+          echo "published=$([ "$(curl -s -o /dev/null -w '%{http_code}' "$repository/releases/tag/$tag")" = 200 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Skip until the release exists
+        if: steps.release.outputs.published != 'true'
+        run: echo "::notice::No release $(jq -r .release dnix.lock) yet; the Windows tests run once it is published from the default branch."
+      - name: Run flutter test with the prebuilt library
+        if: steps.release.outputs.published == 'true'
+        run: |
+          flutter pub get
+          echo prebuilt > .dnix-build
+          if ! flutter test 2>&1 | tee test.log; then
+            echo "::error::$(tail -c 1500 test.log | tr '\n' ' ')"
+            exit 1
+          fi
+
   # The example app builds for macOS and the iOS simulator, as before the
   # native library moved to dnix. Source mode needs the pinned Xcode.
   apple-example-builds:
