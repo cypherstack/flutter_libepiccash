@@ -1,0 +1,16 @@
+{
+  "release": "8164512a97c6",
+  "date": "2026-10-22",
+  "files": {
+    "aarch64-apple-darwin/libepic_cash_wallet.dylib": "b9bd894d1e2a3ad0241dc820bb7dfd172308348e793d3030276ef71070a36521",
+    "aarch64-apple-ios-sim/libepic_cash_wallet.dylib": "ffbde5963a5c7cc45ca8ca123474c8a8c8850bdb284b619ce4240e84d5a63f4c",
+    "aarch64-apple-ios/libepic_cash_wallet.dylib": "d17eb7e08e2cdcadc9d570ca6830154baf18303973ea3ac29f826c3c8ba05b9d",
+    "aarch64-linux-android/libepic_cash_wallet.so": "dd5f6a9601cda87f0815b1946a11112d90ef5176f1d38b4ade4d530f731aed64",
+    "aarch64-unknown-linux-gnu/libepic_cash_wallet.so": "29f4a08ac8cc5c7b03f03d8aecf89a889f49b95cc80a964341c8ddf62116c166",
+    "armv7-linux-androideabi/libepic_cash_wallet.so": "812f9fd3e9c205e92411f666d779e4428275f532be9941590b3c8efcdae89cc8",
+    "x86_64-apple-darwin/libepic_cash_wallet.dylib": "4c73f7c39fe45c95de5298d4aae09df345fe2594538a9b46e2002f3267266324",
+    "x86_64-apple-ios/libepic_cash_wallet.dylib": "65ad296d118e0fc15f09eb586ec5f6fbbce4f092caf18cc88597ebfe02f70485",
+    "x86_64-linux-android/libepic_cash_wallet.so": "0f75fdf1dc3863b359db34fa05ef6f8ae4b7a11426d4043010ecc8ae3901e480",
+    "x86_64-unknown-linux-gnu/libepic_cash_wallet.so": "51f95ba2d1d20d7c5a6bb8bb19058b4887de3c9dae31a5e9d31818c398d581bb"
+  }
+}

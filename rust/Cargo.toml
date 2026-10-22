@@ -21,7 +21,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 serde_derive = "1"
 simplelog = "^0.7.4"
-openssl = { version = "0.10", features = ["vendored"] }
 zeroize = { version = "1.1.0", features = ["derive"] }
 rand = "0.6"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
@@ -53,6 +52,11 @@ anyhow = "1.0.69"
 # Pinned for compatibility with the current Epic wallet dependency graph.
 crunchy = "=0.2.2"
 
+# Built from source where native-tls uses OpenSSL (Linux, Android); the other
+# platforms use their own TLS and never link it.
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
 [dev-dependencies]
 hex = "0.4.3"
 cbindgen = "=0.24.3"
@@ -68,9 +72,9 @@ crate-type = ["staticlib", "cdylib"]
 liblmdb-sys = { git = "https://github.com/i1skn/lmdb-rs" }
 
 [patch."https://github.com/EpicCash/randomx-rust.git"]
-randomx = { git = "https://github.com/cypherstack/randomx-rust" }
+randomx = { git = "https://github.com/cypherstack/randomx-rust", branch = "reproducible-cross-builds" }
 
 [patch."https://github.com/EpicCash/epic.git"]
-epic_core = { git = "https://github.com/cypherstack/epic.git", branch = "fix/randomx-v0.2.0-api" }
-epic_util = { git = "https://github.com/cypherstack/epic.git", branch = "fix/randomx-v0.2.0-api" }
-epic_keychain = { git = "https://github.com/cypherstack/epic.git", branch = "fix/randomx-v0.2.0-api" }
+epic_core = { git = "https://github.com/cypherstack/epic.git", branch = "vendorable-foundation-json" }
+epic_util = { git = "https://github.com/cypherstack/epic.git", branch = "vendorable-foundation-json" }
+epic_keychain = { git = "https://github.com/cypherstack/epic.git", branch = "vendorable-foundation-json" }

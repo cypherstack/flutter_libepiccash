@@ -30,3 +30,6 @@ migrate_working_dir/
 build/
 /patches/
 /prebuilt/
+
+# Per-checkout dnix build mode override (see README).
+.dnix-build

@@ -9,13 +9,15 @@ environment:
   flutter: ">=3.47.0"
 
 dependencies:
-  crypto: ^3.0.7
   code_assets: ^1.2.1
   flutter:
     sdk: flutter
   ffi: ^2.2.0
   hooks: ^2.1.0
-  native_toolchain_rust: ^1.0.6
+  dnix:
+    git:
+      url: https://github.com/cypherstack/dnix.git
+      ref: 448c5da6e61b3f0e62b4eae6d08b49158a9e45b2
   decimal: ^2.1.0
   mutex: ^3.0.0
   uuid: ^4.0.0
