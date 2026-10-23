@@ -36,9 +36,12 @@ hooks:
   working on the Rust code. The hook notices a `.dnix-build` file from its
   next run on, so touch `dnix.json` after creating it.
 
-Only dynamic libraries are provided, for Android API 24, iOS 15, macOS 12,
-and glibc 2.28 at minimum, on armv7, arm64, and x64 Android, arm64 and x64
-macOS, iOS devices and simulators, x64 and arm64 Linux, and x64 Windows.
+Only dynamic libraries are provided, for Android API 24, iOS 13 (the arm64
+simulator 14), macOS 12, and glibc 2.28 at minimum, on armv7, arm64, and
+x64 Android, arm64 and x64 macOS, iOS devices and simulators, x64 and arm64
+Linux, and x64 Windows. iOS is 13 because Flutter 3.47 asks build hooks
+for iOS 13 and writes 13.0 into each native asset's framework as its
+minimum; applications can still require a newer iOS.
 The Windows library is built for the GNU ABI (`x86_64-pc-windows-gnullvm`,
 MinGW-w64 as zig builds it): RandomX's C++ build assumes Microsoft's
 compiler and assembler on the MSVC side, which no other host can provide,

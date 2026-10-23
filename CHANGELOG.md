@@ -21,6 +21,8 @@
 - Build the Windows library for the GNU ABI; it imports only system DLLs.
 - Link the C++ runtime statically on Android, so `libc++_shared.so` no longer
   ships beside the library.
+- Build the iOS libraries for iOS 13 (the arm64 simulator for 14), the
+  version Flutter 3.47 gives native assets.
 - Add ABI and smoke tests.
 
 ## 0.0.1

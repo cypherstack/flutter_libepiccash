@@ -24,7 +24,7 @@
   },
   "floors": {
     "macos": 12,
-    "ios": 15,
+    "ios": 13,
     "android": 24,
     "glibc": "2.28"
   },
