@@ -7,7 +7,7 @@
     "workspace": "rust",
     "crate": "epic-cash-wallet",
     "outputHashes": {
-      "randomx-0.2.0": "sha256-rWChlbclK2SbZtDUVY1zjmpYxqb1NAJ9bgx4Qi3DwXQ="
+      "randomx-0.2.0": "sha256-bh9GvkkIQhYnEWmIFRW7psPqfamB8QDJ5yyJ1dxbP6k="
     },
     "env": {
       "CXXSTDLIB_aarch64_linux_android": "static:-bundle=c++",
