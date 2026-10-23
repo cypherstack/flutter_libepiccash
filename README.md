@@ -44,12 +44,11 @@ MinGW-w64 as zig builds it): RandomX's C++ build assumes Microsoft's
 compiler and assembler on the MSVC side, which no other host can provide,
 while its GCC-style build works unchanged. The DLL links its runtime
 pieces statically and imports only system DLLs, so it needs no Visual C++
-redistributable, and a Flutter application loads it like any other. There
-is no arm64 Windows library: the dependency tree still carries `winapi`
-0.2, which knows no arm64. The Android libraries link the C++ runtime
-statically, so no `libc++_shared.so` ships beside them. The floors, the
-Rust and Xcode versions, and the location of the Rust workspace live in
-`dnix.json`.
+redistributable. There is no arm64 Windows library: the dependency tree
+still carries `winapi` 0.2, which knows no arm64. The Android libraries
+link the C++ runtime statically, so no `libc++_shared.so` ships beside
+them. The floors, the Rust and Xcode versions, and the location of the Rust
+workspace live in `dnix.json`.
 
 ### Releases
 
@@ -63,10 +62,11 @@ the lock disagrees, and publishes the release when the lock reaches the
 default branch. Nothing is committed by CI, and old releases stay.
 
 Anyone can rebuild one platform with Nix and compare:
-`dart tool/verify_release.dart linux` (or android, macos, ios, or a target
-triple), on Windows inside WSL2 for the non-Apple platforms. The build
-comes from the shared [dnix](https://github.com/cypherstack/dnix) package,
-whose documentation explains how the bytes stay identical across hosts.
+`dart tool/verify_release.dart linux` (or android, windows, macos, ios, or
+a target triple), on Windows inside WSL2 for the non-Apple platforms. The
+build comes from the shared [dnix](https://github.com/cypherstack/dnix)
+package, whose documentation explains how the bytes stay identical across
+hosts.
 
 ### Tests
 
@@ -84,6 +84,11 @@ Native Assets installation rules in desktop applications; see the example's
 [`windows/CMakeLists.txt`](example/windows/CMakeLists.txt) and
 [`linux/CMakeLists.txt`](example/linux/CMakeLists.txt).
 
+The `native_build`, `prebuilt_manifest_url`, and `prebuilt_manifest_sha256`
+user defines are no longer read; remove them. The library comes from the
+release this package's `dnix.lock` names, so pinning the package's commit
+pins the library too, and `build: source` builds it from source with Nix.
+
 Android applications must declare Internet access in
 `android/app/src/main/AndroidManifest.xml`, directly inside `<manifest>`, so
 release builds can connect to the node and Epicbox. The removed plugin manifest
@@ -91,29 +96,8 @@ previously supplied this permission:
 
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />
-```## Regenerate and verify the ABI
-
-The checked-in header is the ABI source for generated Dart declarations:
-
-```sh
-dart run ffigen --config ffigen.yaml
-flutter test
 ```
 
-After intentionally changing an exported Rust function, regenerate the C
-header from the Rust crate before running FFIgen:
-
-```sh
-cargo install cbindgen --version 0.24.3
-cd rust
-cbindgen --config cbindgen.toml \
-  --crate epic-cash-wallet \
-  --output include/epic_cash_wallet.h
-```
-
-`test/ffi_abi_test.dart` checks exported Rust names and arities against the
-header. `test/native_assets_smoke_test.dart` loads the bundled native asset,
-calls the mnemonic function, and exercises Rust-owned string deallocation.
 ## Regenerate and verify the ABI
 
 The checked-in header is the ABI source for generated Dart declarations:

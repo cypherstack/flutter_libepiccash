@@ -1,4 +1,5 @@
-# Native source fingerprints must match across checkout platforms.
+# Line endings stay LF on every checkout, Windows included, so every host
+# builds from the same bytes.
 /rust/** text eol=lf
 /hook/build.dart text eol=lf
 /lib/src/epic_cash_wallet_bindings.g.dart text eol=lf
