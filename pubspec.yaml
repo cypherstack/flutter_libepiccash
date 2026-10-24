@@ -16,8 +16,8 @@ dependencies:
   hooks: ^2.1.0
   dnix:
     git:
-      url: https://github.com/cypherstack/dnix.git
-      ref: 7b9ef2d34b6e1aeb05869da0843f85d28fd19bbd
+      url: https://github.com/slopbot9k/dnix.git
+      ref: 57efe93b683e77d86a326a3a96ff217e6d6a4283
   decimal: ^2.1.0
   mutex: ^3.0.0
   uuid: ^4.0.0
