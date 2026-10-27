@@ -1268,7 +1268,7 @@ dependencies = [
 [[package]]
 name = "epic_core"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic.git?branch=optional-embedded-foundation#a30716108e1320ab840b6bba40db0d647f00841c"
+source = "git+https://github.com/cypherstack/epic.git?branch=fix%2Frandomx-v0.2.0-api#21ac1683e9df755bf737624f8550e2f618c5d78b"
 dependencies = [
  "blake2-rfc",
  "byteorder",
@@ -1300,7 +1300,7 @@ dependencies = [
 [[package]]
 name = "epic_keychain"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic.git?branch=optional-embedded-foundation#a30716108e1320ab840b6bba40db0d647f00841c"
+source = "git+https://github.com/cypherstack/epic.git?branch=fix%2Frandomx-v0.2.0-api#21ac1683e9df755bf737624f8550e2f618c5d78b"
 dependencies = [
  "blake2-rfc",
  "byteorder",
@@ -1394,7 +1394,7 @@ dependencies = [
 [[package]]
 name = "epic_util"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic.git?branch=optional-embedded-foundation#a30716108e1320ab840b6bba40db0d647f00841c"
+source = "git+https://github.com/cypherstack/epic.git?branch=fix%2Frandomx-v0.2.0-api#21ac1683e9df755bf737624f8550e2f618c5d78b"
 dependencies = [
  "anyhow",
  "backtrace",
@@ -4055,7 +4055,7 @@ dependencies = [
 [[package]]
 name = "randomx"
 version = "0.2.0"
-source = "git+https://github.com/cypherstack/randomx-rust?branch=reproducible-cross-builds#b26097f78bbeadff5027dbfc2f4993bbb2f4d743"
+source = "git+https://github.com/cypherstack/randomx-rust#f030c36ab6ab8a8f5f69c3bb5a850f1464e10b5e"
 dependencies = [
  "bindgen",
  "byteorder",
