@@ -69,9 +69,9 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: "57efe93b683e77d86a326a3a96ff217e6d6a4283"
-      resolved-ref: "57efe93b683e77d86a326a3a96ff217e6d6a4283"
-      url: "https://github.com/slopbot9k/dnix.git"
+      ref: e91763ef25d084b3a5cf271a0cfee69159b1f779
+      resolved-ref: e91763ef25d084b3a5cf271a0cfee69159b1f779
+      url: "https://github.com/cypherstack/dnix.git"
     source: git
     version: "0.1.0"
   fake_async:
