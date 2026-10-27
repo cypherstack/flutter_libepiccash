@@ -1268,7 +1268,7 @@ dependencies = [
 [[package]]
 name = "epic_core"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic.git?branch=vendorable-foundation-json#103a972a792d57f70d66f0114ceca63e083e743b"
+source = "git+https://github.com/cypherstack/epic.git?branch=optional-embedded-foundation#a30716108e1320ab840b6bba40db0d647f00841c"
 dependencies = [
  "blake2-rfc",
  "byteorder",
@@ -1300,7 +1300,7 @@ dependencies = [
 [[package]]
 name = "epic_keychain"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic.git?branch=vendorable-foundation-json#103a972a792d57f70d66f0114ceca63e083e743b"
+source = "git+https://github.com/cypherstack/epic.git?branch=optional-embedded-foundation#a30716108e1320ab840b6bba40db0d647f00841c"
 dependencies = [
  "blake2-rfc",
  "byteorder",
@@ -1394,7 +1394,7 @@ dependencies = [
 [[package]]
 name = "epic_util"
 version = "4.0.0"
-source = "git+https://github.com/cypherstack/epic.git?branch=vendorable-foundation-json#103a972a792d57f70d66f0114ceca63e083e743b"
+source = "git+https://github.com/cypherstack/epic.git?branch=optional-embedded-foundation#a30716108e1320ab840b6bba40db0d647f00841c"
 dependencies = [
  "anyhow",
  "backtrace",

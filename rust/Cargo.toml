@@ -75,6 +75,6 @@ liblmdb-sys = { git = "https://github.com/i1skn/lmdb-rs" }
 randomx = { git = "https://github.com/cypherstack/randomx-rust", branch = "reproducible-cross-builds" }
 
 [patch."https://github.com/EpicCash/epic.git"]
-epic_core = { git = "https://github.com/cypherstack/epic.git", branch = "vendorable-foundation-json" }
-epic_util = { git = "https://github.com/cypherstack/epic.git", branch = "vendorable-foundation-json" }
-epic_keychain = { git = "https://github.com/cypherstack/epic.git", branch = "vendorable-foundation-json" }
+epic_core = { git = "https://github.com/cypherstack/epic.git", branch = "optional-embedded-foundation" }
+epic_util = { git = "https://github.com/cypherstack/epic.git", branch = "optional-embedded-foundation" }
+epic_keychain = { git = "https://github.com/cypherstack/epic.git", branch = "optional-embedded-foundation" }
