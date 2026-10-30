@@ -1,36 +1,83 @@
 # flutter_libepiccash
 
 Dart bindings for the Epic Cash wallet library. The Rust library is built and
-bundled through Flutter Native Assets, using Flutter's standard asset bundling
-instead of the former plugin packaging and platform-specific download scripts.
+bundled through Flutter Native Assets.
 
 ## Requirements
 
-- Flutter 3.47 or newer
-- Dart 3.13 or newer
-- For source builds: Rust 1.99.1 through `rustup` (selected by
-  [`rust/rust-toolchain.toml`](rust/rust-toolchain.toml))
-- The normal native build tools for the target platform: Xcode on Apple
-  platforms, the Android NDK for Android, a C/C++ toolchain and CMake on
-  Linux, or Visual Studio Build Tools plus Perl on Windows
+- Flutter 3.47 or newer, Dart 3.13 or newer. Nothing else: the build hook
+  downloads the library built for this version and checks its hash.
+- To build the library yourself: Nix on Linux or an Apple Silicon Mac, and
+  Xcode 27.0 for the Apple targets. OpenSSL and RandomX are compiled from
+  source inside that build.
 
 The example projects target Android API 24, iOS 15, and macOS 12 or newer.
 
-## Build from source
+## Native library
 
-Source builds are the default. Once Rust and the platform toolchain are
-available, use the package like any other Flutter dependency:
+The hook obtains the Rust library in one of three modes, chosen with the
+`build` user define in the consuming app's root `pubspec.yaml` (the workspace
+root for pub workspaces), or for this checkout with a `.dnix-build` file
+holding the mode:
 
-```sh
-flutter pub get
-flutter run
+```yaml
+hooks:
+  user_defines:
+    flutter_libepiccash:
+      build: prebuilt   # the default; or source, or dev
 ```
 
-Flutter runs `hook/build.dart`, compiles the Rust crate for the application's
-target architecture, and bundles the resulting dynamic library. The first
-build can take several minutes because OpenSSL, RandomX, and the wallet
-dependencies are compiled from source. Cargo and Flutter cache subsequent
-builds.
+- `prebuilt` downloads the library of the release `dnix.lock` names and
+  verifies it against the hash recorded there. A mismatch is an error, never
+  a fallback. Downloads are cached by hash and need public HTTPS.
+- `source` builds the library with Nix, the same build CI uses, and verifies
+  it against the same hash.
+- `dev` builds with Nix but skips the Xcode pin and the hash check, for
+  working on the Rust code. The hook notices a `.dnix-build` file from its
+  next run on, so touch `dnix.json` after creating it.
+
+Only dynamic libraries are provided, for Android API 24, iOS 13 (the arm64
+simulator 14), macOS 12, and glibc 2.28 at minimum, on armv7, arm64, and
+x64 Android, arm64 and x64 macOS, iOS devices and simulators, x64 and arm64
+Linux, and x64 Windows. iOS is 13 because Flutter 3.47 asks build hooks
+for iOS 13 and writes 13.0 into each native asset's framework as its
+minimum; applications can still require a newer iOS.
+The Windows library is built for the GNU ABI (`x86_64-pc-windows-gnullvm`,
+MinGW-w64 as zig builds it): RandomX's C++ build assumes Microsoft's
+compiler and assembler on the MSVC side, which no other host can provide,
+while its GCC-style build works unchanged. The DLL links its runtime
+pieces statically and imports only system DLLs, so it needs no Visual C++
+redistributable. There is no arm64 Windows library: the dependency tree
+still carries `winapi` 0.2, which knows no arm64. The Android libraries
+link the C++ runtime statically, so no `libc++_shared.so` ships beside
+them. The floors, the Rust and Xcode versions, and the location of the Rust
+workspace live in `dnix.json`.
+
+### Releases
+
+`dnix.lock` records the hash of every library the Rust source builds to and
+names the GitHub release, `native-<release>`, that holds those bytes. After
+changing the Rust code, run `dart tool/update_lock.dart` on a Mac with Nix
+and Xcode 27.0 and commit the lock with the change; without a Mac, push and
+copy the lock CI prints once every host is green. CI
+(`.github/workflows/native.yml`) builds on four hosts, fails if any host or
+the lock disagrees, and publishes the release when the lock reaches the
+default branch. Nothing is committed by CI, and old releases stay.
+
+Anyone can rebuild one platform with Nix and compare:
+`dart tool/verify_release.dart linux` (or android, windows, macos, ios, or
+a target triple), on Windows inside WSL2 for the non-Apple platforms. The
+build comes from the shared [dnix](https://github.com/cypherstack/dnix)
+package, whose documentation explains how the bytes stay identical across
+hosts.
+
+### Tests
+
+`flutter test` runs the Dart tests against the bundled library, and
+`cargo test --locked --lib` in `rust` runs the Rust unit tests. Before the
+lock's release is published, or to test local Rust changes, the Dart tests
+need the library built from source: `echo dev > .dnix-build` with Nix
+installed (`source` to also check the hash).
 
 ## Migrate an existing application
 
@@ -40,6 +87,11 @@ Native Assets installation rules in desktop applications; see the example's
 [`windows/CMakeLists.txt`](example/windows/CMakeLists.txt) and
 [`linux/CMakeLists.txt`](example/linux/CMakeLists.txt).
 
+The `native_build`, `prebuilt_manifest_url`, and `prebuilt_manifest_sha256`
+user defines are no longer read; remove them. The library comes from the
+release this package's `dnix.lock` names, so pinning the package's commit
+pins the library too, and `build: source` builds it from source with Nix.
+
 Android applications must declare Internet access in
 `android/app/src/main/AndroidManifest.xml`, directly inside `<manifest>`, so
 release builds can connect to the node and Epicbox. The removed plugin manifest
@@ -48,54 +100,6 @@ previously supplied this permission:
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />
 ```
-
-## Use prebuilt native assets
-
-To download a release, copy its manifest URL and SHA-256 into the application's
-root `pubspec.yaml` (workspace root for pub workspaces):
-
-```yaml
-hooks:
-  user_defines:
-    flutter_libepiccash:
-      native_build: prebuilt
-      prebuilt_manifest_url: https://github.com/cypherstack/flutter_libepiccash/releases/download/native-YOUR-RELEASE/manifest.json
-      prebuilt_manifest_sha256: "REPLACE_WITH_RELEASE_MANIFEST_SHA256"
-```
-
-Use the package revision named in the release. The hook verifies the manifest,
-native source fingerprint, deployment minimum, and each library's size and hash,
-including Android's C++ runtime. Invalid or missing assets fail the build.
-Downloads require public HTTPS and dynamic linking without sanitizers. Rust is
-not needed, but Flutter's normal application build tools are still required.
-
-Downloads live in Flutter's hook output. Each hook run fetches fresh files;
-incremental builds can reuse the output until `flutter clean` removes it.
-Omit the settings or use `native_build: source` to compile Rust.
-
-Prebuilts require Android API 24, iOS 15, or macOS 12. Linux deployments must meet
-the target's `minimum_glibc_version` in the manifest; musl is unsupported. Windows
-releases cover x64.
-
-## Publish native prebuilts
-
-Push a new `native-*` tag (for example `native-0.0.1-1`) or `vX.Y.Z` tag. The
-release workflow builds all eleven targets and publishes the libraries, header,
-checksums, and pinned manifest together. Release notes include consumer settings.
-Existing releases are not overwritten; manual branch runs only upload workflow
-artifacts. Older releases without a manifest cannot use download mode.
-
-Manifest generation uses the existing build recipes. To generate one locally,
-place all target-named libraries and Android runtimes built from the current
-revision in `artifacts/`, then run from the repository root:
-
-```sh
-flutter pub get
-dart --packages=.dart_tool/package_config.json tool/prebuilt_manifest.dart artifacts
-```
-
-Linux inspection requires `readelf`. Upload the manifest and libraries together.
-Resolver tests run with the existing `flutter test` suite and CI.
 
 ## Regenerate and verify the ABI
 

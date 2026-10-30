@@ -28,5 +28,6 @@ migrate_working_dir/
 .dart_tool/
 .packages
 build/
-/patches/
-/prebuilt/
+
+# Per-checkout dnix build mode override (see README).
+.dnix-build

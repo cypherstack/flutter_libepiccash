@@ -1,0 +1,44 @@
+{
+  "name": "flutter_libepiccash",
+  "repository": "https://github.com/cypherstack/flutter_libepiccash",
+  "library": "epic_cash_wallet",
+  "asset": "src/epic_cash_wallet_bindings.g.dart",
+  "rust": {
+    "workspace": "rust",
+    "crate": "epic-cash-wallet",
+    "outputHashes": {
+      "randomx-0.2.0": "sha256-bh9GvkkIQhYnEWmIFRW7psPqfamB8QDJ5yyJ1dxbP6k="
+    },
+    "env": {
+      "CXXSTDLIB_aarch64_linux_android": "static:-bundle=c++",
+      "CXXSTDLIB_armv7_linux_androideabi": "static:-bundle=c++",
+      "CXXSTDLIB_x86_64_linux_android": "static:-bundle=c++"
+    },
+    "tools": [
+      "cmake"
+    ]
+  },
+  "toolchains": {
+    "rust": "1.99.1",
+    "xcode": "27.0"
+  },
+  "floors": {
+    "macos": 12,
+    "ios": 13,
+    "android": 24,
+    "glibc": "2.28"
+  },
+  "targets": [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "aarch64-apple-ios",
+    "aarch64-apple-ios-sim",
+    "x86_64-apple-ios",
+    "aarch64-linux-android",
+    "armv7-linux-androideabi",
+    "x86_64-linux-android",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-gnullvm"
+  ]
+}
