@@ -69,8 +69,8 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: e91763ef25d084b3a5cf271a0cfee69159b1f779
-      resolved-ref: e91763ef25d084b3a5cf271a0cfee69159b1f779
+      ref: 2fd2ed73b9037fe11436f2cde832d7e28d672fa9
+      resolved-ref: 2fd2ed73b9037fe11436f2cde832d7e28d672fa9
       url: "https://github.com/cypherstack/dnix.git"
     source: git
     version: "0.1.0"
