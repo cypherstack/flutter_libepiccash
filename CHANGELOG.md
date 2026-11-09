@@ -1,5 +1,9 @@
 ## Unreleased
 
+- Update dnix to support native Windows source and development builds through
+  WSL2, including the `wsl_distribution` user define and fixes for paths
+  containing percent escapes. Source builds still verify the existing
+  native-library hashes.
 - Pin Rust 1.99.1. Earlier toolchains strip Apple dynamic libraries with a
   misaligned `__LINKEDIT` string pool, which iOS 27 and macOS 27 refuse to
   load.

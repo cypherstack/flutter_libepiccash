@@ -7,11 +7,11 @@
         "zig-overlay": "zig-overlay"
       },
       "locked": {
-        "lastModified": 1793124403,
-        "narHash": "sha256-Nf8+4VKQWYAE7telMnxGa2no18Yu4BemMZJ2PCeG+II=",
+        "lastModified": 1793993169,
+        "narHash": "sha256-grByG+r58zmR3EdqYdNVJXiOO5u1nSfa3TTgd/VIp68=",
         "owner": "cypherstack",
         "repo": "dnix",
-        "rev": "e91763ef25d084b3a5cf271a0cfee69159b1f779",
+        "rev": "2fd2ed73b9037fe11436f2cde832d7e28d672fa9",
         "type": "github"
       },
       "original": {
