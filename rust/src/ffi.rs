@@ -860,7 +860,20 @@ pub fn get_wallet_address(
     let is_stopped = Arc::new(AtomicBool::new(false));
     let api = Owner::new(wallet.clone(), None, is_stopped.clone());
     let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
-    format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain.as_deref().unwrap_or(""))
+    format_epicbox_address(
+        &address.public_key,
+        epicbox_conf.epicbox_domain.as_deref().unwrap_or(""),
+        epicbox_conf.epicbox_port,
+    )
+}
+
+/// `pubkey@domain`, plus `:port` when the relay is not on 443. Senders route by
+/// domain and port, and a missing port means 443.
+fn format_epicbox_address(public_key: &str, domain: &str, port: Option<u16>) -> String {
+    match port {
+        Some(port) if port != 443 => format!("{}@{}:{}", public_key, domain, port),
+        _ => format!("{}@{}", public_key, domain),
+    }
 }
 
 /// Validate an address via FFI.
@@ -1110,6 +1123,38 @@ fn _tx_finalize(
 
     let c_out = CString::new(out).unwrap();
     Ok(c_out.into_raw())
+}
+
+#[cfg(test)]
+mod address_format_tests {
+    use super::*;
+    use crate::wallet::validate_address;
+    use epic_wallet_libwallet::{Address, EpicboxAddress};
+
+    const KEY: &str = "esYE8ucjQ47Sub6zAnnEct1g5D4hkD1kCDpJgb8rPfEwubXJu31w";
+
+    #[test]
+    fn default_port_keeps_the_old_format() {
+        assert_eq!(
+            format_epicbox_address(KEY, "epicbox.stackwallet.com", Some(443)),
+            format!("{}@epicbox.stackwallet.com", KEY)
+        );
+        assert_eq!(
+            format_epicbox_address(KEY, "epicbox.stackwallet.com", None),
+            format!("{}@epicbox.stackwallet.com", KEY)
+        );
+    }
+
+    #[test]
+    fn other_ports_are_included_and_parse_back() {
+        let s = format_epicbox_address(KEY, "127.0.0.1", Some(43420));
+        assert_eq!(s, format!("{}@127.0.0.1:43420", KEY));
+        assert!(validate_address(&s));
+        let parsed = EpicboxAddress::from_str(&s).unwrap();
+        assert_eq!(parsed.public_key, KEY);
+        assert_eq!(parsed.domain, "127.0.0.1");
+        assert_eq!(parsed.port, Some(43420));
+    }
 }
 
 #[cfg(test)]
