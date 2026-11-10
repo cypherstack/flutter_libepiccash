@@ -55,6 +55,20 @@ struct Strategy {
     fee: u64,
 }
 
+/// Node sync flag for epic-wallet's send paths, decided the way the
+/// epic-wallet CLI decides it: synced only when the node answers `get_status`
+/// with `sync_status` "no_sync".
+fn node_synced(wallet: &Wallet) -> Result<Arc<AtomicBool>, Error> {
+    let synced = {
+        wallet_lock!(wallet, w);
+        match w.w2n_client().get_node_status() {
+            Ok(status) => status.sync_status == "no_sync",
+            Err(_) => false,
+        }
+    };
+    Ok(Arc::new(AtomicBool::new(synced)))
+}
+
 /// Get transaction strategies.
 pub fn tx_strategies(
     wallet: &Wallet,
@@ -139,8 +153,8 @@ pub fn tx_create(
 ) -> Result<String, Error> {
     let return_slate = return_slate.unwrap_or(false);
 
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    let owner_api = Owner::new(wallet.clone(), None, is_stopped.clone());
+    let is_node_synced = node_synced(wallet)?;
+    let owner_api = Owner::new(wallet.clone(), None, is_node_synced.clone());
 
     // Only set epicbox config and send args if we want the wallet to relay via Epicbox.
     let send_args = if return_slate {
@@ -170,7 +184,7 @@ pub fn tx_create(
     };
 
     // Create the transaction.
-    let slate: Slate = owner_api.init_send_tx(keychain_mask.as_ref(), args, is_stopped.clone())?;
+    let slate: Slate = owner_api.init_send_tx(keychain_mask.as_ref(), args, is_node_synced.clone())?;
 
     // For slate mode, we need to lock the outputs immediately.
     // This creates the TxLogEntry which is required for finalization.
@@ -448,8 +462,8 @@ pub fn tx_send_http(
     amount: u64,
     address: &str,
 ) -> Result<String, Error>{
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
+    let is_node_synced = node_synced(wallet)?;
+    let api = Owner::new(wallet.clone(), None, is_node_synced.clone());
     let init_send_args = InitTxSendArgs {
         method: "http".to_string(),
         dest: address.to_string(),
@@ -470,7 +484,7 @@ pub fn tx_send_http(
         ..Default::default()
     };
 
-    match api.init_send_tx(keychain_mask.as_ref(), args, is_stopped.clone()) {
+    match api.init_send_tx(keychain_mask.as_ref(), args, is_node_synced.clone()) {
         Ok(slate) => {
             println!("{}", "CREATE_TX_SUCCESS");
             //Get transaction for slate, for UI display
