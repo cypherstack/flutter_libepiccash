@@ -19,6 +19,18 @@ class BalanceData {
     try {
       final json = jsonDecode(jsonString) as Map<String, dynamic>;
 
+      // epic-wallet's total counts outputs locked by an unconfirmed send;
+      // grin-wallet and mwc-wallet leave them out. Their change is already in
+      // amount_awaiting_finalization, so drop the locked part here to give
+      // total the same meaning as in grin and MWC.
+      final reportedTotal = _parseAmount(json['total'], 'total');
+      final locked = json['amount_locked'] == null
+          ? 0.0
+          : _parseAmount(json['amount_locked'], 'amount_locked');
+      // Subtract in nano-EPIC so the result prints like the wallet's amounts.
+      final totalNano = (reportedTotal * 1e8).round() - (locked * 1e8).round();
+      final total = totalNano / 1e8;
+
       return BalanceData(
         spendable: _parseAmount(
           json['amount_currently_spendable'],
@@ -28,7 +40,7 @@ class BalanceData {
           json['amount_awaiting_finalization'],
           'amount_awaiting_finalization',
         ),
-        total: _parseAmount(json['total'], 'total'),
+        total: total < 0 ? 0.0 : total,
         awaitingFinalization: _parseAmount(
           json['amount_awaiting_finalization'],
           'amount_awaiting_finalization',
