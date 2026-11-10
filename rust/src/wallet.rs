@@ -694,6 +694,12 @@ pub fn get_wallet(config: &Config) -> Result<Wallet, Error> {
             return Err(e);
         }
     };
+    // epic_core's chain type is a process-wide global (Mainnet by default) that
+    // the wallet reads for coinbase maturity, header version, etc. Every open,
+    // create and recover comes through here, so make it match the config.
+    if let Some(chain_type) = wallet_config.chain_type.clone() {
+        epic_wallet_util::epic_core::global::set_mining_mode(chain_type);
+    }
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret).unwrap();
     let wallet =  match inst_wallet::<
