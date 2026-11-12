@@ -55,17 +55,21 @@ struct Strategy {
     fee: u64,
 }
 
-/// Node sync flag for epic-wallet's send paths, decided the way the
-/// epic-wallet CLI decides it: synced only when the node answers `get_status`
-/// with `sync_status` "no_sync".
+/// Node sync flag for an HTTP send, decided the way the epic-wallet CLI decides
+/// it: synced only when the node answers `get_status` with `sync_status`
+/// "no_sync". The send reads the flag once, right after this.
+///
+/// A node that cannot be asked is reported as that error. epic-wallet would
+/// otherwise turn it into "Node not synchronized".
 fn node_synced(wallet: &Wallet) -> Result<Arc<AtomicBool>, Error> {
-    let synced = {
+    let status = {
         wallet_lock!(wallet, w);
-        match w.w2n_client().get_node_status() {
-            Ok(status) => status.sync_status == "no_sync",
-            Err(_) => false,
-        }
+        w.w2n_client().get_node_status()
     };
+    let synced = status
+        .map_err(|e| Error::ClientCallback(format!("Could not get the node's sync status: {}", e)))?
+        .sync_status
+        == "no_sync";
     Ok(Arc::new(AtomicBool::new(synced)))
 }
 
@@ -153,7 +157,14 @@ pub fn tx_create(
 ) -> Result<String, Error> {
     let return_slate = return_slate.unwrap_or(false);
 
-    let is_node_synced = node_synced(wallet)?;
+    // Owner::new's flag is the one epic-wallet hands to the subscriber that an
+    // epicbox send opens on the wallet's own address. While it is true, that
+    // subscriber handles incoming slates next to the app's own listener
+    // (listener.rs), and it holds the socket while it waits for the relay, so
+    // publishing the slate waits for the relay's next message. The send only
+    // has to publish, so leave the flag false, which keeps the subscriber
+    // paused. Nothing else in this function reads it: there is no HTTP send here.
+    let is_node_synced = Arc::new(AtomicBool::new(false));
     let owner_api = Owner::new(wallet.clone(), None, is_node_synced.clone());
 
     // Only set epicbox config and send args if we want the wallet to relay via Epicbox.
