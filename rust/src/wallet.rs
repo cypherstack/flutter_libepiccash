@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::sync::atomic::AtomicBool;
 use serde_derive::{Deserialize, Serialize};
 use epic_keychain::ExtKeychain;
@@ -19,6 +19,9 @@ use epic_wallet_libwallet::NodeClient;
 use epic_keychain::Keychain;
 use epic_wallet_impls::DefaultWalletImpl;
 use std::cmp::Ordering;
+
+static PROCESS_CHAIN_TYPE: OnceLock<epic_wallet_util::epic_core::global::ChainTypes> =
+    OnceLock::new();
 
 /// Wallet type.
 pub type Wallet = Arc<
@@ -705,11 +708,11 @@ pub fn get_wallet(config: &Config) -> Result<Wallet, Error> {
             return Err(e);
         }
     };
-    // epic_core's chain type is a process-wide global (Mainnet by default) that
-    // the wallet reads for coinbase maturity, header version, etc. Every open,
-    // create and recover comes through here, so make it match the config.
+    // epic_core's chain type is process-wide. Changing it after a wallet has
+    // opened can make every existing wallet use the wrong maturity, header and
+    // address rules, so a native process may host only one Epic chain type.
     if let Some(chain_type) = wallet_config.chain_type.clone() {
-        epic_wallet_util::epic_core::global::set_mining_mode(chain_type);
+        configure_process_chain(&PROCESS_CHAIN_TYPE, chain_type)?;
     }
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret).unwrap();
@@ -726,6 +729,49 @@ pub fn get_wallet(config: &Config) -> Result<Wallet, Error> {
         }
     };
     return Ok(wallet);
+}
+
+fn configure_process_chain(
+    selected: &OnceLock<epic_wallet_util::epic_core::global::ChainTypes>,
+    requested: epic_wallet_util::epic_core::global::ChainTypes,
+) -> Result<(), Error> {
+    let process_chain = select_process_chain(selected, requested)?;
+    epic_wallet_util::epic_core::global::set_mining_mode(process_chain);
+    Ok(())
+}
+
+fn select_process_chain(
+    selected: &OnceLock<epic_wallet_util::epic_core::global::ChainTypes>,
+    requested: epic_wallet_util::epic_core::global::ChainTypes,
+) -> Result<epic_wallet_util::epic_core::global::ChainTypes, Error> {
+    let process_chain = selected.get_or_init(|| requested.clone());
+    if process_chain != &requested {
+        return Err(Error::GenericError(format!(
+            "Epic chain mismatch: this process is already using {process_chain:?}, requested {requested:?}"
+        )));
+    }
+    Ok(process_chain.clone())
+}
+
+#[cfg(test)]
+mod process_chain_tests {
+    use super::select_process_chain;
+    use epic_wallet_util::epic_core::global::ChainTypes;
+    use std::sync::OnceLock;
+
+    #[test]
+    fn accepts_repeated_wallets_on_the_same_chain() {
+        let selected = OnceLock::new();
+        select_process_chain(&selected, ChainTypes::Mainnet).unwrap();
+        select_process_chain(&selected, ChainTypes::Mainnet).unwrap();
+    }
+
+    #[test]
+    fn rejects_mixed_chain_wallets_in_one_process() {
+        let selected = OnceLock::new();
+        select_process_chain(&selected, ChainTypes::Mainnet).unwrap();
+        assert!(select_process_chain(&selected, ChainTypes::Floonet).is_err());
+    }
 }
 
 /// Instantiate a wallet.
