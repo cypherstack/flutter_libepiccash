@@ -1,5 +1,8 @@
+use std::collections::HashMap;
 use std::ffi::{c_void, CStr, CString};
 use std::os::raw::c_char;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Arc, LazyLock, Mutex as StdMutex};
 
 use uuid::Uuid;
 
@@ -7,8 +10,6 @@ use epic_wallet_api::{self, Owner};
 use epic_wallet_config::EpicboxConfig;
 use epic_wallet_libwallet::Error;
 use epic_wallet_controller::Error as EpicWalletControllerError;
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 
 use epic_util::secp::key::SecretKey;
 
@@ -36,14 +37,13 @@ use crate::wallet::tx_send_http;
 use crate::wallet::get_chain_height;
 
 use crate::listener::Listener;
-use crate::listener::listener_spawn;
-use crate::listener::listener_cancel;
-use crate::listener::listener_cancelled;
-use crate::listener::listener_handle_destroy;
-use crate::listener::listener_poll;
 use crate::init_logger;
 
 use ffi_helpers::task::TaskHandle;
+
+static LISTENER_TASKS: LazyLock<StdMutex<HashMap<usize, TaskHandle<usize>>>> =
+    LazyLock::new(|| StdMutex::new(HashMap::new()));
+static NEXT_LISTENER_ID: AtomicUsize = AtomicUsize::new(1);
 
 /// Release a string returned by this library.
 ///
@@ -60,12 +60,54 @@ pub unsafe extern "C" fn epic_cash_string_free(value: *mut c_char) {
 mod string_ownership_tests {
     use super::*;
     use std::ptr;
+    use std::thread;
+    use std::time::Duration;
+
+    #[derive(Clone, Debug)]
+    struct CancellableListener;
+
+    impl ffi_helpers::Task for CancellableListener {
+        type Output = usize;
+
+        fn run(
+            &self,
+            cancel_tok: &ffi_helpers::task::CancellationToken,
+        ) -> Result<Self::Output, anyhow::Error> {
+            while !cancel_tok.cancelled() {
+                thread::sleep(Duration::from_millis(1));
+            }
+            Ok(0)
+        }
+    }
+
+    unsafe fn take_bool(value: *const c_char) -> bool {
+        let parsed = CStr::from_ptr(value).to_str().unwrap() == "true";
+        epic_cash_string_free(value as *mut c_char);
+        parsed
+    }
 
     #[test]
     fn returned_strings_are_released_by_rust() {
         unsafe {
             epic_cash_string_free(CString::new("owned by Rust").unwrap().into_raw());
             epic_cash_string_free(ptr::null_mut());
+        }
+    }
+
+    #[test]
+    fn listener_ids_are_cancelled_once_without_raw_handle_access() {
+        let listener_id = NEXT_LISTENER_ID.fetch_add(1, Ordering::Relaxed);
+        LISTENER_TASKS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(listener_id, TaskHandle::spawn(CancellableListener));
+
+        unsafe {
+            let handle = listener_id as *mut c_void;
+            assert!(take_bool(_listener_is_running(handle)));
+            assert!(take_bool(_listener_cancel(handle)));
+            assert!(!take_bool(_listener_is_running(handle)));
+            assert!(!take_bool(_listener_cancel(handle)));
         }
     }
 }
@@ -860,7 +902,20 @@ pub fn get_wallet_address(
     let is_stopped = Arc::new(AtomicBool::new(false));
     let api = Owner::new(wallet.clone(), None, is_stopped.clone());
     let address = api.get_public_address(keychain_mask.as_ref(), index).unwrap();
-    format!("{}@{}", address.public_key, epicbox_conf.epicbox_domain.as_deref().unwrap_or(""))
+    format_epicbox_address(
+        &address.public_key,
+        epicbox_conf.epicbox_domain.as_deref().unwrap_or(""),
+        epicbox_conf.epicbox_port,
+    )
+}
+
+/// `pubkey@domain`, plus `:port` when the relay is not on 443. Senders route by
+/// domain and port, and a missing port means 443.
+fn format_epicbox_address(public_key: &str, domain: &str, port: Option<u16>) -> String {
+    match port {
+        Some(port) if port != 443 => format!("{}@{}:{}", public_key, domain, port),
+        _ => format!("{}@{}", public_key, domain),
+    }
 }
 
 /// Validate an address via FFI.
@@ -944,21 +999,35 @@ pub unsafe extern "C" fn rust_epicbox_listener_start(
     wallet: *const c_char,
     epicbox_config: *const c_char,
 ) -> *mut c_void {
-    let wallet_ptr = CStr::from_ptr(wallet);
-    let epicbox_config = CStr::from_ptr(epicbox_config);
-    let epicbox_config = epicbox_config.to_str().unwrap();
+    if wallet.is_null() || epicbox_config.is_null() {
+        return std::ptr::null_mut();
+    }
 
-    let wallet_data = wallet_ptr.to_str().unwrap();
-    // let tuple_wallet_data: (i64, Option<SecretKey>) = serde_json::from_str(wallet_data).unwrap();
-    let listen = Listener {
-        wallet_ptr_str: wallet_data.to_string(),
-        epicbox_config: epicbox_config.parse().unwrap()
+    let wallet_data = match CStr::from_ptr(wallet).to_str() {
+        Ok(value) => value,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    let epicbox_config = match CStr::from_ptr(epicbox_config).to_str() {
+        Ok(value) => value,
+        Err(_) => return std::ptr::null_mut(),
     };
 
-    let handler = listener_spawn(&listen);
-    let handler_value = handler.read();
-    let boxed_handler = Box::new(handler_value);
-    Box::into_raw(boxed_handler) as *mut _
+    let listen = Listener {
+        wallet_ptr_str: wallet_data.to_string(),
+        epicbox_config: epicbox_config.to_string(),
+    };
+
+    let listener_id = NEXT_LISTENER_ID.fetch_add(1, Ordering::Relaxed);
+    if listener_id == 0 {
+        return std::ptr::null_mut();
+    }
+
+    LISTENER_TASKS
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .insert(listener_id, TaskHandle::spawn(listen));
+
+    listener_id as *mut c_void
 }
 
 /// Cancel and destroy a listener via FFI.
@@ -971,19 +1040,28 @@ pub unsafe extern "C" fn _listener_cancel(handler: *mut c_void) -> *const c_char
         return error_msg.into_raw();
     }
 
-    let handle = handler as *mut TaskHandle<usize>;
+    let listener_id = handler as usize;
+    let handle = LISTENER_TASKS
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .remove(&listener_id);
+    let stopped = match handle {
+        Some(handle) => {
+            // Wait for the task to finish so a subsequent start cannot race an
+            // old subscriber that is still consuming messages from Epicbox.
+            handle.cancel();
+            match handle.wait() {
+                Ok(_) => true,
+                Err(error) => {
+                    error!("Failed to stop Epicbox listener task cleanly: {error}");
+                    false
+                }
+            }
+        }
+        None => false,
+    };
 
-    // Request cancellation of the listener task
-    listener_cancel(handle);
-    let was_cancelled = listener_cancelled(handle);
-
-    // Destroy the handle to free resources
-    // Note: listener_handle_destroy takes ownership and frees the memory,
-    // so we must NOT also call Box::from_raw (that would be a double-free)
-    listener_handle_destroy(handle);
-
-    let error_msg = format!("{}", was_cancelled);
-    let error_msg_ptr = CString::new(error_msg).unwrap();
+    let error_msg_ptr = CString::new(stopped.to_string()).unwrap();
     error_msg_ptr.into_raw()
 }
 
@@ -998,13 +1076,22 @@ pub unsafe extern "C" fn _listener_is_running(handler: *mut c_void) -> *const c_
         return result.into_raw();
     }
 
-    let handle = handler as *mut TaskHandle<usize>;
+    let listener_id = handler as usize;
+    let mut tasks = LISTENER_TASKS
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let poll_result = match tasks.get(&listener_id) {
+        Some(handle) => handle.poll(),
+        None => return CString::new("false").unwrap().into_raw(),
+    };
 
-    // Poll the task to check if it's still running
-    // listener_poll returns a null pointer if the task is still running,
-    // or a non-null pointer to the result if the task has completed
-    let poll_result = listener_poll(handle);
-    let is_running = poll_result.is_null();
+    let is_running = poll_result.is_none();
+    if let Some(result) = poll_result {
+        if let Err(error) = result {
+            error!("Epicbox listener task failed: {error}");
+        }
+        tasks.remove(&listener_id);
+    }
 
     let result = CString::new(if is_running { "true" } else { "false" }).unwrap();
     result.into_raw()
@@ -1110,6 +1197,38 @@ fn _tx_finalize(
 
     let c_out = CString::new(out).unwrap();
     Ok(c_out.into_raw())
+}
+
+#[cfg(test)]
+mod address_format_tests {
+    use super::*;
+    use crate::wallet::validate_address;
+    use epic_wallet_libwallet::{Address, EpicboxAddress};
+
+    const KEY: &str = "esYE8ucjQ47Sub6zAnnEct1g5D4hkD1kCDpJgb8rPfEwubXJu31w";
+
+    #[test]
+    fn default_port_keeps_the_old_format() {
+        assert_eq!(
+            format_epicbox_address(KEY, "epicbox.stackwallet.com", Some(443)),
+            format!("{}@epicbox.stackwallet.com", KEY)
+        );
+        assert_eq!(
+            format_epicbox_address(KEY, "epicbox.stackwallet.com", None),
+            format!("{}@epicbox.stackwallet.com", KEY)
+        );
+    }
+
+    #[test]
+    fn other_ports_are_included_and_parse_back() {
+        let s = format_epicbox_address(KEY, "127.0.0.1", Some(43420));
+        assert_eq!(s, format!("{}@127.0.0.1:43420", KEY));
+        assert!(validate_address(&s));
+        let parsed = EpicboxAddress::from_str(&s).unwrap();
+        assert_eq!(parsed.public_key, KEY);
+        assert_eq!(parsed.domain, "127.0.0.1");
+        assert_eq!(parsed.port, Some(43420));
+    }
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::sync::atomic::AtomicBool;
 use serde_derive::{Deserialize, Serialize};
 use epic_keychain::ExtKeychain;
@@ -19,6 +19,9 @@ use epic_wallet_libwallet::NodeClient;
 use epic_keychain::Keychain;
 use epic_wallet_impls::DefaultWalletImpl;
 use std::cmp::Ordering;
+
+static PROCESS_CHAIN_TYPE: OnceLock<epic_wallet_util::epic_core::global::ChainTypes> =
+    OnceLock::new();
 
 /// Wallet type.
 pub type Wallet = Arc<
@@ -53,6 +56,24 @@ struct Strategy {
     selection_strategy_is_use_all: bool,
     total: u64,
     fee: u64,
+}
+
+/// Node sync flag for an HTTP send, decided the way the epic-wallet CLI decides
+/// it: synced only when the node answers `get_status` with `sync_status`
+/// "no_sync". The send reads the flag once, right after this.
+///
+/// A node that cannot be asked is reported as that error. epic-wallet would
+/// otherwise turn it into "Node not synchronized".
+fn node_synced(wallet: &Wallet) -> Result<Arc<AtomicBool>, Error> {
+    let status = {
+        wallet_lock!(wallet, w);
+        w.w2n_client().get_node_status()
+    };
+    let synced = status
+        .map_err(|e| Error::ClientCallback(format!("Could not get the node's sync status: {}", e)))?
+        .sync_status
+        == "no_sync";
+    Ok(Arc::new(AtomicBool::new(synced)))
 }
 
 /// Get transaction strategies.
@@ -139,8 +160,15 @@ pub fn tx_create(
 ) -> Result<String, Error> {
     let return_slate = return_slate.unwrap_or(false);
 
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    let owner_api = Owner::new(wallet.clone(), None, is_stopped.clone());
+    // Owner::new's flag is the one epic-wallet hands to the subscriber that an
+    // epicbox send opens on the wallet's own address. While it is true, that
+    // subscriber handles incoming slates next to the app's own listener
+    // (listener.rs), and it holds the socket while it waits for the relay, so
+    // publishing the slate waits for the relay's next message. The send only
+    // has to publish, so leave the flag false, which keeps the subscriber
+    // paused. Nothing else in this function reads it: there is no HTTP send here.
+    let is_node_synced = Arc::new(AtomicBool::new(false));
+    let owner_api = Owner::new(wallet.clone(), None, is_node_synced.clone());
 
     // Only set epicbox config and send args if we want the wallet to relay via Epicbox.
     let send_args = if return_slate {
@@ -170,7 +198,7 @@ pub fn tx_create(
     };
 
     // Create the transaction.
-    let slate: Slate = owner_api.init_send_tx(keychain_mask.as_ref(), args, is_stopped.clone())?;
+    let slate: Slate = owner_api.init_send_tx(keychain_mask.as_ref(), args, is_node_synced.clone())?;
 
     // For slate mode, we need to lock the outputs immediately.
     // This creates the TxLogEntry which is required for finalization.
@@ -448,8 +476,8 @@ pub fn tx_send_http(
     amount: u64,
     address: &str,
 ) -> Result<String, Error>{
-    let is_stopped = Arc::new(AtomicBool::new(false));
-    let api = Owner::new(wallet.clone(), None, is_stopped.clone());
+    let is_node_synced = node_synced(wallet)?;
+    let api = Owner::new(wallet.clone(), None, is_node_synced.clone());
     let init_send_args = InitTxSendArgs {
         method: "http".to_string(),
         dest: address.to_string(),
@@ -470,7 +498,7 @@ pub fn tx_send_http(
         ..Default::default()
     };
 
-    match api.init_send_tx(keychain_mask.as_ref(), args, is_stopped.clone()) {
+    match api.init_send_tx(keychain_mask.as_ref(), args, is_node_synced.clone()) {
         Ok(slate) => {
             println!("{}", "CREATE_TX_SUCCESS");
             //Get transaction for slate, for UI display
@@ -680,6 +708,12 @@ pub fn get_wallet(config: &Config) -> Result<Wallet, Error> {
             return Err(e);
         }
     };
+    // epic_core's chain type is process-wide. Changing it after a wallet has
+    // opened can make every existing wallet use the wrong maturity, header and
+    // address rules, so a native process may host only one Epic chain type.
+    if let Some(chain_type) = wallet_config.chain_type.clone() {
+        configure_process_chain(&PROCESS_CHAIN_TYPE, chain_type)?;
+    }
     let node_api_secret = get_first_line(wallet_config.node_api_secret_path.clone());
     let node_client = HTTPNodeClient::new(&wallet_config.check_node_api_http_addr, node_api_secret).unwrap();
     let wallet =  match inst_wallet::<
@@ -695,6 +729,49 @@ pub fn get_wallet(config: &Config) -> Result<Wallet, Error> {
         }
     };
     return Ok(wallet);
+}
+
+fn configure_process_chain(
+    selected: &OnceLock<epic_wallet_util::epic_core::global::ChainTypes>,
+    requested: epic_wallet_util::epic_core::global::ChainTypes,
+) -> Result<(), Error> {
+    let process_chain = select_process_chain(selected, requested)?;
+    epic_wallet_util::epic_core::global::set_mining_mode(process_chain);
+    Ok(())
+}
+
+fn select_process_chain(
+    selected: &OnceLock<epic_wallet_util::epic_core::global::ChainTypes>,
+    requested: epic_wallet_util::epic_core::global::ChainTypes,
+) -> Result<epic_wallet_util::epic_core::global::ChainTypes, Error> {
+    let process_chain = selected.get_or_init(|| requested.clone());
+    if process_chain != &requested {
+        return Err(Error::GenericError(format!(
+            "Epic chain mismatch: this process is already using {process_chain:?}, requested {requested:?}"
+        )));
+    }
+    Ok(process_chain.clone())
+}
+
+#[cfg(test)]
+mod process_chain_tests {
+    use super::select_process_chain;
+    use epic_wallet_util::epic_core::global::ChainTypes;
+    use std::sync::OnceLock;
+
+    #[test]
+    fn accepts_repeated_wallets_on_the_same_chain() {
+        let selected = OnceLock::new();
+        select_process_chain(&selected, ChainTypes::Mainnet).unwrap();
+        select_process_chain(&selected, ChainTypes::Mainnet).unwrap();
+    }
+
+    #[test]
+    fn rejects_mixed_chain_wallets_in_one_process() {
+        let selected = OnceLock::new();
+        select_process_chain(&selected, ChainTypes::Mainnet).unwrap();
+        assert!(select_process_chain(&selected, ChainTypes::Floonet).is_err());
+    }
 }
 
 /// Instantiate a wallet.

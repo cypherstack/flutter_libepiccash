@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:decimal/decimal.dart';
+import 'package:mutex/mutex.dart';
 
 import 'models/balance_data.dart';
 import 'models/slate_response.dart';
@@ -9,6 +10,16 @@ import 'src/epic_task.dart';
 import 'src/epic_worker.dart';
 import 'utils/epic_errors.dart';
 import 'utils/validation_helpers.dart';
+
+class _EpicboxListenerRegistration {
+  const _EpicboxListenerRegistration({
+    required this.worker,
+    required this.pointerAddress,
+  });
+
+  final EpicWorker worker;
+  final int pointerAddress;
+}
 
 /// Epic wallet instance with persistent worker isolate
 ///
@@ -24,15 +35,19 @@ class EpicWallet {
   })  : _walletHandle = walletHandle,
         _worker = worker,
         _config = config,
+        _listenerKey = _listenerKeyFromConfig(config),
         _epicboxConfig = epicboxConfig;
 
   final EpicWorker _worker;
+  final String _listenerKey;
   String _config;
   String _epicboxConfig;
 
   String? _walletHandle;
-  int? _listenerPointerAddress;
   bool _isClosing = false;
+
+  static final _listenerMutex = Mutex();
+  static final Map<String, _EpicboxListenerRegistration> _listeners = {};
 
   /// Shared worker for stateless utility functions (getMnemonic, validateSendAddress, getChainHeightForConfig)
   static EpicWorker? _sharedWorker;
@@ -47,6 +62,18 @@ class EpicWallet {
     _sharedWorker = null;
   }
 
+  static String _listenerKeyFromConfig(String config) {
+    try {
+      final decoded = jsonDecode(config);
+      if (decoded is Map && decoded['wallet_dir'] is String) {
+        return decoded['wallet_dir'] as String;
+      }
+    } catch (_) {
+      // The native config parser will report malformed configuration later.
+    }
+    return config;
+  }
+
   String _getWalletHandle() {
     if (_walletHandle == null) {
       throw EpicWalletClosedException();
@@ -57,48 +84,75 @@ class EpicWallet {
   bool isClosed() => _walletHandle == null;
 
   Future<void> startListener() async {
-    await stopListener();
+    return _listenerMutex.protect(() async {
+      final walletHandle = _getWalletHandle();
 
-    _listenerPointerAddress = await _worker.runTask<int>(
-      EpicTask(
-        func: EpicFuncName.startEpicboxListener,
-        args: {
-          "wallet": _getWalletHandle(),
-          "epicboxConfig": _epicboxConfig,
-        },
-      ),
-    );
-  }
+      if (await _isEpicboxListenerRunning()) {
+        return;
+      }
 
-  Future<void> stopListener() async {
-    if (_listenerPointerAddress != null) {
-      await _worker.runTask<bool>(
+      final pointerAddress = await _worker.runTask<int>(
         EpicTask(
-          func: EpicFuncName.stopEpicboxListener,
+          func: EpicFuncName.startEpicboxListener,
           args: {
-            "pointer": _listenerPointerAddress!,
+            "wallet": walletHandle,
+            "epicboxConfig": _epicboxConfig,
           },
         ),
       );
-      _listenerPointerAddress = null;
-    }
+
+      if (pointerAddress == 0) {
+        throw EpicWalletException(
+          'Failed to start Epicbox listener: native listener returned null',
+        );
+      }
+
+      _listeners[_listenerKey] = _EpicboxListenerRegistration(
+        worker: _worker,
+        pointerAddress: pointerAddress,
+      );
+    });
+  }
+
+  Future<void> stopListener() async {
+    return _listenerMutex.protect(() async {
+      final registration = _listeners[_listenerKey];
+      if (registration == null) {
+        return;
+      }
+
+      await registration.worker.runTask<bool>(
+        EpicTask(
+          func: EpicFuncName.stopEpicboxListener,
+          args: {
+            "pointer": registration.pointerAddress,
+          },
+        ),
+      );
+      _listeners.remove(_listenerKey);
+    });
   }
 
   Future<bool> isEpicboxListenerRunning() async {
-    if (_listenerPointerAddress == null) {
+    return _listenerMutex.protect(_isEpicboxListenerRunning);
+  }
+
+  Future<bool> _isEpicboxListenerRunning() async {
+    final registration = _listeners[_listenerKey];
+    if (registration == null) {
       return false;
     }
 
-    final isRunning = await _worker.runTask<bool>(
+    final isRunning = await registration.worker.runTask<bool>(
       EpicTask(
         func: EpicFuncName.isEpicboxListenerRunning,
         args: {
-          "pointer": _listenerPointerAddress!,
+          "pointer": registration.pointerAddress,
         },
       ),
     );
     if (!isRunning) {
-      _listenerPointerAddress = null;
+      _listeners.remove(_listenerKey);
     }
     return isRunning;
   }
