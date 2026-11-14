@@ -11,6 +11,16 @@ import 'src/epic_worker.dart';
 import 'utils/epic_errors.dart';
 import 'utils/validation_helpers.dart';
 
+class _EpicboxListenerRegistration {
+  const _EpicboxListenerRegistration({
+    required this.worker,
+    required this.pointerAddress,
+  });
+
+  final EpicWorker worker;
+  final int pointerAddress;
+}
+
 /// Epic wallet instance with persistent worker isolate
 ///
 /// Each wallet instance owns a dedicated worker isolate where all operations
@@ -25,16 +35,19 @@ class EpicWallet {
   })  : _walletHandle = walletHandle,
         _worker = worker,
         _config = config,
+        _listenerKey = _listenerKeyFromConfig(config),
         _epicboxConfig = epicboxConfig;
 
   final EpicWorker _worker;
+  final String _listenerKey;
   String _config;
   String _epicboxConfig;
 
   String? _walletHandle;
-  int? _listenerPointerAddress;
   bool _isClosing = false;
-  final _listenerMutex = Mutex();
+
+  static final _listenerMutex = Mutex();
+  static final Map<String, _EpicboxListenerRegistration> _listeners = {};
 
   /// Shared worker for stateless utility functions (getMnemonic, validateSendAddress, getChainHeightForConfig)
   static EpicWorker? _sharedWorker;
@@ -47,6 +60,18 @@ class EpicWallet {
   static void disposeSharedWorker() {
     _sharedWorker?.dispose();
     _sharedWorker = null;
+  }
+
+  static String _listenerKeyFromConfig(String config) {
+    try {
+      final decoded = jsonDecode(config);
+      if (decoded is Map && decoded['wallet_dir'] is String) {
+        return decoded['wallet_dir'] as String;
+      }
+    } catch (_) {
+      // The native config parser will report malformed configuration later.
+    }
+    return config;
   }
 
   String _getWalletHandle() {
@@ -62,8 +87,7 @@ class EpicWallet {
     return _listenerMutex.protect(() async {
       final walletHandle = _getWalletHandle();
 
-      if (_listenerPointerAddress != null &&
-          await _isEpicboxListenerRunning()) {
+      if (await _isEpicboxListenerRunning()) {
         return;
       }
 
@@ -83,26 +107,29 @@ class EpicWallet {
         );
       }
 
-      _listenerPointerAddress = pointerAddress;
+      _listeners[_listenerKey] = _EpicboxListenerRegistration(
+        worker: _worker,
+        pointerAddress: pointerAddress,
+      );
     });
   }
 
   Future<void> stopListener() async {
     return _listenerMutex.protect(() async {
-      final pointerAddress = _listenerPointerAddress;
-      if (pointerAddress == null) {
+      final registration = _listeners[_listenerKey];
+      if (registration == null) {
         return;
       }
 
-      await _worker.runTask<bool>(
+      await registration.worker.runTask<bool>(
         EpicTask(
           func: EpicFuncName.stopEpicboxListener,
           args: {
-            "pointer": pointerAddress,
+            "pointer": registration.pointerAddress,
           },
         ),
       );
-      _listenerPointerAddress = null;
+      _listeners.remove(_listenerKey);
     });
   }
 
@@ -111,20 +138,21 @@ class EpicWallet {
   }
 
   Future<bool> _isEpicboxListenerRunning() async {
-    if (_listenerPointerAddress == null) {
+    final registration = _listeners[_listenerKey];
+    if (registration == null) {
       return false;
     }
 
-    final isRunning = await _worker.runTask<bool>(
+    final isRunning = await registration.worker.runTask<bool>(
       EpicTask(
         func: EpicFuncName.isEpicboxListenerRunning,
         args: {
-          "pointer": _listenerPointerAddress!,
+          "pointer": registration.pointerAddress,
         },
       ),
     );
     if (!isRunning) {
-      _listenerPointerAddress = null;
+      _listeners.remove(_listenerKey);
     }
     return isRunning;
   }
