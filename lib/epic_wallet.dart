@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:decimal/decimal.dart';
+import 'package:mutex/mutex.dart';
 
 import 'models/balance_data.dart';
 import 'models/slate_response.dart';
@@ -33,6 +34,7 @@ class EpicWallet {
   String? _walletHandle;
   int? _listenerPointerAddress;
   bool _isClosing = false;
+  final _listenerMutex = Mutex();
 
   /// Shared worker for stateless utility functions (getMnemonic, validateSendAddress, getChainHeightForConfig)
   static EpicWorker? _sharedWorker;
@@ -57,34 +59,58 @@ class EpicWallet {
   bool isClosed() => _walletHandle == null;
 
   Future<void> startListener() async {
-    await stopListener();
+    return _listenerMutex.protect(() async {
+      final walletHandle = _getWalletHandle();
 
-    _listenerPointerAddress = await _worker.runTask<int>(
-      EpicTask(
-        func: EpicFuncName.startEpicboxListener,
-        args: {
-          "wallet": _getWalletHandle(),
-          "epicboxConfig": _epicboxConfig,
-        },
-      ),
-    );
+      if (_listenerPointerAddress != null &&
+          await _isEpicboxListenerRunning()) {
+        return;
+      }
+
+      final pointerAddress = await _worker.runTask<int>(
+        EpicTask(
+          func: EpicFuncName.startEpicboxListener,
+          args: {
+            "wallet": walletHandle,
+            "epicboxConfig": _epicboxConfig,
+          },
+        ),
+      );
+
+      if (pointerAddress == 0) {
+        throw EpicWalletException(
+          'Failed to start Epicbox listener: native listener returned null',
+        );
+      }
+
+      _listenerPointerAddress = pointerAddress;
+    });
   }
 
   Future<void> stopListener() async {
-    if (_listenerPointerAddress != null) {
+    return _listenerMutex.protect(() async {
+      final pointerAddress = _listenerPointerAddress;
+      if (pointerAddress == null) {
+        return;
+      }
+
       await _worker.runTask<bool>(
         EpicTask(
           func: EpicFuncName.stopEpicboxListener,
           args: {
-            "pointer": _listenerPointerAddress!,
+            "pointer": pointerAddress,
           },
         ),
       );
       _listenerPointerAddress = null;
-    }
+    });
   }
 
   Future<bool> isEpicboxListenerRunning() async {
+    return _listenerMutex.protect(_isEpicboxListenerRunning);
+  }
+
+  Future<bool> _isEpicboxListenerRunning() async {
     if (_listenerPointerAddress == null) {
       return false;
     }
