@@ -32,13 +32,7 @@ impl Config {
 
 /// Create a wallet config.
 pub fn create_wallet_config(config: Config) -> Result<WalletConfig, Error> {
-    let chain_type = match config.chain.as_ref() {
-        "mainnet" => ChainTypes::Mainnet,
-        "floonet" => ChainTypes::Floonet,
-        "usertesting" => ChainTypes::UserTesting,
-        "automatedtesting" => ChainTypes::AutomatedTesting, // TODO: Use for tests.
-        _ => ChainTypes::Floonet,
-    };
+    let chain_type = parse_chain_type(&config.chain)?;
 
     let api_secret_path = config.wallet_dir.clone() + "/.api_secret";
     let api_listen_port = config.api_listen_port;
@@ -64,4 +58,39 @@ pub fn create_wallet_config(config: Config) -> Result<WalletConfig, Error> {
         no_commit_cache: Some(false),
         owner_api_include_foreign: Some(false),
     })
+}
+
+fn parse_chain_type(chain: &str) -> Result<ChainTypes, Error> {
+    Ok(match chain {
+        "mainnet" => ChainTypes::Mainnet,
+        "floonet" => ChainTypes::Floonet,
+        "usertesting" => ChainTypes::UserTesting,
+        "automatedtesting" => ChainTypes::AutomatedTesting, // TODO: Use for tests.
+        _ => return Err(Error::GenericError(format!("Unknown Epic chain: {chain}"))),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_chain_type;
+    use epic_wallet_util::epic_core::global::ChainTypes;
+
+    #[test]
+    fn parses_supported_chain_types() {
+        assert_eq!(parse_chain_type("mainnet").unwrap(), ChainTypes::Mainnet);
+        assert_eq!(parse_chain_type("floonet").unwrap(), ChainTypes::Floonet);
+        assert_eq!(
+            parse_chain_type("usertesting").unwrap(),
+            ChainTypes::UserTesting
+        );
+        assert_eq!(
+            parse_chain_type("automatedtesting").unwrap(),
+            ChainTypes::AutomatedTesting
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_chain_types() {
+        assert!(parse_chain_type("not-a-chain").is_err());
+    }
 }

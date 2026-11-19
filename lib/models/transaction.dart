@@ -178,8 +178,8 @@ class Message {
     return Message(
       id: json['id'].toString(),
       publicKey: json['public_key'].toString(),
-      message: json['message'].toString(),
-      messageSig: json['message_sig'].toString(),
+      message: json['message'] as String?,
+      messageSig: json['message_sig'] as String?,
     );
   }
 

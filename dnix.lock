@@ -1,17 +1,17 @@
 {
-  "release": "ccc49989ad00",
-  "date": "2026-10-27",
+  "release": "a48f6f8495d3",
+  "date": "2026-11-19",
   "files": {
-    "aarch64-apple-darwin/libepic_cash_wallet.dylib": "0a7c8c9b831a36a7609d11deb36d0a31d058993fb4aeb1122f0f914f6545a447",
-    "aarch64-apple-ios-sim/libepic_cash_wallet.dylib": "87765aa07e4b0a53187330a2f2689ba44dd8a36900ddc98baff1ab7825c76f28",
-    "aarch64-apple-ios/libepic_cash_wallet.dylib": "0abb37b695b81f9cca74f89eaa751255bf710c0fe5ba94bb8a1b8de2bd4b8344",
-    "aarch64-linux-android/libepic_cash_wallet.so": "6404d615975dd014d5abc2b6e29c489ad8308343dd4585cf38cdd1a917f31eda",
-    "aarch64-unknown-linux-gnu/libepic_cash_wallet.so": "57ad01d7d780e66f02c3b218cc023301ecaaf5fe33afcafaad1400444bb2e510",
-    "armv7-linux-androideabi/libepic_cash_wallet.so": "1b58e0ee45c3661b165123b7cdd2ef38c7660aa384ca307236e7745445ba8ad0",
-    "x86_64-apple-darwin/libepic_cash_wallet.dylib": "b89164c1625022d5ef37b264cd121356f44cead282e0faed57d33bf6048c195f",
-    "x86_64-apple-ios/libepic_cash_wallet.dylib": "a57f674ad46b98c0deb04e6038090893ae9c972f084d30ed5fbd86da8ff40278",
-    "x86_64-linux-android/libepic_cash_wallet.so": "f29a24b3679298b6b22bcdc96fb8807b0569a452435fff55c54275f5dfd646c9",
-    "x86_64-pc-windows-gnullvm/epic_cash_wallet.dll": "3642bc87648ecbed119a28c9419938d78ba5d24023c6ef33562f5969354dd8a1",
-    "x86_64-unknown-linux-gnu/libepic_cash_wallet.so": "8b0fd9c8731e9e66053c193311b46bf7b175adb7f92936ff35abaaa4c1facc4c"
+    "aarch64-apple-darwin/libepic_cash_wallet.dylib": "0c8027cf0b3a9ee6dbf5259bd4f86f34e973c2a5593d5216499a768749f3a635",
+    "aarch64-apple-ios-sim/libepic_cash_wallet.dylib": "909ae275c4b458412c0c75e79402bd67f015a20a47a94318e73b18949c015779",
+    "aarch64-apple-ios/libepic_cash_wallet.dylib": "d0bfd17ccef258ec9028af86c7ad2256b0ba4ec4e8f33f54ed3a0867bb9df556",
+    "aarch64-linux-android/libepic_cash_wallet.so": "0d9cc0f2f4b2a0640d539b1dcdeb4dfc132892a581cfa98ccba39cdd9918a846",
+    "aarch64-unknown-linux-gnu/libepic_cash_wallet.so": "d4d69795b31b8157ded96662908eb99bbeaaa6e9c6f110a5ff9c36b9278ae9a3",
+    "armv7-linux-androideabi/libepic_cash_wallet.so": "98063e06690f7bd7362fd3ca390fbf6f60516885f5d43105b680252f1d17eabf",
+    "x86_64-apple-darwin/libepic_cash_wallet.dylib": "190f7e85cf61aefde0b7e613f120022ef400a4b630cce3e50fc3006afe91f203",
+    "x86_64-apple-ios/libepic_cash_wallet.dylib": "7160a4b35c9e458d5ee0ac10430f0568106d2f1bc8e9d111b7e07d99754dc378",
+    "x86_64-linux-android/libepic_cash_wallet.so": "8402d1f56836c80769c5e7678df86ec92800c2a8c2d7728ffa77c10d0b2c98ee",
+    "x86_64-pc-windows-gnullvm/epic_cash_wallet.dll": "c3ce1c72b18f978555f548f44959e93322dffa06875543148316d526f840d94f",
+    "x86_64-unknown-linux-gnu/libepic_cash_wallet.so": "c7171133c89d1f00f41ae4fee70c40c2532c8fe275fb51299fbd36ec545e2394"
   }
 }
