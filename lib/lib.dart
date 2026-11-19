@@ -7,6 +7,7 @@ import 'package:mutex/mutex.dart';
 import 'epic_cash.dart' as lib_epiccash;
 import 'epic_wallet.dart';
 import 'models/transaction.dart';
+import 'utils/epic_errors.dart';
 
 export 'epic_wallet.dart';
 
@@ -56,9 +57,7 @@ abstract class LibEpiccash {
   static final Mutex m = Mutex();
 
   static void _checkForError(String result) {
-    if (result.startsWith("Error ")) {
-      throw Exception(result);
-    }
+    checkForError(result);
   }
 
   // Private function wrapper for compute
@@ -145,9 +144,7 @@ abstract class LibEpiccash {
         );
 
         //If balances is valid json return, else return error
-        if (balances.toUpperCase().contains("ERROR")) {
-          throw Exception(balances);
-        }
+        _checkForError(balances);
         final jsonBalances = json.decode(balances);
         //Return balances as record
         final ({
@@ -253,9 +250,7 @@ abstract class LibEpiccash {
           returnSlate: returnSlate,
         );
 
-        if (result.toUpperCase().contains("ERROR")) {
-          throw Exception("Error creating transaction ${result.toString()}");
-        }
+        _checkForError(result);
 
         // Decode the nested JSON structure.
         // Structure: [inner_json_string, {"slate_msg": ""}]
@@ -323,11 +318,7 @@ abstract class LibEpiccash {
           refreshFromNode,
         );
 
-        if (result.toUpperCase().contains("ERROR")) {
-          throw Exception(
-            "Error getting epic transactions ${result.toString()}",
-          );
-        }
+        _checkForError(result);
 
         //Parse the returned data as an EpicTransaction
         final List<Transaction> finalResult = [];
@@ -492,11 +483,7 @@ abstract class LibEpiccash {
           }
         }
 
-        if (fees.toUpperCase().contains("ERROR")) {
-          //Check if the error is an
-          //Throw the returned error
-          throw Exception(fees);
-        }
+        _checkForError(fees);
         final decodedFees = json.decode(fees);
         final feeItem = decodedFees[0];
         final ({
@@ -649,9 +636,7 @@ abstract class LibEpiccash {
         amount,
         address,
       );
-      if (result.toUpperCase().contains("ERROR")) {
-        throw Exception("Error creating transaction ${result.toString()}");
-      }
+      _checkForError(result);
 
       //Decode sent tx and return Slate Id
       final slate0 = jsonDecode(result);
@@ -774,9 +759,7 @@ abstract class LibEpiccash {
           slateJson,
         );
 
-        if (result.toUpperCase().contains("ERROR")) {
-          throw Exception("Error receiving transaction ${result.toString()}");
-        }
+        _checkForError(result);
 
         // Decode the received tx and return Slate Id and CommitId.
         final slate0 = jsonDecode(result);
@@ -832,9 +815,7 @@ abstract class LibEpiccash {
           slateJson,
         );
 
-        if (result.toUpperCase().contains("ERROR")) {
-          throw Exception("Error finalizing transaction ${result.toString()}");
-        }
+        _checkForError(result);
 
         // Decode the finalized tx and return Slate Id and CommitId.
         final slate0 = jsonDecode(result);

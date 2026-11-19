@@ -58,10 +58,8 @@ class EpicTransactionException extends EpicWalletException {
 }
 
 void checkForError(String result) {
-  if (result.startsWith('Error ')) {
-    throw EpicFFIException.fromResult(result);
-  }
-  if (result.toUpperCase().contains('ERROR')) {
-    throw EpicFFIException(result, code: 'FFI_ERROR');
+  final trimmed = result.trimLeft();
+  if (RegExp(r'^error(?:\s|:|$)', caseSensitive: false).hasMatch(trimmed)) {
+    throw EpicFFIException.fromResult(trimmed);
   }
 }

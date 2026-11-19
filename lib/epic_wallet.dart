@@ -662,11 +662,15 @@ class EpicWallet {
     return SlateResponse.fromReceiveResult(result);
   }
 
-  Future<({String slateId, String commitId})> txFinalizeRecord({
+  Future<({String slateId, String commitId, bool posted})> txFinalizeRecord({
     required String slateJson,
   }) async {
     final slate = await txFinalize(slateJson: slateJson);
-    return (slateId: slate.slateId, commitId: slate.commitId);
+    return (
+      slateId: slate.slateId,
+      commitId: slate.commitId,
+      posted: slate.posted,
+    );
   }
 
   /// Get current blockchain height. Convenience wrapper using this wallet's config.

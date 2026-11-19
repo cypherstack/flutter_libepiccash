@@ -92,12 +92,13 @@ pub fn tx_strategies(
         minimum_confirmations,
         max_outputs: 500,
         num_change_outputs: 1,
+        selection_strategy_is_use_all: false,
         estimate_only: Some(true),
         message: None,
         ..Default::default()
     };
 
-    match owner::init_send_tx(&mut **w, keychain_mask.as_ref(), args, true) {
+    match owner::init_send_tx(&mut **w, keychain_mask.as_ref(), args, false) {
         Ok(slate) => {
             result.push(Strategy {
                 selection_strategy_is_use_all: false,
@@ -291,7 +292,7 @@ pub fn tx_finalize(
     wallet: &Wallet,
     keychain_mask: Option<SecretKey>,
     slate_json: &str,
-) -> Result<String, Error> {
+) -> Result<(String, bool), Error> {
     // Inflate the slate.
     let slate = Slate::deserialize_upgrade(slate_json)?;
 
@@ -303,11 +304,11 @@ pub fn tx_finalize(
 
     // Post the transaction to the network.
     let tx = finalized_slate.tx.clone();
-    owner_api.post_tx(keychain_mask.as_ref(), &tx, true)?;
+    let posted = owner_api.post_tx(keychain_mask.as_ref(), &tx, true).is_ok();
 
     let result = serde_json::to_string(&finalized_slate)?;
 
-    Ok(result)
+    Ok((result, posted))
 }
 
 /// Get a transaction by slate ID.

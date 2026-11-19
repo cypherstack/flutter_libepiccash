@@ -6,11 +6,13 @@ class SlateResponse {
   final String slateId;
   final String commitId;
   final String slateJson;
+  final bool posted;
 
   SlateResponse({
     required this.slateId,
     required this.commitId,
     required this.slateJson,
+    this.posted = true,
   });
 
   // Epic FFI txReceive returns: result -> slate0[0] -> parsedSlate (Map)
@@ -41,6 +43,7 @@ class SlateResponse {
         slateId: slateId,
         commitId: commitId,
         slateJson: slateResponse,
+        posted: _parsePosted(slate0),
       );
     } on FormatException catch (e, s) {
       throw EpicParseException(
@@ -164,8 +167,28 @@ class SlateResponse {
     return commit as String;
   }
 
+  static bool _parsePosted(List<dynamic> response) {
+    if (response.length < 2 || response[1] is! String) return true;
+    try {
+      final metadata = jsonDecode(response[1] as String);
+      return metadata is! Map<String, dynamic> || metadata['posted'] != false;
+    } catch (_) {
+      return true;
+    }
+  }
+
   ({String slateId, String commitId, String slateJson}) toRecord() {
     return (slateId: slateId, commitId: commitId, slateJson: slateJson);
+  }
+
+  ({String slateId, String commitId, String slateJson, bool posted})
+      toFinalizeRecord() {
+    return (
+      slateId: slateId,
+      commitId: commitId,
+      slateJson: slateJson,
+      posted: posted,
+    );
   }
 
   @override

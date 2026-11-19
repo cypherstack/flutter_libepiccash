@@ -1184,10 +1184,14 @@ fn _tx_finalize(
     let mut out = String::new();
 
     match tx_finalize(wallet, keychain_mask, slate_json) {
-        Ok(finalized_slate) => {
+        Ok((finalized_slate, posted)) => {
             // Same tuple shape as elsewhere.
-            let empty_json = r#"{"slate_msg": ""}"#;
-            let response_tuple = (&finalized_slate, &empty_json);
+            let metadata = serde_json::json!({
+                "slate_msg": "",
+                "posted": posted,
+            })
+            .to_string();
+            let response_tuple = (&finalized_slate, &metadata);
             out.push_str(&serde_json::to_string(&response_tuple).unwrap());
         }
         Err(e) => {
